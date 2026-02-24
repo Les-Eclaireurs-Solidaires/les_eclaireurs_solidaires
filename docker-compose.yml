@@ -1,14 +1,12 @@
-version: "3.8"
-
 services:
   mysql:
-    image: mysql:8.0-alpine
+    image: mysql:latest
     environment:
       - MYSQL_ROOT_PASSWORD=${DB_PASSWORD}
       - MYSQL_DATABASE=${DB_NAME}
       - MYSQL_USER=${DB_USER}
       - MYSQL_PASSWORD=${DB_PASSWORD}
-      - MYSQL_ALLOW_EMPTY_ROOT_PASSWORD=yes
+      - MYSQL_ALLOW_EMPTY_PASSWORD=yes
     ports:
       - "3306:3306"
     volumes:
@@ -39,6 +37,8 @@ services:
         condition: service_healthy
     networks:
       - les-eclaireurs-network
+    env_file:
+      - ./.env
 
   frontend:
     build: ./frontend
@@ -52,6 +52,8 @@ services:
       - backend
     networks:
       - les-eclaireurs-network
+    env_file:
+      - ./.env
 
   phpmyadmin:
     image: phpmyadmin/phpmyadmin:latest
