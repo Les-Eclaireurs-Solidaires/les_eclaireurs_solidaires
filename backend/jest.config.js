@@ -1,8 +1,8 @@
 export default {
-  preset: 'ts-jest/presets/default-esm', // Utilise le preset ESM
+  preset: 'ts-jest/presets/default-esm', 
   testEnvironment: 'node',
   moduleNameMapper: {
-    '^(\\.{1,2}/.*)\\.js$': '$1', // Magie : transforme les imports .js en .ts pour les tests
+    '^(\\.{1,2}/.*)\\.js$': '$1', 
   },
   transform: {
     '^.+\\.tsx?$': [

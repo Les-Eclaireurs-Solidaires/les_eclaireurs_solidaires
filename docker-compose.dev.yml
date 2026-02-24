@@ -1,0 +1,23 @@
+# Override pour le développement avec hot-reload et volumes
+# À utiliser avec: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
+services:
+  backend:
+    build:
+      context: ./backend
+      target: development
+    command: npm run dev
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+
+  frontend:
+    build:
+      context: ./frontend
+      target: development
+    command: npm start
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    ports:
+      # On mappe le port de l'hôte vers le port 4200 du conteneur (ng serve)
+      - "${FRONTEND_PORT}:4200"

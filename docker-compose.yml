@@ -19,7 +19,9 @@ services:
       - les-eclaireurs-network
 
   backend:
-    build: ./backend
+    build:
+      context: ./backend
+      target: production
     ports:
       - "${BACKEND_PORT}:${BACKEND_PORT}"
     environment:
@@ -40,11 +42,13 @@ services:
       - ./.env
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      target: production
     ports:
-      - "${FRONTEND_PORT}:${FRONTEND_PORT}"
+      - "${FRONTEND_PORT}:4000"
     environment:
-      - PORT=${FRONTEND_PORT}
+      - PORT=4000
       - NODE_ENV=${FRONTEND_NODE_ENV}
       - BACKEND_URL=http://backend:${BACKEND_PORT}
     depends_on:
