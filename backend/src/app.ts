@@ -26,7 +26,7 @@ export class AppConfig {
 
     private initializeRoutes() {
         this.app.get("/", (req, res) => {
-            res.send("Helssslo World!");
+            res.send("Hello World!");
         });
         
     }

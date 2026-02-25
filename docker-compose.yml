@@ -45,8 +45,6 @@ services:
     build:
       context: ./frontend
       target: production
-    ports:
-      - "${FRONTEND_PORT}:4000"
     environment:
       - PORT=4000
       - NODE_ENV=${FRONTEND_NODE_ENV}
