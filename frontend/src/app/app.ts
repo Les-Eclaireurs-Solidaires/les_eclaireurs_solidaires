@@ -1,29 +1,15 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
-import { HttpClient } from '@angular/common/http';
+import { Menu } from './menu/menu';
+import { Footer } from './footer/footer';
+
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet],
+  imports: [RouterOutlet, Menu, Footer],
   templateUrl: './app.html',
   styleUrl: './app.css',
 })
-export class App implements OnInit {
-  protected readonly title = signal('frontend');
+export class App {
 
-  backendMessage = signal<string>('');
-
-  private client = inject(HttpClient);
-
-  constructor() {}
-
-  ngOnInit() {
-    this.client.get('/', { responseType: 'text' }).subscribe({
-      next: (message) => {
-        this.backendMessage.set(message.toString());
-        console.log('Message from backend:', message);
-      },
-      error: (error) => console.error('Error fetching backend message:', error),
-    });
-  }
 }

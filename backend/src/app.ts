@@ -1,38 +1,57 @@
-import cookieParser from 'cookie-parser';
-import express from 'express';
-import cors from 'cors';
-import helmet from 'helmet';
+import cookieParser from "cookie-parser";
+import express from "express";
+import cors from "cors";
+import helmet from "helmet";
+import { AuthController } from "./auth/auth.controller.js";
+import { AuthService } from "./auth/auth.service.js";
+import { UserRepository } from "./user/user.repository.js";
+import { Database } from "./database/database.config.js";
 
 export class AppConfig {
-    private app: express.Application;
-    private port: number; 
-    private host: string;
+  private app: express.Application;
+  private port: number;
+  private host: string;
+  private authController!: AuthController;
 
-    constructor() {
-        this.app = express();
-        this.port = Number(process.env.PORT);
-        this.host = process.env.HOST!;
-        this.initializeMiddlewares();
-        this.initializeRoutes();
-    }
+  constructor() {
+    this.app = express();
+    this.port = Number(process.env.PORT);
+    this.host = process.env.HOST!;
+    this.initializeDependencies();
+    this.initializeMiddlewares();
+    this.initializeRoutes();
+  }
 
-    private initializeMiddlewares() {
-        this.app.use(express.json());
-        this.app.use(express.urlencoded({ extended: true }));
-        this.app.use(cors());
-        this.app.use(helmet());
-        this.app.use(cookieParser());
-    }
+  private initializeDependencies() {
+    const databaseConfig = Database.getInstance().getConnection();
+    const userRepository = new UserRepository(databaseConfig);
+    const authService = new AuthService(userRepository);
 
-    private initializeRoutes() {
-        this.app.get("/", (req, res) => {
-            res.send("Hello World!");
-        });
-        
-    }
-    public listen() {
-        this.app.listen(this.port, this.host, () => {
-                  console.log(`Server started on http://${this.host}:${this.port}`);
-        });
-    }
+    this.authController = new AuthController(authService);
+  }
+
+  private initializeMiddlewares() {
+    this.app.use(express.json());
+    this.app.use(express.urlencoded({ extended: true }));
+    this.app.use(cors());
+    this.app.use(helmet());
+    this.app.use(cookieParser());
+  }
+
+  private initializeRoutes() {
+    this.app.get("/", (req, res) => {
+      res.send("Hello World!");
+    });
+    this.app.use("/auth", this.authController.getRouter());
+  }
+
+  public listen() {
+    this.app.listen(this.port, this.host, () => {
+      console.log(`Server started on http://${this.host}:${this.port}`);
+    });
+  }
+
+  public getApp() {
+    return this.app;
+  }
 }

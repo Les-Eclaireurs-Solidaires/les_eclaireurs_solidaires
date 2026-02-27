@@ -13,7 +13,7 @@ import {
   withFetch,
   withInterceptors,
 } from '@angular/common/http';
-import { baseUrlInterceptor } from '../interceptors/baseUrl.interceptor';
+import { baseUrlInterceptor } from './interceptors/baseUrl.interceptor';
 
 export const appConfig: ApplicationConfig = {
   providers: [

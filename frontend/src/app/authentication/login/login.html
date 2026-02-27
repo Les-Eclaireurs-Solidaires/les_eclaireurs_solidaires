@@ -1,0 +1,33 @@
+<mat-card class="card-login">
+  <mat-card-header class="card-login-header">
+    <mat-card-title>J'ai déjà un compte</mat-card-title>
+    <mat-card-subtitle>Les champs * sont obligatoires</mat-card-subtitle>
+  </mat-card-header>
+  <mat-card-content class="card-login-content">
+    <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="login-form">
+      <div class="form-inputs">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label>Email</mat-label>
+          <input matInput formControlName="email" type="email" required />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label>Password</mat-label>
+          <input matInput formControlName="password" type="password" required />
+        </mat-form-field>
+      </div>
+      <mat-card-actions class="card-login-actions">
+        <a routerLink="forgot-password">Mot de passe oublié ?</a>
+        <button mat-raised-button color="primary" type="submit">Login</button>
+      </mat-card-actions>
+    </form>
+  </mat-card-content>
+  <mat-divider></mat-divider>
+  <mat-card-footer class="card-login-footer">
+    <mat-card-title> Pas encore de compte ? </mat-card-title>
+
+    <mat-card-actions class="card-login-footer-actions">
+      <button mat-raised-button color="primary" routerLink="register">Devenir Bénévole</button>
+    </mat-card-actions>
+  </mat-card-footer>
+</mat-card>

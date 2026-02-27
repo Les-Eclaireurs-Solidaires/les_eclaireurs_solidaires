@@ -1,0 +1,58 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  align-items: center;     
+  justify-content: center; 
+  flex: 1;       
+  width: 100%;   
+}
+
+.card-register {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  border: 1px solid #ccc;
+  border-radius: 0; /* Angles droits pour le style institutionnel DSFR */
+  padding: 32px;
+  width: 100%;
+  max-width: 450px;
+  box-shadow: none; /* Retire l'ombre par défaut pour un design plus plat */
+}
+
+.card-register-header {
+  margin-bottom: 24px;
+}
+
+.form-inputs {
+  display: flex;
+  flex-direction: column;
+  gap: 16px; /* Espace harmonieux entre les champs */
+}
+
+.card-register-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin-top: 24px;
+  padding: 0;
+}
+
+.card-register-actions button {
+  width: 100%;
+  padding: 24px 0; /* Bouton plus imposant typique du DSFR */
+  font-size: 1.1rem;
+}
+
+.card-register-footer {
+  margin-top: 24px;
+  text-align: center;
+}
+
+.card-register-footer-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 10px;
+}
