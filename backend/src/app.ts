@@ -2,10 +2,11 @@ import cookieParser from "cookie-parser";
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
-import { AuthController } from "./auth/auth.controller.js";
-import { AuthService } from "./auth/auth.service.js";
-import { UserRepository } from "./user/user.repository.js";
+import { AuthController } from "./modules/auth/auth.controller.js";
+import { AuthService } from "./modules/auth/auth.service.js";
+import { UserRepository } from "./modules/user/user.repository.js";
 import { Database } from "./database/database.config.js";
+import { errorHandler } from "./middleware/error.middleware.js";
 
 export class AppConfig {
   private app: express.Application;
@@ -20,6 +21,7 @@ export class AppConfig {
     this.initializeDependencies();
     this.initializeMiddlewares();
     this.initializeRoutes();
+    this.initializeErrorHandling();
   }
 
   private initializeDependencies() {
@@ -34,6 +36,7 @@ export class AppConfig {
     this.app.use(express.json());
     this.app.use(express.urlencoded({ extended: true }));
     this.app.use(cors());
+    //this.app.use(cors({ origin: 'url_du_front' }));
     this.app.use(helmet());
     this.app.use(cookieParser());
   }
@@ -43,6 +46,10 @@ export class AppConfig {
       res.send("Hello World!");
     });
     this.app.use("/auth", this.authController.getRouter());
+  }
+
+  private initializeErrorHandling() {
+    this.app.use(errorHandler);
   }
 
   public listen() {
