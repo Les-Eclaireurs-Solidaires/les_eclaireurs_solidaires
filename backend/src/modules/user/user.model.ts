@@ -7,26 +7,88 @@ export class User {
   private password: string;
   private firstName: string | null;
   private lastName: string | null;
-  private avatarUrl: string;
-  private createdAt: Date;
+  private avatarUrl?: string;
+  private createdAt?: Date;
   private updatedAt: Date | null;
   private deletedAt: Date | null;
   private cityId: number;
-  private roleId: number;
+  private roleId?: number;
 
   constructor(param: IUser) {
     this.createdAt = param.createdAt || new Date();
     this.uuid = param.uuid || crypto.randomUUID();
+    this.avatarUrl = param.avatarUrl || "public/avatar/default.png";
+    this.roleId = param.roleId || 3;
 
-    this.refreshToken = param.refreshToken || null;
     this.email = param.email;
     this.password = param.password;
+    this.refreshToken = param.refreshToken || null;
     this.firstName = param.firstName || null;
     this.lastName = param.lastName || null;
-    this.avatarUrl = param.avatarUrl || "public/avatar/default.png";
     this.updatedAt = null;
     this.deletedAt = null;
     this.cityId = param.cityId;
-    this.roleId = param.roleId;
   }
+
+  getUuid(): string {
+    return this.uuid;
+  }
+
+  getPassword(): string {
+    return this.password;
+  }
+
+  getFirstName(): string | null {
+    return this.firstName;
+  }
+
+  getLastName(): string | null {
+    return this.lastName;
+  }
+
+  getAvatarUrl(): string {
+    return this.avatarUrl || "public/avatar/default.png";
+  }
+
+  getCreatedAt(): Date {
+    return this.createdAt!;
+  }
+
+  getUpdatedAt(): Date | null {
+    return this.updatedAt;
+  }
+
+  getDeletedAt(): Date | null {
+    return this.deletedAt;
+  }
+
+  getCityId(): number {
+    return this.cityId;
+  }
+
+  getEmail(): string {
+    return this.email;
+  }
+
+  getRoleId(): number {
+    return this.roleId!;
+  }
+
+  getRefreshToken(): string | null {
+    return this.refreshToken;
+  }
+
+  setEmail(email: string): void {
+    this.email = email;
+  }
+
+  setPassword(password: string): void {
+    this.password = password;
+  }
+
+  setRefreshToken(refreshToken: string | null): void {
+    this.refreshToken = refreshToken;
+  }
+
+
 }

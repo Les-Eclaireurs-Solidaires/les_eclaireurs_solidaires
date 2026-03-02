@@ -5,10 +5,10 @@ export interface IUser {
   refreshToken?: string | null;
   firstName?: string | null;
   lastName?: string | null;
-  avatarUrl: string | "public/avatar/default.png";
-  createdAt: Date;
+  avatarUrl?: string | "public/avatar/default.png";
+  createdAt?: Date;
   updatedAt?: Date | null;
   deletedAt?: Date | null;
   cityId: number;
-  roleId: number;
+  roleId?: number;
 }

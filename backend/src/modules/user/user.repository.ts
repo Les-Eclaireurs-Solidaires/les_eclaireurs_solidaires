@@ -1,8 +1,30 @@
-import type { Pool, RowDataPacket } from "mysql2/promise";
+import type {
+  Pool,
+  Query,
+  QueryOptions,
+  ResultSetHeader,
+  RowDataPacket,
+} from "mysql2/promise";
 import { User } from "./user.model.js";
 import type { IUser } from "./user.interface.js";
+import { HttpException } from "../../utils/HttpException.js";
 
 export class UserRepository {
+  private readonly columnMapping: { [key: string]: string } = {
+    uuid: "user_uuid",
+    email: "user_email",
+    password: "user_password",
+    refreshToken: "user_refresh_token",
+    firstName: "user_firstname",
+    lastName: "user_lastname",
+    avatarUrl: "user_avatar",
+    createdAt: "user_created_at",
+    updatedAt: "user_updated_at",
+    deletedAt: "user_deleted_at",
+    cityId: "id_city",
+    roleId: "id_role",
+  };
+
   constructor(private db: Pool) {}
 
   async findByEmail(email: string) {
@@ -28,9 +50,64 @@ export class UserRepository {
 
   async findByUuid(uuid: string) {}
 
-  async create(user: User) {}
+  async create(user: User) {
+    const query = `INSERT INTO \`user\` (
+      user_uuid,
+      user_email,
+      user_password,
+      user_refresh_token,
+      user_firstname,
+      user_lastname,
+      user_avatar,
+      user_created_at,
+      id_city,
+      id_role
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
 
-  async update(user: User) {}
+    const values = [
+      user.getUuid(),
+      user.getEmail(),
+      user.getPassword(),
+      user.getRefreshToken(),
+      user.getFirstName(), // firstName
+      user.getLastName(), // lastName
+      user.getAvatarUrl(),
+      user.getCreatedAt(),
+      user.getCityId(),
+      user.getRoleId(),
+    ];
+    
+    await this.db.execute(query, values);
+    return user;
+  }
 
-  async delete(id: string) {}
+  async update(uuid: string, payload: Partial<IUser>) {
+    const values: (string | number | Date | null)[] = [];
+    const setClauses = [];
+
+    for (const key in payload) {
+      const value = payload[key as keyof IUser];
+
+      if (value !== undefined) {
+        setClauses.push(`${this.columnMapping[key]} = ?`);
+        values.push(value as string | number | Date | null);
+      }
+    }
+
+    if (setClauses.length === 0) {
+      throw new HttpException(400, "No fields to update");
+    }
+
+    const query = `UPDATE \`user\` SET ${setClauses.join(", ")} WHERE user_uuid = ?`;
+    values.push(uuid);
+
+    const [result] = await this.db.execute<ResultSetHeader>(query, values);
+    return result.affectedRows > 0;
+  }
+
+  async delete(uuid: string) {
+    const query = `UPDATE \`user\` SET user_deleted_at = NOW() WHERE user_uuid = ?`;
+    const [result] = await this.db.execute<ResultSetHeader>(query, [uuid]);
+    return result.affectedRows > 0;
+  }
 }

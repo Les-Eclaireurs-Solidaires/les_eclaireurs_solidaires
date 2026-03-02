@@ -12,7 +12,7 @@
     "target": "esnext",
     "moduleResolution": "nodenext",
     "lib": ["esnext"],
-    "types": ["node", "jest"],
+    "types": ["node", "vitest"],
 
     // Other Outputs
     "sourceMap": true,
@@ -41,6 +41,5 @@
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
   },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "**/*.spec.ts"]
+  "include": ["src/**/*"]
 }
