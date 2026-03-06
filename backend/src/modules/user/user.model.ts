@@ -1,5 +1,6 @@
 import type { IUser } from "./user.interface.js";
 
+
 export class User {
   private uuid: string;
   private refreshToken: string | null;
@@ -11,8 +12,8 @@ export class User {
   private createdAt?: Date;
   private updatedAt: Date | null;
   private deletedAt: Date | null;
-  private cityId: number;
-  private roleId?: number;
+  private cityId: number | null;
+  private roleId: number;
 
   constructor(param: IUser) {
     this.createdAt = param.createdAt || new Date();
@@ -27,8 +28,17 @@ export class User {
     this.lastName = param.lastName || null;
     this.updatedAt = null;
     this.deletedAt = null;
-    this.cityId = param.cityId;
+    this.cityId = param.cityId || null;
   }
+
+  toAuthResponse() {
+    return {
+      uuid: this.uuid,
+      email: this.email,
+      roleId: this.roleId,
+    };
+  }
+
 
   getUuid(): string {
     return this.uuid;
@@ -62,7 +72,7 @@ export class User {
     return this.deletedAt;
   }
 
-  getCityId(): number {
+  getCityId(): number | null {
     return this.cityId;
   }
 

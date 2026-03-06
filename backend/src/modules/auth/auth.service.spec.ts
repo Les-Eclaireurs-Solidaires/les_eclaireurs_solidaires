@@ -1,22 +1,39 @@
+import type { IHashUtil } from "../../utils/hash.util.interface.js";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { AuthService } from "./auth.service.js";
 import { User } from "../user/user.model.js";
 import { HttpException } from "../../utils/HttpException.js";
+import type { IUserRepository } from "../user/user.repository.interface.js";
+import { TokenUtil } from "../../utils/token.util.js";
+import e from "express";
 
 describe("AuthService", () => {
   let authService: AuthService;
-  let mockUserRepository: any;
+  let mockUserRepository: IUserRepository;
+  let mockHashUtil: IHashUtil;
 
   beforeEach(() => {
     // 1. On fabrique un faux UserRepository
     mockUserRepository = {
       findByEmail: vi.fn(),
+      findByUuid: vi.fn(),
       create: vi.fn(),
       update: vi.fn(),
+      delete: vi.fn(),
     };
 
+    mockHashUtil = {
+      hashString: vi.fn(),
+      compareStringToHash: vi.fn(),
+    };
+
+    process.env.JWT_ACCESS_SECRET = "secret_de_test";
+    process.env.JWT_ACCESS_EXPIRES_IN = "15m";
+    process.env.JWT_REFRESH_SECRET = "secret_refresh_de_test";
+    process.env.JWT_REFRESH_EXPIRES_IN = "7d";
+
     // 2. On instancie le service en lui injectant le faux repository
-    authService = new AuthService(mockUserRepository);
+    authService = new AuthService(mockUserRepository, mockHashUtil);
   });
 
   describe("register()", () => {
@@ -25,21 +42,28 @@ describe("AuthService", () => {
       const existingEmail = "test@test.com";
       const password = "password123";
 
-      // On dit au faux repository : "Quand on t'appelle avec cet email, renvoie un faux User"
-      mockUserRepository.findByEmail.mockResolvedValue(
+      // On simule que l'email existe déjà en retour de FindEmail()
+      vi.mocked(mockUserRepository.findByEmail).mockResolvedValue(
         new User({
-          email: existingEmail,
-          password: "hashedpassword",
-          cityId: 1,
+          uuid: "123e4567-e89b-12d3-a456-426614174000",
+          email: "test@test.com",
+          password: "password123",
+          refreshToken: null,
+          firstName: null,
+          lastName: null,
+          avatarUrl: "public/avatar/default.png",
+          createdAt: new Date(),
+          updatedAt: null,
+          deletedAt: null,
+          cityId: null,
+          roleId: 3,
         }),
       );
 
       // ÉTAPE 2 & 3 : Agir et Vérifier (Act & Assert)
-      // À toi d'écrire la vérification avec Vitest !
-      // Astuce : Cherche comment utiliser expect(...).rejects.toThrow() avec du code asynchrone.
       await expect(
         authService.register(existingEmail, password),
-      ).rejects.toMatchObject(new HttpException(400, "Email already in use"));
+      ).rejects.toMatchObject(new HttpException(400, "Email was in use"));
     });
     it("doit inscrire l'utilisateur et renvoyer les tokens si l'email est disponible", async () => {
       // ÉTAPE 1 : Préparer le contexte (Arrange)
@@ -47,21 +71,141 @@ describe("AuthService", () => {
       const password = "password123";
 
       // On simule que l'email est libre en renvoyant null
-      mockUserRepository.findByEmail.mockResolvedValue(null);
-
-      // ASTUCE : On injecte de fausses variables d'environnement juste pour ce test
-      process.env.JWT_SECRET = "secret_de_test";
-      process.env.JWT_EXPIRES_IN = "15m";
-      process.env.JWT_REFRESH_SECRET = "secret_refresh_de_test";
-      process.env.JWT_REFRESH_EXPIRES_IN = "7d";
+      vi.mocked(mockUserRepository.findByEmail).mockResolvedValue(null);
+      // On simule un password valide
+      vi.mocked(mockHashUtil.hashString).mockResolvedValue("hashedPassword");
 
       // ÉTAPE 2 : Agir (Act)
-      // À TOI DE JOUER : Appelle authService.register et stocke le retour dans une constante 'result'
+      const result = await authService.register(newEmail, password);
 
       // ÉTAPE 3 : Vérifier (Assert)
-      // À TOI DE JOUER :
-      // - Vérifie que result contient une propriété 'accessToken' avec expect(result).toHaveProperty(...)
-      // - Vérifie que le repository a bien été appelé pour sauvegarder en BDD avec expect(mockUserRepository.create).toHaveBeenCalledOnce()
+      // On vérifie que result contient une propriété 'accessToken'
+      expect(result).toHaveProperty("accessToken");
+      // On vérifie que result contient une propriété 'refreshToken'
+      expect(result).toHaveProperty("refreshToken");
+      // On vérifie que result contient une propriété 'user'
+      expect(result).toMatchObject({
+        user: {
+          uuid: expect.any(String),
+          email: newEmail,
+          roleId: 3,
+        },
+      });
+      // On vérifie que le repository a bien été appelé pour sauvegarder en BDD
+      // et que l'objet qu'il recoit en param est valide
+      expect(mockUserRepository.create).toHaveBeenCalledOnce();
+      expect(mockUserRepository.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          email: newEmail,
+          password: expect.any(String),
+          refreshToken: expect.any(String),
+          firstName: null,
+          lastName: null,
+          avatarUrl: "public/avatar/default.png",
+          createdAt: expect.any(Date),
+          updatedAt: null,
+          deletedAt: null,
+          cityId: null,
+          roleId: 3,
+        }),
+      );
+    });
+  });
+
+  describe("login()", () => {
+    it("doit lever une erreur 400 si l'email n'existe pas", async () => {
+      // ÉTAPE 1 : Préparer le contexte (Arrange)
+      const email = "test@test.com";
+      const password = "password123";
+
+      // On simule que l'email n'existe pas
+      vi.mocked(mockUserRepository.findByEmail).mockResolvedValue(null);
+
+      // ÉTAPE 2 & 3 : Agir et Vérifier (Act & Assert)
+      await expect(authService.login(email, password)).rejects.toMatchObject(
+        new HttpException(400, "Invalid email or password"),
+      );
+    });
+    it("doit lever une erreur 400 si le mot de passe est incorrect", async () => {
+      // ÉTAPE 1 : Préparer le contexte (Arrange)
+      const email = "test2@test.com";
+      const password = "password123";
+
+      // On simule que l'email existe
+      vi.mocked(mockUserRepository.findByEmail).mockResolvedValue(
+        new User({
+          uuid: "123e4567-e89b-12d3-a456-426614 174000",
+          email: "test2@test.com",
+          password: "password123",
+          refreshToken: null,
+          firstName: "test",
+          lastName: null,
+          avatarUrl: "public/avatardefault.png",
+          createdAt: new Date(),
+          updatedAt: null,
+          deletedAt: null,
+          cityId: 1,
+          roleId: 3,
+        }),
+      );
+
+      // On simule que le password est invalide
+      vi.mocked(mockHashUtil.compareStringToHash).mockResolvedValue(false);
+
+      // ÉTAPE 2 & 3 : Agir et Vérifier (Act & Assert)
+      await expect(authService.login(email, password)).rejects.toMatchObject(
+        new HttpException(400, "Invalid email or password"),
+      );
+    });
+    it("doit connecter l'utilisateur et renvoyer les tokens si l'email et le mot de passe sont valides", async () => {
+      // ÉTAPE 1 : Préparer le contexte (Arrange)
+      const email = "test@test.com";
+      const password = "password123";
+      const user = new User({
+        uuid: "123e4567-e89b-12d3-a456-426614174000",
+        email: "test@test.com",
+        password: "password123",
+        refreshToken: null,
+        firstName: null,
+        lastName: null,
+        avatarUrl: "public/avatar/default.png",
+        createdAt: new Date(),
+        updatedAt: null,
+        deletedAt: null,
+        cityId: null,
+        roleId: 3,
+      });
+
+      vi.mocked(mockUserRepository.findByEmail).mockResolvedValue(user);
+      vi.mocked(mockHashUtil.compareStringToHash).mockResolvedValue(true);
+      vi.mocked(mockHashUtil.hashString).mockResolvedValue("hashedPassword");
+
+      // Etape 2
+      const result = await authService.login(email, password);
+
+      // Etape 3
+      expect(result).toHaveProperty("accessToken");
+      expect(result).toHaveProperty("refreshToken");
+      expect(result).toMatchObject({
+        user: {
+          uuid: user.getUuid(),
+          email: email,
+          roleId: 3,
+        },
+      });
+
+      expect(mockHashUtil.hashString).toHaveBeenCalledOnce();
+      expect(mockHashUtil.hashString).toHaveBeenCalledWith(
+        expect.any(String),
+      );
+
+      expect(mockUserRepository.update).toHaveBeenCalledOnce();
+      expect(mockUserRepository.update).toHaveBeenCalledWith(
+        user.getUuid(),
+        expect.objectContaining({
+          refreshToken: "hashedPassword",
+        }),
+      );
     });
   });
 });

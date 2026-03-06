@@ -1,13 +1,17 @@
 import * as argon2 from "argon2";
+import type { IHashUtil } from "./hash.util.interface.js";
 
-export class HashUtil {
-  static async hashString(str: string): Promise<string> {
+export class HashUtil implements IHashUtil {
+
+  public constructor() {}
+
+  async hashString(str: string): Promise<string> {
     return await argon2.hash(str, {
       type: argon2.argon2id,
     });
   }
 
-  static async comparePassword(
+  async compareStringToHash(
     password: string,
     hash: string,
   ): Promise<boolean> {

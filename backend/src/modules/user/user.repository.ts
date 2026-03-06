@@ -1,15 +1,14 @@
 import type {
   Pool,
-  Query,
-  QueryOptions,
   ResultSetHeader,
   RowDataPacket,
 } from "mysql2/promise";
 import { User } from "./user.model.js";
 import type { IUser } from "./user.interface.js";
+import type { IUserRepository } from "./user.repository.interface.js";
 import { HttpException } from "../../utils/HttpException.js";
 
-export class UserRepository {
+export class UserRepository implements IUserRepository {
   private readonly columnMapping: { [key: string]: string } = {
     uuid: "user_uuid",
     email: "user_email",
@@ -27,7 +26,7 @@ export class UserRepository {
 
   constructor(private db: Pool) {}
 
-  async findByEmail(email: string) {
+  async findByEmail(email: string): Promise<User | null>{
     const query: string = `SELECT  
                             u.user_uuid AS uuid,
                             u.user_email AS email,
@@ -48,9 +47,29 @@ export class UserRepository {
     return new User(rows[0] as IUser);
   }
 
-  async findByUuid(uuid: string) {}
+  async findByUuid(uuid: string): Promise<User | null> {
+    const query = `SELECT 
+                      u.user_uuid AS uuid,
+                      u.user_email AS email,
+                      u.user_password AS password,
+                      u.user_refresh_token AS refreshToken,
+                      u.user_firstname AS firstName,
+                      u.user_lastname AS lastName,
+                      u.user_avatar AS avatarUrl,
+                      u.user_created_at AS createdAt,
+                      u.user_updated_at AS updatedAt,
+                      u.user_deleted_at AS deletedAt,
+                      u.id_city AS cityId,
+                      u.id_role AS roleId
+                    FROM \`user\` AS u
+                    WHERE user_uuid = ?`;
 
-  async create(user: User) {
+    const [rows] = await this.db.execute<RowDataPacket[]>(query, [uuid]);
+
+    return rows.length === 0 ? null : new User(rows[0] as IUser);
+  }
+
+  async create(user: User): Promise<User>{
     const query = `INSERT INTO \`user\` (
       user_uuid,
       user_email,
@@ -76,12 +95,12 @@ export class UserRepository {
       user.getCityId(),
       user.getRoleId(),
     ];
-    
+
     await this.db.execute(query, values);
     return user;
   }
 
-  async update(uuid: string, payload: Partial<IUser>) {
+  async update(uuid: string, payload: Partial<IUser>): Promise<boolean>{
     const values: (string | number | Date | null)[] = [];
     const setClauses = [];
 
@@ -105,7 +124,7 @@ export class UserRepository {
     return result.affectedRows > 0;
   }
 
-  async delete(uuid: string) {
+  async delete(uuid: string): Promise<boolean>{
     const query = `UPDATE \`user\` SET user_deleted_at = NOW() WHERE user_uuid = ?`;
     const [result] = await this.db.execute<ResultSetHeader>(query, [uuid]);
     return result.affectedRows > 0;

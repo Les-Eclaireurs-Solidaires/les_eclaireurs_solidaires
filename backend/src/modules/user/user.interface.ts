@@ -9,6 +9,6 @@ export interface IUser {
   createdAt?: Date;
   updatedAt?: Date | null;
   deletedAt?: Date | null;
-  cityId: number;
+  cityId?: number | null;
   roleId?: number;
 }

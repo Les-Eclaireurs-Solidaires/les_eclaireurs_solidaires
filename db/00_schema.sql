@@ -53,10 +53,10 @@ CREATE TABLE IF NOT EXISTS `user` (
     user_created_at DATETIME NOT NULL,
     user_updated_at DATETIME,
     user_deleted_at DATETIME,
-    id_city INTEGER NOT NULL,
+    id_city INTEGER NULL,
     id_role INTEGER NOT NULL,
     PRIMARY KEY (user_id),
-    FOREIGN KEY (id_city) REFERENCES city(city_id) ON DELETE RESTRICT,
+    FOREIGN KEY (id_city) REFERENCES city(city_id),
     FOREIGN KEY (id_role) REFERENCES role(role_id) ON DELETE RESTRICT
 );
 CREATE TABLE IF NOT EXISTS mission (
