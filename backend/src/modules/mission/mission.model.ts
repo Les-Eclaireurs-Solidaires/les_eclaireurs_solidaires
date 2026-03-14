@@ -1,4 +1,4 @@
-import { MissionStatus } from "../mission_status/missionStatus.enum.js";
+import { MissionStatus } from "./missionStatus.enum.js";
 import type { IMission } from "./mission.interface.js";
 import { Inscription } from "../inscription/inscription.model.js";
 import crypto from "crypto";
@@ -32,7 +32,7 @@ export class Mission {
     this.deletedAt = param.deletedAt || null;
 
     this.cityId = param.cityId;
-    this.status = param.status || MissionStatus.BROUILLON;
+    this.status = param.status || MissionStatus.PUBLIEE;
     this.inscriptions = param.inscriptions
       ? param.inscriptions.map(
           (inscription) => new Inscription(inscription, this),
@@ -78,10 +78,12 @@ export class Mission {
       i.setStatus(InscriptionStatus.ANNULEE);
     });
   }
+
   public complete(): void {
     this.status = MissionStatus.TERMINEE;
     this.updatedAt = new Date();
   }
+
   public delete(): void {
     if (this.deletedAt) {
       throw new Error("La mission a déjà été supprimée.");
@@ -97,5 +99,56 @@ export class Mission {
         i.setStatus(InscriptionStatus.ANNULEE);
       });
     }
+  }
+  public getUuid(): string {
+    return this.uuid;
+  }
+
+  public getName(): string {
+    return this.name;
+  }
+
+  public getDescription(): string | null {
+    return this.description;
+  }
+
+  public getDateStart(): Date {
+    return this.dateStart;
+  }
+
+  public getDateEnd(): Date {
+    return this.dateEnd;
+  }
+
+  public getAddress(): string {
+    return this.address;
+  }
+
+  public getNbrVolunteerNeeded(): number {
+    return this.nbrVolunteerNeeded;
+  }
+
+  public getCreatedAt(): Date {
+    return this.createdAt;
+  }
+
+  public getUpdatedAt(): Date | null {
+    return this.updatedAt;
+  }
+
+  public getDeletedAt(): Date | null {
+    return this.deletedAt;
+  }
+
+  public getCityId(): number {
+    return this.cityId;
+  }
+
+  public getStatus(): MissionStatus {
+    return this.status;
+  }
+
+  public getInscriptions(): Inscription[] {
+    return this.inscriptions;
   }
 }
