@@ -8,7 +8,7 @@ import type { IUser } from "./user.interface.js";
 import type { IUserRepository } from "./user.repository.interface.js";
 import { HttpException } from "../../utils/HttpException.js";
 
-export class UserRepository implements IUserRepository {
+export class UserRepository implements IUserRepository {  
   private readonly columnMapping: { [key: string]: string } = {
     uuid: "user_uuid",
     email: "user_email",

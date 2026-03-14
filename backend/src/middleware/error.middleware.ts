@@ -8,6 +8,8 @@ export const errorHandler = (
   next: NextFunction,
 ) => {
   console.error(`[ERROR] ${req.method} ${req.url} >> ${err.message}`);
+  console.error(err.stack);
+
 
   const status = err instanceof HttpException ? err.status : 500;
   const message =

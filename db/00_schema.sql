@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS city (
 );
 CREATE TABLE IF NOT EXISTS category (
     category_id INTEGER NOT NULL AUTO_INCREMENT,
-    category_name VARCHAR(255) NOT NULL,
+    category_name VARCHAR(255) NOT NULL UNIQUE,
     PRIMARY KEY (category_id)
 );
 CREATE TABLE IF NOT EXISTS mission_status (
@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS inscription_status (
 );
 CREATE TABLE IF NOT EXISTS request_organizer_status (
     request_organizer_status_id INTEGER NOT NULL AUTO_INCREMENT,
-    request_organizer_status_name VARCHAR(255) NOT NULL,
+    request_organizer_status_name VARCHAR(255) NOT NULL UNIQUE,
     PRIMARY KEY (request_organizer_status_id)
 );
 CREATE TABLE IF NOT EXISTS `user` (
@@ -62,7 +62,7 @@ CREATE TABLE IF NOT EXISTS `user` (
 CREATE TABLE IF NOT EXISTS mission (
     mission_id INTEGER NOT NULL AUTO_INCREMENT,
     mission_uuid CHAR(36) NOT NULL UNIQUE,
-    mission_name VARCHAR(255) NOT NULL,
+    mission_name VARCHAR(255) NOT NULL UNIQUE,
     mission_description TEXT,
     mission_date_start DATETIME NOT NULL,
     mission_date_end DATETIME NOT NULL,
@@ -77,14 +77,26 @@ CREATE TABLE IF NOT EXISTS mission (
     FOREIGN KEY (id_city) REFERENCES city(city_id) ON DELETE RESTRICT,
     FOREIGN KEY (id_mission_status) REFERENCES mission_status(mission_status_id) ON DELETE RESTRICT
 );
+CREATE TABLE IF NOT EXISTS mission_comment (
+    mission_comment_id INTEGER NOT NULL AUTO_INCREMENT,
+    mission_comment_content TEXT NOT NULL,
+    mission_comment_created_at DATETIME NOT NULL,
+    id_mission INTEGER NOT NULL,
+    id_user INTEGER NOT NULL,
+    PRIMARY KEY (mission_comment_id),
+    FOREIGN KEY (id_mission) REFERENCES mission(mission_id) ON DELETE RESTRICT,
+    FOREIGN KEY (id_user) REFERENCES user(user_id) ON DELETE RESTRICT
+);
 CREATE TABLE IF NOT EXISTS `message` (
     message_id INTEGER NOT NULL AUTO_INCREMENT,
     message_uuid CHAR(36) NOT NULL UNIQUE,
     message_content TEXT NOT NULL,
     message_send_at DATETIME NOT NULL,
     id_sender INTEGER NOT NULL,
+    id_mission INTEGER NULL,
     PRIMARY KEY (message_id),
-    FOREIGN KEY (id_sender) REFERENCES `user`(user_id) ON DELETE RESTRICT
+    FOREIGN KEY (id_sender) REFERENCES `user`(user_id) ON DELETE RESTRICT,
+    FOREIGN KEY  (id_mission) REFERENCES mission(mission_id) ON DELETE RESTRICT
 );
 CREATE TABLE IF NOT EXISTS message_recipient (
     message_recipient_id INTEGER NOT NULL AUTO_INCREMENT,
