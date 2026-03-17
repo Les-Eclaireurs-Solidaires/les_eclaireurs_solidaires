@@ -5,8 +5,8 @@ import {
   type Response,
 } from "express";
 import type { AuthService } from "./auth.service.js";
-import { LoginDto } from "./dtos/login.dto.js";
-import { RegisterDto } from "./dtos/register.dto.js";
+import { LoginDto } from "../../dtos/login.dto.js";
+import { RegisterDto } from "../../dtos/register.dto.js";
 import { validateDto } from "../../middleware/validateDto.middleware.js";
 import { HttpException } from "../../utils/HttpException.js";
 import { requireAuth } from "../../middleware/auth.middleware.js";
@@ -45,7 +45,7 @@ export class AuthController {
       registerDto.email,
       registerDto.password,
     );
-    
+
     this.generateSecurityCookie(res, result);
 
     //on retourne une reponse avec un message de succes ou d'erreur
@@ -63,7 +63,7 @@ export class AuthController {
       loginDto.email,
       loginDto.password,
     );
-    
+
     this.generateSecurityCookie(res, result);
 
     //on retourne une reponse avec un message de succes ou d'erreur
@@ -108,7 +108,7 @@ export class AuthController {
     }
 
     const result = await this.authService.refresh(refreshToken);
-    
+
     this.generateSecurityCookie(res, result);
 
     //on retourne une reponse avec un message de succes ou d'erreur

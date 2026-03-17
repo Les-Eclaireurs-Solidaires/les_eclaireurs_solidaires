@@ -1,4 +1,4 @@
-import type { CreateMissionDto } from "../auth/dtos/createMission.dto.js";
+import type { CreateMissionDto } from "../../dtos/createMission.dto.js";
 import { Mission } from "./mission.model.js";
 import type { MissionRepository } from "./mission.repository.js";
 import type { IMissionRepository } from "./missionRepository.interface.js";
@@ -17,7 +17,7 @@ export class MissionService implements IMissionService {
     }
 
     const organizerIds = missionDTO.organizerIds;
-    
+
     const mission: Mission = new Mission({
       name: missionDTO.name,
       description: missionDTO.description || null,

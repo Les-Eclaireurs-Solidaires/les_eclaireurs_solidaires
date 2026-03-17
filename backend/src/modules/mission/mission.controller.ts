@@ -6,7 +6,7 @@ import {
 } from "express";
 import type { IMissionService } from "./missionService.interface.js";
 import { validateDto } from "../../middleware/validateDto.middleware.js";
-import { CreateMissionDto } from "../auth/dtos/createMission.dto.js";
+import { CreateMissionDto } from "../../dtos/createMission.dto.js";
 import { UserRole } from "../user/userRole.enum.js";
 import { requireAuth } from "../../middleware/auth.middleware.js";
 import { requireRole } from "../../middleware/role.middleware.js";
