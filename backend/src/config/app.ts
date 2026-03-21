@@ -19,19 +19,10 @@ export class AppConfig {
     this.app = express();
     this.port = Number(process.env.PORT);
     this.host = process.env.HOST!;
-    //this.initializeDependencies();
     this.initializeMiddlewares();
     this.initializeRoutes();
     this.initializeErrorHandling();
   }
-
-  /* private initializeDependencies() {
-    const databaseConfig = Database.getInstance().getConnection();
-    const userRepository = new UserRepository(databaseConfig);
-    const authService = new AuthService(userRepository);
-
-    this.authController = new AuthController(authService);
-  } */
 
   private initializeMiddlewares() {
     this.app.use(express.json());

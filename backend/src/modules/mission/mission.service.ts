@@ -1,6 +1,5 @@
 import type { CreateMissionDto } from "../../dtos/createMission.dto.js";
 import { Mission } from "./mission.model.js";
-import type { MissionRepository } from "./mission.repository.js";
 import type { IMissionRepository } from "./missionRepository.interface.js";
 import type { IMissionService } from "./missionService.interface.js";
 
