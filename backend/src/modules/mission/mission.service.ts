@@ -25,7 +25,8 @@ export class MissionService implements IMissionService {
       address: missionDTO.address,
       nbrVolunteerNeeded: missionDTO.nbrVolunteerNeeded,
       cityId: missionDTO.cityId,
-      regitrations: [],
+      organizerUuids: organizerIds.map((id) => id.toString()),
+      registrations: [],
     });
 
     // On cree la mission

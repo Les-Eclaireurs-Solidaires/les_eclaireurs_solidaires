@@ -12,12 +12,22 @@ export class Registration {
   private status: RegistrationStatus;
 
   constructor(param: IRegistration, missionUuid: string) {
-    this.id = param.id;
+    this.id = param.id || 0;
     this.date = param.date || new Date();
     this.recallSendAt = param.recallSendAt || null;
     this.volunteer = new User(param.volunteer);
     this.missionUuid = missionUuid;
     this.status = param.status || RegistrationStatus.EN_ATTENTE;
+  }
+  getMissionUuid(): string {
+    return this.missionUuid;
+  }
+  getDate(): Date {
+    return this.date;
+  }
+
+  getRecallSendAt(): Date | null {
+    return this.recallSendAt;
   }
   getVolunteer(): User {
     return this.volunteer;

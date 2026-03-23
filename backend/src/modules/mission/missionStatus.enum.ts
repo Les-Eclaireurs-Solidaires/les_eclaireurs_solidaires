@@ -1,6 +1,6 @@
 export enum MissionStatus{
-    BROUILLON = "BROUILLON",
-    PUBLIEE = "PUBLIEE",
-    TERMINEE = "TERMINEE",
-    ANNULEE = "ANNULEE"    
+    BROUILLON = 1,
+    PUBLIEE = 2,
+    TERMINEE = 3,
+    ANNULEE = 4    
 }

@@ -4,5 +4,6 @@ import type { Mission } from "./mission.model.js";
 
 export interface IMissionRepository {
   findByName(name: string): Promise<Mission | null>;
+  findByUuid(uuid: string): Promise<Mission | null>;
   create(missionToCreate: Mission, organizerIds: number[]): Promise<Mission>;
 }

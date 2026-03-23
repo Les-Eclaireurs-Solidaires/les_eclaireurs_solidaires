@@ -1,8 +1,9 @@
 import { MissionStatus } from "./missionStatus.enum.js";
 import type { IMission } from "./mission.interface.js";
-import { regitration } from "../regitration/regitration.model.js";
 import crypto from "crypto";
-import { regitrationStatus } from "../regitration/regitrationStatus.enum.js";
+import { Registration } from "../registration/registration.model.js";
+import { RegistrationStatus } from "../registration/registrationStatus.enum.js";
+import { BusinessException } from "../../utils/AppException.js";
 
 export class Mission {
   private uuid: string;
@@ -18,7 +19,7 @@ export class Mission {
   private organizerUuid: string[];
   private cityId: number;
   private status: MissionStatus;
-  private regitrations: regitration[];
+  private registrations: Registration[];
 
   constructor(param: IMission) {
     this.uuid = param.uuid || crypto.randomUUID();
@@ -36,9 +37,9 @@ export class Mission {
 
     this.cityId = param.cityId;
     this.status = param.status || MissionStatus.PUBLIEE;
-    this.regitrations = param.regitrations
-      ? param.regitrations.map(
-          (regitration) => new regitration(regitration, this.uuid),
+    this.registrations = param.registrations
+      ? param.registrations.map(
+          (registration) => new Registration(registration, this.uuid),
         )
       : [];
 
@@ -47,19 +48,19 @@ export class Mission {
 
   private validateDate(): void {
     if (this.dateStart > this.dateEnd) {
-      throw new Error(
+      throw new BusinessException(
         "La date de début ne peut pas être ultérieure à la date de fin.",
       );
     }
   }
 
   public getAvailablePlacesCount(): number {
-    const validregitrations = this.regitrations.filter(
-      (i) =>
-        i.getStatus() === regitrationStatus.VALIDEE ||
-        i.getStatus() === regitrationStatus.EN_ATTENTE,
+    const validRegistration = this.registrations.filter(
+      (registration) =>
+        registration.getStatus() === RegistrationStatus.VALIDEE ||
+        registration.getStatus() === RegistrationStatus.EN_ATTENTE,
     );
-    return this.nbrVolunteerNeeded - validregitrations.length;
+    return this.nbrVolunteerNeeded - validRegistration.length;
   }
 
   public hasAvailablePlaces(): boolean {
@@ -71,14 +72,14 @@ export class Mission {
       this.status === MissionStatus.TERMINEE ||
       this.status === MissionStatus.ANNULEE
     ) {
-      throw new Error("La mission ne peut pas être annulée.");
+      throw new BusinessException("La mission ne peut pas être annulée.");
     }
 
     this.status = MissionStatus.ANNULEE;
     this.updatedAt = new Date();
 
-    this.regitrations.forEach((i) => {
-      i.setStatus(regitrationStatus.ANNULEE);
+    this.registrations.forEach((registration) => {
+      registration.setStatus(RegistrationStatus.ANNULEE);
     });
   }
 
@@ -89,7 +90,7 @@ export class Mission {
 
   public delete(): void {
     if (this.deletedAt) {
-      throw new Error("La mission a déjà été supprimée.");
+      throw new BusinessException("La mission a déjà été supprimée.");
     }
     this.deletedAt = new Date();
     this.updatedAt = new Date();
@@ -98,42 +99,42 @@ export class Mission {
       this.status !== MissionStatus.ANNULEE
     ) {
       this.status = MissionStatus.ANNULEE;
-      this.regitrations.forEach((i) => {
-        i.setStatus(regitrationStatus.ANNULEE);
+      this.registrations.forEach((registration) => {
+        registration.setStatus(RegistrationStatus.ANNULEE);
       });
     }
   }
 
-  public addregitration(regitration: regitration): void {
+  public addRegistration(registration: Registration): void {
     if (this.status === MissionStatus.TERMINEE) {
-      throw new Error("Impossible d'inscrire à une mission terminée.");
+      throw new BusinessException("Impossible d'inscrire à une mission terminée.");
     }
 
     if (this.status === MissionStatus.ANNULEE) {
-      throw new Error("Impossible d'inscrire à une mission annulée.");
+      throw new BusinessException("Impossible d'inscrire à une mission annulée.");
     }
 
     if (!this.hasAvailablePlaces()) {
-      throw new Error("Impossible d'inscrire à une mission pleine.");
+      throw new BusinessException("Impossible d'inscrire à une mission pleine.");
     }
 
-    const volunteerUuid = regitration.getVolunteer().getUuid();
+    const volunteerUuid = registration.getVolunteer().getUuid();
 
     if (this.organizerUuid.includes(volunteerUuid)) {
-      throw new Error(
+      throw new BusinessException(
         "Impossible de s'inscrirte à une mission que l'on organise.",
       );
     }
 
-    const isAlreadyRegistered = this.regitrations.some(
-      (i) => i.getVolunteer().getUuid() === volunteerUuid,
+    const isAlreadyRegistered = this.registrations.some(
+      (registration) => registration.getVolunteer().getUuid() === volunteerUuid,
     );
 
     if (isAlreadyRegistered) {
-      throw new Error("Cet utilisateur est déjà inscrit à cette mission.");
+      throw new BusinessException("Cet utilisateur est déjà inscrit à cette mission.");
     }
 
-    this.regitrations.push(regitration);
+    this.registrations.push(registration);
   }
 
   public getUuid(): string {
@@ -184,7 +185,7 @@ export class Mission {
     return this.status;
   }
 
-  public getregitrations(): regitration[] {
-    return this.regitrations;
+  public getRegistrations(): Registration[] {
+    return this.registrations;
   }
 }

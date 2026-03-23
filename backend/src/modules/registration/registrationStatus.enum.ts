@@ -1,6 +1,6 @@
 export enum RegistrationStatus {
-  EN_ATTENTE = "EN_ATTENTE",
-  VALIDEE = "VALIDEE",
-  REFUSEE = "REFUSEE",
-  ANNULEE = "ANNULEE",
+  EN_ATTENTE = 1,
+  VALIDEE = 2,
+  REFUSEE = 3,
+  ANNULEE = 4,
 }
