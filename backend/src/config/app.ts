@@ -8,6 +8,8 @@ import { UserRepository } from "../modules/user/user.repository.js";
 import { AuthService } from "../modules/auth/auth.service.js";
 import { AuthController } from "../modules/auth/auth.controller.js";
 import { csrfProtection } from "../middleware/csrf.middleware.js";
+import type { RegistrationController } from "../modules/registration/registration.controller.js";
+import type { MissionController } from "../modules/mission/mission.controller.js";
 
 
 export class AppConfig {
@@ -15,7 +17,7 @@ export class AppConfig {
   private port: number;
   private host: string;
 
-  constructor(private authController: AuthController) {
+  constructor(private authController: AuthController, private missionController: MissionController, private registrationController: RegistrationController) {
     this.app = express();
     this.port = Number(process.env.PORT);
     this.host = process.env.HOST!;
@@ -44,6 +46,8 @@ export class AppConfig {
       res.send("Hello World!");
     });
     this.app.use("/auth", this.authController.getRouter());
+    this.app.use("/mission", this.missionController.getRouter());
+    this.app.use("/mission/:missionUuid", this.registrationController.getRouter());
   }
 
   private initializeErrorHandling() {

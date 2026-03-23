@@ -22,7 +22,7 @@ describe("MissionService", () => {
       createdAt: new Date(2025, 1, 1),
       cityId: 5,
       status: MissionStatus.PUBLIEE,
-      inscriptions: [],
+      regitrations: [],
     });
     defaultMissionDTO = Object.assign(new CreateMissionDto(), {
       name: "Aider à la récolte d'habits.",
@@ -75,7 +75,7 @@ describe("MissionService", () => {
         createdAt: new Date(2025, 1, 1),
         cityId: 5,
         status: MissionStatus.PUBLIEE,
-        inscriptions: [],
+        regitrations: [],
       });
       expect(mockMissionRepository.create).toHaveBeenCalledWith(
         expect.any(Mission),

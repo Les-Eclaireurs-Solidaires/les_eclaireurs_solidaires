@@ -1,5 +1,5 @@
 import type { MissionStatus } from "./missionStatus.enum.js";
-import type { IInscription } from "../inscription/inscription.interface.js";
+import type { Iregitration } from "../regitration/regitration.interface.js";
 
 export interface IMission {
   uuid?: string;
@@ -15,5 +15,5 @@ export interface IMission {
   organizerUuids: string[];
   cityId: number;
   status?: MissionStatus;
-  inscriptions: IInscription[];
+  regitrations: Iregitration[];
 }

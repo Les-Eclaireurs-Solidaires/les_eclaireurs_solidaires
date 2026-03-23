@@ -45,7 +45,7 @@ export class MissionRepository implements IMissionRepository {
       cityId: row.cityId,
       status: row.status,
       organizerUuids: row.organizerUuid.split(","),
-      inscriptions: [],
+      regitrations: [],
     } as IMission);
   }
 

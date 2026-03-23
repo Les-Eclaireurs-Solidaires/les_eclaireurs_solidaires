@@ -1,8 +1,8 @@
 import { MissionStatus } from "./missionStatus.enum.js";
 import type { IMission } from "./mission.interface.js";
-import { Inscription } from "../inscription/inscription.model.js";
+import { regitration } from "../regitration/regitration.model.js";
 import crypto from "crypto";
-import { InscriptionStatus } from "../inscription/inscriptionStatus.enum.js";
+import { regitrationStatus } from "../regitration/regitrationStatus.enum.js";
 
 export class Mission {
   private uuid: string;
@@ -18,7 +18,7 @@ export class Mission {
   private organizerUuid: string[];
   private cityId: number;
   private status: MissionStatus;
-  private inscriptions: Inscription[];
+  private regitrations: regitration[];
 
   constructor(param: IMission) {
     this.uuid = param.uuid || crypto.randomUUID();
@@ -36,9 +36,9 @@ export class Mission {
 
     this.cityId = param.cityId;
     this.status = param.status || MissionStatus.PUBLIEE;
-    this.inscriptions = param.inscriptions
-      ? param.inscriptions.map(
-          (inscription) => new Inscription(inscription, this.uuid),
+    this.regitrations = param.regitrations
+      ? param.regitrations.map(
+          (regitration) => new regitration(regitration, this.uuid),
         )
       : [];
 
@@ -54,12 +54,12 @@ export class Mission {
   }
 
   public getAvailablePlacesCount(): number {
-    const validInscriptions = this.inscriptions.filter(
+    const validregitrations = this.regitrations.filter(
       (i) =>
-        i.getStatus() === InscriptionStatus.VALIDEE ||
-        i.getStatus() === InscriptionStatus.EN_ATTENTE,
+        i.getStatus() === regitrationStatus.VALIDEE ||
+        i.getStatus() === regitrationStatus.EN_ATTENTE,
     );
-    return this.nbrVolunteerNeeded - validInscriptions.length;
+    return this.nbrVolunteerNeeded - validregitrations.length;
   }
 
   public hasAvailablePlaces(): boolean {
@@ -77,8 +77,8 @@ export class Mission {
     this.status = MissionStatus.ANNULEE;
     this.updatedAt = new Date();
 
-    this.inscriptions.forEach((i) => {
-      i.setStatus(InscriptionStatus.ANNULEE);
+    this.regitrations.forEach((i) => {
+      i.setStatus(regitrationStatus.ANNULEE);
     });
   }
 
@@ -98,13 +98,13 @@ export class Mission {
       this.status !== MissionStatus.ANNULEE
     ) {
       this.status = MissionStatus.ANNULEE;
-      this.inscriptions.forEach((i) => {
-        i.setStatus(InscriptionStatus.ANNULEE);
+      this.regitrations.forEach((i) => {
+        i.setStatus(regitrationStatus.ANNULEE);
       });
     }
   }
 
-  public addInscription(inscription: Inscription): void {
+  public addregitration(regitration: regitration): void {
     if (this.status === MissionStatus.TERMINEE) {
       throw new Error("Impossible d'inscrire à une mission terminée.");
     }
@@ -117,15 +117,15 @@ export class Mission {
       throw new Error("Impossible d'inscrire à une mission pleine.");
     }
 
-    const volunteerUuid = inscription.getVolunteer().getUuid();
+    const volunteerUuid = regitration.getVolunteer().getUuid();
 
     if (this.organizerUuid.includes(volunteerUuid)) {
       throw new Error(
         "Impossible de s'inscrirte à une mission que l'on organise.",
       );
     }
-    
-    const isAlreadyRegistered = this.inscriptions.some(
+
+    const isAlreadyRegistered = this.regitrations.some(
       (i) => i.getVolunteer().getUuid() === volunteerUuid,
     );
 
@@ -133,7 +133,7 @@ export class Mission {
       throw new Error("Cet utilisateur est déjà inscrit à cette mission.");
     }
 
-    this.inscriptions.push(inscription);
+    this.regitrations.push(regitration);
   }
 
   public getUuid(): string {
@@ -184,7 +184,7 @@ export class Mission {
     return this.status;
   }
 
-  public getInscriptions(): Inscription[] {
-    return this.inscriptions;
+  public getregitrations(): regitration[] {
+    return this.regitrations;
   }
 }

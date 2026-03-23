@@ -50,7 +50,7 @@ export class AuthController {
 
     //on retourne une reponse avec un message de succes ou d'erreur
     return res
-      .status(200)
+      .status(201)
       .json({ message: "User registered successfully", user: result.user });
   };
 
@@ -68,7 +68,7 @@ export class AuthController {
 
     //on retourne une reponse avec un message de succes ou d'erreur
     return res
-      .status(200)
+      .status(201)
       .json({ message: "User logged in successfully", user: result.user });
 
     //sinon, l'erreur est gerer par le middleware de gestion des erreurs et une reponse avec un message d'erreur est retournee

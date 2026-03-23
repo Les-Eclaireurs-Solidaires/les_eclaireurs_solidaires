@@ -1,32 +1,33 @@
 import { User } from "../user/user.model.js";
-import type { IInscription } from "./inscription.interface.js";
-import { InscriptionStatus } from "./inscriptionStatus.enum.js";
+import type { IRegistration } from "./registration.interface.js";
+import { RegistrationStatus } from "./registrationStatus.enum.js";
 
-export class Inscription {
+
+export class Registration {
   private id: number;
   private date: Date;
   private recallSendAt: Date | null;
   private volunteer: User;
   private missionUuid: string;
-  private status: InscriptionStatus;
+  private status: RegistrationStatus;
 
-  constructor(param: IInscription, missionUuid: string) {
+  constructor(param: IRegistration, missionUuid: string) {
     this.id = param.id;
     this.date = param.date || new Date();
     this.recallSendAt = param.recallSendAt || null;
     this.volunteer = new User(param.volunteer);
     this.missionUuid = missionUuid;
-    this.status = param.status || InscriptionStatus.EN_ATTENTE;
+    this.status = param.status || RegistrationStatus.EN_ATTENTE;
   }
   getVolunteer(): User {
     return this.volunteer;
   }
 
-  getStatus(): InscriptionStatus {
+  getStatus(): RegistrationStatus {
     return this.status;
   }
 
-  setStatus(status: InscriptionStatus): void {
+  setStatus(status: RegistrationStatus): void {
     this.status = status;
   }
 }

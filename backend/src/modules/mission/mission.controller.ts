@@ -42,7 +42,7 @@ export class MissionController {
     const result = await this.missionService.createMission(createMissionDto);
 
     return res
-      .status(200)
+      .status(201)
       .json({ message: "Mission created successfully", mission: result });
   };
 }

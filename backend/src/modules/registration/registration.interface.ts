@@ -1,11 +1,11 @@
 import type { IUser } from "../user/user.interface.js";
-import type { InscriptionStatus } from "./inscriptionStatus.enum.js";
+import type { RegistrationStatus } from "./registrationStatus.enum.js";
 
-export interface IInscription {
+export interface IRegistration {
   id: number;
   date: Date;
   recallSendAt?: Date;
   volunteer: IUser;
   missionUuid: string;
-  status: InscriptionStatus;
+  status: RegistrationStatus;
 }
