@@ -1,4 +1,4 @@
-import { HttpException } from "../../utils/HttpException.js";
+import { HttpException } from "../../utils/AppException.js";
 import { TokenUtil } from "../../utils/token.util.js";
 import type { IHashUtil } from "../../utils/hash.util.interface.js";
 import { User } from "../user/user.model.js";
@@ -6,12 +6,16 @@ import type { AuthResponse } from "../../utils/AuthPayload.js";
 import type { IUserRepository } from "../user/user.repository.interface.js";
 
 export class AuthService {
-  constructor(private userRepository: IUserRepository, private hashUtil: IHashUtil) {}
+  constructor(
+    private userRepository: IUserRepository,
+    private hashUtil: IHashUtil,
+  ) {}
 
   async register(email: string, password: string) {
     //à ce niveau on est sûr des données grâce au DTO
     //on vérifie que l'email n'est pas déja utilisé
-    const existingUser: User | null = await this.userRepository.findByEmail(email);
+    const existingUser: User | null =
+      await this.userRepository.findByEmail(email);
 
     if (existingUser) {
       throw new HttpException(400, "Email was in use");
@@ -30,12 +34,13 @@ export class AuthService {
       uuid: user.getUuid(),
       roleId: user.getRoleId(),
     });
-    const refreshToken: string= TokenUtil.generateRefreshToken({
+    const refreshToken: string = TokenUtil.generateRefreshToken({
       uuid: user.getUuid(),
       roleId: user.getRoleId(),
     });
 
-    const hashedRefreshToken: string= await this.hashUtil.hashString(refreshToken);
+    const hashedRefreshToken: string =
+      await this.hashUtil.hashString(refreshToken);
     user.setRefreshToken(hashedRefreshToken);
     user.setPassword(hashedPassword);
 
@@ -53,7 +58,7 @@ export class AuthService {
 
   async login(email: string, password: string) {
     //on verifie que l'email existe dans la base de donnees
-    const user: User | null= await this.userRepository.findByEmail(email);
+    const user: User | null = await this.userRepository.findByEmail(email);
     if (!user) {
       throw new HttpException(400, "Invalid email or password");
     }
@@ -77,7 +82,8 @@ export class AuthService {
       roleId: user.getRoleId(),
     });
 
-    const hashedRefreshToken : string = await this.hashUtil.hashString(refreshToken);
+    const hashedRefreshToken: string =
+      await this.hashUtil.hashString(refreshToken);
 
     //on met a jour le refresh token dans la base de donnees
     await this.userRepository.update(user.getUuid(), {

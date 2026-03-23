@@ -15,6 +15,7 @@ export class Mission {
   private createdAt: Date;
   private updatedAt: Date | null;
   private deletedAt: Date | null;
+  private organizerUuid: string[];
   private cityId: number;
   private status: MissionStatus;
   private inscriptions: Inscription[];
@@ -31,11 +32,13 @@ export class Mission {
     this.updatedAt = param.updatedAt || null;
     this.deletedAt = param.deletedAt || null;
 
+    this.organizerUuid = param.organizerUuids;
+
     this.cityId = param.cityId;
     this.status = param.status || MissionStatus.PUBLIEE;
     this.inscriptions = param.inscriptions
       ? param.inscriptions.map(
-          (inscription) => new Inscription(inscription, this),
+          (inscription) => new Inscription(inscription, this.uuid),
         )
       : [];
 
@@ -100,6 +103,39 @@ export class Mission {
       });
     }
   }
+
+  public addInscription(inscription: Inscription): void {
+    if (this.status === MissionStatus.TERMINEE) {
+      throw new Error("Impossible d'inscrire à une mission terminée.");
+    }
+
+    if (this.status === MissionStatus.ANNULEE) {
+      throw new Error("Impossible d'inscrire à une mission annulée.");
+    }
+
+    if (!this.hasAvailablePlaces()) {
+      throw new Error("Impossible d'inscrire à une mission pleine.");
+    }
+
+    const volunteerUuid = inscription.getVolunteer().getUuid();
+
+    if (this.organizerUuid.includes(volunteerUuid)) {
+      throw new Error(
+        "Impossible de s'inscrirte à une mission que l'on organise.",
+      );
+    }
+    
+    const isAlreadyRegistered = this.inscriptions.some(
+      (i) => i.getVolunteer().getUuid() === volunteerUuid,
+    );
+
+    if (isAlreadyRegistered) {
+      throw new Error("Cet utilisateur est déjà inscrit à cette mission.");
+    }
+
+    this.inscriptions.push(inscription);
+  }
+
   public getUuid(): string {
     return this.uuid;
   }

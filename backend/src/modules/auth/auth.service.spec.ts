@@ -2,7 +2,7 @@ import type { IHashUtil } from "../../utils/hash.util.interface.js";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { AuthService } from "./auth.service.js";
 import { User } from "../user/user.model.js";
-import { HttpException } from "../../utils/HttpException.js";
+import { HttpException } from "../../utils/AppException.js";
 import type { IUserRepository } from "../user/user.repository.interface.js";
 import { TokenUtil } from "../../utils/token.util.js";
 import e from "express";
@@ -195,9 +195,7 @@ describe("AuthService", () => {
       });
 
       expect(mockHashUtil.hashString).toHaveBeenCalledOnce();
-      expect(mockHashUtil.hashString).toHaveBeenCalledWith(
-        expect.any(String),
-      );
+      expect(mockHashUtil.hashString).toHaveBeenCalledWith(expect.any(String));
 
       expect(mockUserRepository.update).toHaveBeenCalledOnce();
       expect(mockUserRepository.update).toHaveBeenCalledWith(

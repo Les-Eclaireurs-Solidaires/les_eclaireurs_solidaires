@@ -1,14 +1,10 @@
-import type {
-  Pool,
-  ResultSetHeader,
-  RowDataPacket,
-} from "mysql2/promise";
+import type { Pool, ResultSetHeader, RowDataPacket } from "mysql2/promise";
 import { User } from "./user.model.js";
 import type { IUser } from "./user.interface.js";
 import type { IUserRepository } from "./user.repository.interface.js";
-import { HttpException } from "../../utils/HttpException.js";
+import { HttpException } from "../../utils/AppException.js";
 
-export class UserRepository implements IUserRepository {  
+export class UserRepository implements IUserRepository {
   private readonly columnMapping: { [key: string]: string } = {
     uuid: "user_uuid",
     email: "user_email",
@@ -26,7 +22,7 @@ export class UserRepository implements IUserRepository {
 
   constructor(private db: Pool) {}
 
-  async findByEmail(email: string): Promise<User | null>{
+  async findByEmail(email: string): Promise<User | null> {
     const query: string = `SELECT  
                             u.user_uuid AS uuid,
                             u.user_email AS email,
@@ -69,7 +65,7 @@ export class UserRepository implements IUserRepository {
     return rows.length === 0 ? null : new User(rows[0] as IUser);
   }
 
-  async create(user: User): Promise<User>{
+  async create(user: User): Promise<User> {
     const query = `INSERT INTO \`user\` (
       user_uuid,
       user_email,
@@ -100,7 +96,7 @@ export class UserRepository implements IUserRepository {
     return user;
   }
 
-  async update(uuid: string, payload: Partial<IUser>): Promise<boolean>{
+  async update(uuid: string, payload: Partial<IUser>): Promise<boolean> {
     const values: (string | number | Date | null)[] = [];
     const setClauses = [];
 
@@ -124,7 +120,7 @@ export class UserRepository implements IUserRepository {
     return result.affectedRows > 0;
   }
 
-  async delete(uuid: string): Promise<boolean>{
+  async delete(uuid: string): Promise<boolean> {
     const query = `UPDATE \`user\` SET user_deleted_at = NOW() WHERE user_uuid = ?`;
     const [result] = await this.db.execute<ResultSetHeader>(query, [uuid]);
     return result.affectedRows > 0;

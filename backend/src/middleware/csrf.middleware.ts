@@ -1,5 +1,5 @@
 import type { NextFunction, Request, Response } from "express";
-import { HttpException } from "../utils/HttpException.js";
+import { HttpException } from "../utils/AppException.js";
 import { TokenUtil } from "../utils/token.util.js";
 
 export const csrfProtection = (
@@ -8,7 +8,11 @@ export const csrfProtection = (
   next: NextFunction,
 ) => {
   try {
-    if(req.method === "GET" || req.method === "HEAD" || req.method === "OPTIONS"){
+    if (
+      req.method === "GET" ||
+      req.method === "HEAD" ||
+      req.method === "OPTIONS"
+    ) {
       return next();
     }
     const excludedRoutes = ["/auth/login", "/auth/register"];
@@ -23,5 +27,5 @@ export const csrfProtection = (
     next();
   } catch (error) {
     next(error);
-  }  
+  }
 };

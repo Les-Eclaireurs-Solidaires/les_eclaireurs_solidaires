@@ -19,12 +19,34 @@ export class MissionRepository implements IMissionRepository {
                       mission_updated_at AS updatedAt,
                       mission_deleted_at AS deletedAt,
                       id_city AS cityId,
-                      mission_status.mission_status_name AS status
+                      mission_status.mission_status_name AS status,
+                      GROUP CONCAT(mission_organizer.id_organizer SEPARATOR ',') AS organizerUuid
                       FROM mission
                       LEFT JOIN mission_status ON mission.id_mission_status = mission_status.mission_status_id
-                      WHERE mission_name = ?`;
+                      LEFT JOIN mission_organizer ON mission.mission_uuid = mission_organizer.id_mission
+                      WHERE mission_name = ?
+                      GROUP BY mission_uuid`;
     const [result] = await this.db.execute<RowDataPacket[]>(query, [name]);
-    return result.length === 0 ? null : new Mission(result[0] as IMission);
+
+    const row = result[0];
+    if (!row) return null;
+
+    return new Mission({
+      uuid: row.uuid,
+      name: row.name,
+      description: row.description,
+      dateStart: row.dateStart,
+      dateEnd: row.dateEnd,
+      address: row.address,
+      nbrVolunteerNeeded: row.nbrVolunteerNeeded,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+      deletedAt: row.deletedAt,
+      cityId: row.cityId,
+      status: row.status,
+      organizerUuids: row.organizerUuid.split(","),
+      inscriptions: [],
+    } as IMission);
   }
 
   async create(

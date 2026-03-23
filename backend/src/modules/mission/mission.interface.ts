@@ -12,6 +12,7 @@ export interface IMission {
   createdAt?: Date;
   updatedAt?: Date | null;
   deletedAt?: Date | null;
+  organizerUuids: string[];
   cityId: number;
   status?: MissionStatus;
   inscriptions: IInscription[];

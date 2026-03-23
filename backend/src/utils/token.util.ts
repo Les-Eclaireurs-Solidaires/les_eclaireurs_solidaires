@@ -1,5 +1,5 @@
 import jwt from "jsonwebtoken";
-import { HttpException } from "./HttpException.js";
+import { HttpException } from "./AppException.js";
 import type { TokenPayload } from "./TokenPayload.js";
 import crytoExt from "crypto";
 import ms from "ms";

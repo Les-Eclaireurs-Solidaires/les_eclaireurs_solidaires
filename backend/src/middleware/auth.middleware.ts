@@ -1,5 +1,5 @@
 import type { NextFunction, Request, Response } from "express";
-import { HttpException } from "../utils/HttpException.js";
+import { HttpException } from "../utils/AppException.js";
 import { TokenUtil } from "../utils/token.util.js";
 
 export const requireAuth = (
