@@ -4,18 +4,18 @@ import { RegistrationStatus } from "./registrationStatus.enum.js";
 
 
 export class Registration {
-  private id: number;
+  private id: number | undefined;
   private date: Date;
   private recallSendAt: Date | null;
-  private volunteer: User;
+  private volunteerUuid: string;
   private missionUuid: string;
   private status: RegistrationStatus;
 
   constructor(param: IRegistration, missionUuid: string) {
-    this.id = param.id || 0;
+    this.id = param.id || undefined;
     this.date = param.date || new Date();
     this.recallSendAt = param.recallSendAt || null;
-    this.volunteer = new User(param.volunteer);
+    this.volunteerUuid = param.volunteerUuid;
     this.missionUuid = missionUuid;
     this.status = param.status || RegistrationStatus.EN_ATTENTE;
   }
@@ -29,8 +29,8 @@ export class Registration {
   getRecallSendAt(): Date | null {
     return this.recallSendAt;
   }
-  getVolunteer(): User {
-    return this.volunteer;
+  getVolunteerUuid(): string {
+    return this.volunteerUuid;
   }
 
   getStatus(): RegistrationStatus {

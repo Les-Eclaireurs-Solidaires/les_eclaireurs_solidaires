@@ -3,8 +3,8 @@ import {
   NotFoundException,
 } from "../../utils/AppException.js";
 import type { IMissionRepository } from "../mission/missionRepository.interface.js";
-import type { IUser } from "../user/user.interface.js";
 import { User } from "../user/user.model.js";
+import type { IUserRepository } from "../user/user.repository.interface.js";
 import { Registration } from "./registration.model.js";
 import type { IRegistrationRepository } from "./registrationRepository.interface.js";
 import type { IRegistrationService } from "./registrationService.interface.js";
@@ -14,6 +14,7 @@ export class RegistrationService implements IRegistrationService {
   constructor(
     private missionRepository: IMissionRepository,
     private registrationRepository: IRegistrationRepository,
+    private userRepository: IUserRepository,
   ) {}
 
   public async applyToMission(
@@ -21,6 +22,11 @@ export class RegistrationService implements IRegistrationService {
     missionUuid: string,
   ): Promise<void> {
     const mission = await this.missionRepository.findByUuid(missionUuid);
+    const user = await this.userRepository.findByUuid(volunteerUuid);
+
+    if (!user) {
+      throw new BusinessException("L'utilisateur n'existe pas.");
+    };
 
     if (!mission) {
       throw new NotFoundException("La mission n'existe pas.");
@@ -28,9 +34,7 @@ export class RegistrationService implements IRegistrationService {
 
     const newRegistration = new Registration({
       date: new Date(),
-      volunteer: {
-        uuid: volunteerUuid
-      } as IUser,
+      volunteerUuid: volunteerUuid,
       status: RegistrationStatus.EN_ATTENTE,
     }, missionUuid);
 

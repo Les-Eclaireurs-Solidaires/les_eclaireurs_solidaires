@@ -8,8 +8,8 @@
     "build": "tsc -p tsconfig.build.json",
     "start": "node dist/index.js",
     "dev": "cross-env CHOKIDAR_USEPOLLING=true tsx watch --clearScreen=false src/index.ts",
-    "test": "vitest run",
-    "test:watch": "vitest run --watch"
+    "test": "vitest run --mode test",
+    "test:watch": "vitest run --watch --mode test"
   },
   "keywords": [
     "les",

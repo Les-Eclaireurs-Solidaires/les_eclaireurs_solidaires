@@ -37,11 +37,7 @@ export class Mission {
 
     this.cityId = param.cityId;
     this.status = param.status || MissionStatus.PUBLIEE;
-    this.registrations = param.registrations
-      ? param.registrations.map(
-          (registration) => new Registration(registration, this.uuid),
-        )
-      : [];
+    this.registrations = param.registrations || [];
 
     this.validateDate();
   }
@@ -118,7 +114,7 @@ export class Mission {
       throw new BusinessException("Impossible d'inscrire à une mission pleine.");
     }
 
-    const volunteerUuid = registration.getVolunteer().getUuid();
+    const volunteerUuid = registration.getVolunteerUuid();
 
     if (this.organizerUuid.includes(volunteerUuid)) {
       throw new BusinessException(
@@ -127,7 +123,7 @@ export class Mission {
     }
 
     const isAlreadyRegistered = this.registrations.some(
-      (registration) => registration.getVolunteer().getUuid() === volunteerUuid,
+      (registration) => registration.getVolunteerUuid() === volunteerUuid,
     );
 
     if (isAlreadyRegistered) {

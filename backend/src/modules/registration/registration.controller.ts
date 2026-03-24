@@ -8,7 +8,6 @@ import type { IRegistrationService } from "./registrationService.interface.js";
 import { requireAuth } from "../../middleware/auth.middleware.js";
 import { requireRole } from "../../middleware/role.middleware.js";
 import { UserRole } from "../user/userRole.enum.js";
-import { validateDto } from "../../middleware/validateDto.middleware.js";
 import { BusinessException } from "../../utils/AppException.js";
 
 export class RegistrationController {
@@ -41,15 +40,16 @@ export class RegistrationController {
     next: NextFunction,
   ) => {
     const missionUuid = req.params.missionUuid as string;
-    const userUuid = req.user!.uuid;
+    const volunteerUuid = req.user!.uuid;
 
     if (!missionUuid) {
       throw new BusinessException("Le paramètre voulu n'a pas été trouvé.");
     }
-    if (!userUuid) {
+    if (!volunteerUuid) {
       throw new BusinessException("L'utilisateur n'a pas été trouvé.");
     }
-    await this.regitrationService.applyToMission(userUuid, missionUuid);
+    
+    await this.regitrationService.applyToMission(volunteerUuid, missionUuid);
 
     return res
       .status(201)

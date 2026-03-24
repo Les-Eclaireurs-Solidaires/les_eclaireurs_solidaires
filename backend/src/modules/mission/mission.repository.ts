@@ -3,15 +3,14 @@ import type { IMissionRepository } from "./missionRepository.interface.js";
 import { Mission } from "./mission.model.js";
 import type { IMission } from "./mission.interface.js";
 import { Registration } from "../registration/registration.model.js";
-import type { IUser } from "../user/user.interface.js";
-import type { IRegistration } from "../registration/registration.interface.js";
+import { BusinessException } from "../../utils/AppException.js";
 
 export class MissionRepository implements IMissionRepository {
   constructor(private db: Pool) {}
 
   private async hydrateRegistrations(
-    missionUuid: string,
-  ): Promise<IRegistration[]> {
+    missionUuid: string,    
+  ): Promise<Registration[]> {
     const queryInscription = `SELECT
                                   inscription_id AS id,
                                   inscription_date AS date,
@@ -29,19 +28,18 @@ export class MissionRepository implements IMissionRepository {
 
     if (resultInscription.length === 0) return [];
 
-    return resultInscription.map((row) => ({
-      id: row.id,
-      date: row.date,
-      recallSendAt: row.recallSendAt,
-      status: row.status,
-      volunteer: {
-        uuid: row.volunteerUuid,
-      } as IUser,
-    }));
+    return resultInscription.map((row) => 
+      new Registration({
+        date: row.date,
+        recallSendAt: row.recallSendAt,
+        status: row.status,
+        volunteerUuid: row.volunteerUuid,
+        }, missionUuid));
   }
 
   async findByUuid(uuid: string): Promise<Mission | null> {
     const query = `SELECT 
+                      mission_id AS id,
                       mission_uuid AS uuid,
                       mission_name AS name,
                       mission_description AS description,
@@ -54,10 +52,10 @@ export class MissionRepository implements IMissionRepository {
                       mission_deleted_at AS deletedAt,
                       id_city AS cityId,
                       mission_status.mission_status_name AS status,
-                      GROUP CONCAT(mission_organizer.id_organizer SEPARATOR ',') AS organizerUuid
+                      GROUP_CONCAT(mission_organizer.id_organizer SEPARATOR ',') AS organizerUuid
                       FROM mission
                       LEFT JOIN mission_status ON mission.id_mission_status = mission_status.mission_status_id
-                      LEFT JOIN mission_organizer ON mission.mission_uuid = mission_organizer.id_mission
+                      LEFT JOIN mission_organizer ON mission.mission_id = mission_organizer.id_mission
                       WHERE mission_uuid = ?
                       GROUP BY mission_uuid`;
     const [result] = await this.db.execute<RowDataPacket[]>(query, [uuid]);
@@ -67,6 +65,8 @@ export class MissionRepository implements IMissionRepository {
     if (!row) return null;
 
     const registrationsData = await this.hydrateRegistrations(row.uuid);
+
+    if(!row.organizerUuid) throw new BusinessException("La mission n'a pas d'organisateurs.");
 
     return new Mission({
       uuid: row.uuid,
@@ -100,7 +100,7 @@ export class MissionRepository implements IMissionRepository {
                       mission_deleted_at AS deletedAt,
                       id_city AS cityId,
                       mission_status.mission_status_name AS status,
-                      GROUP CONCAT(mission_organizer.id_organizer SEPARATOR ',') AS organizerUuid
+                      GROUP_CONCAT(mission_organizer.id_organizer SEPARATOR ',') AS organizerUuid
                       FROM mission
                       LEFT JOIN mission_status ON mission.id_mission_status = mission_status.mission_status_id
                       LEFT JOIN mission_organizer ON mission.mission_uuid = mission_organizer.id_mission

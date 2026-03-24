@@ -23,7 +23,7 @@ export class RegistrationRepository implements IRegistrationRepository {
     await this.db.execute(query, [
       registration.getDate(),
       registration.getRecallSendAt(),
-      registration.getVolunteer().getUuid(),
+      registration.getVolunteerUuid(),
       registration.getMissionUuid(),
       registration.getStatus(),
     ]);

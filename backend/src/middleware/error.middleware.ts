@@ -13,10 +13,12 @@ export const errorHandler = (
   res: Response,
   next: NextFunction,
 ) => {
-  console.error(
-    `[ERROR] ${req.method} ${req.url} >> ${err.name}: ${err.message}`,
-  );
-  console.error(err.stack);
+  if (process.env.NODE_ENV !== "test") {
+    console.error(
+      `[ERROR] ${req.method} ${req.url} >> ${err.name}: ${err.message}`,
+    );
+    console.error(err.stack);
+  }
 
   if (err instanceof AppException) {
     if (err instanceof HttpException) {
@@ -31,10 +33,13 @@ export const errorHandler = (
       return res.status(404).json({ message: err.message });
     }
 
-    if(err instanceof DtoValidationException){
+    if (err instanceof DtoValidationException) {
       return res.status(400).json({ message: err.message, errors: err.errors });
     }
   }
 
-  return res.status(500).json({ message: "Une erreur interne est survenue." });
+  return res.status(500).json({
+    message: err.message,
+    stack: err.stack,
+  });
 };

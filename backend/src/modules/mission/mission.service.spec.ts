@@ -22,7 +22,8 @@ describe("MissionService", () => {
       createdAt: new Date(2025, 1, 1),
       cityId: 5,
       status: MissionStatus.PUBLIEE,
-      regitrations: [],
+      registrations: [],
+      organizerUuids: ["1"],
     });
     defaultMissionDTO = Object.assign(new CreateMissionDto(), {
       name: "Aider à la récolte d'habits.",
@@ -35,6 +36,7 @@ describe("MissionService", () => {
     });
 
     mockMissionRepository = {
+      findByUuid: vi.fn(),
       findByName: vi.fn(),
       create: vi.fn(),
     };
@@ -75,7 +77,7 @@ describe("MissionService", () => {
         createdAt: new Date(2025, 1, 1),
         cityId: 5,
         status: MissionStatus.PUBLIEE,
-        regitrations: [],
+        registrations: [],
       });
       expect(mockMissionRepository.create).toHaveBeenCalledWith(
         expect.any(Mission),
