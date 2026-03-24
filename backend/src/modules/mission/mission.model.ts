@@ -103,15 +103,21 @@ export class Mission {
 
   public addRegistration(registration: Registration): void {
     if (this.status === MissionStatus.TERMINEE) {
-      throw new BusinessException("Impossible d'inscrire à une mission terminée.");
+      throw new BusinessException(
+        "Impossible d'inscrire à une mission terminée.",
+      );
     }
 
     if (this.status === MissionStatus.ANNULEE) {
-      throw new BusinessException("Impossible d'inscrire à une mission annulée.");
+      throw new BusinessException(
+        "Impossible d'inscrire à une mission annulée.",
+      );
     }
 
     if (!this.hasAvailablePlaces()) {
-      throw new BusinessException("Impossible d'inscrire à une mission pleine.");
+      throw new BusinessException(
+        "Impossible d'inscrire à une mission pleine.",
+      );
     }
 
     const volunteerUuid = registration.getVolunteerUuid();
@@ -127,10 +133,38 @@ export class Mission {
     );
 
     if (isAlreadyRegistered) {
-      throw new BusinessException("Cet utilisateur est déjà inscrit à cette mission.");
+      throw new BusinessException(
+        "Cet utilisateur est déjà inscrit à cette mission.",
+      );
     }
 
     this.registrations.push(registration);
+  }
+
+  public removeRegistration(userUuid: string): void {
+    if (this.status === MissionStatus.TERMINEE) {
+      throw new BusinessException(
+        "Impossible de se désinscrire d'une mission terminée.",
+      );
+    }
+
+    if (this.status === MissionStatus.ANNULEE) {
+      throw new BusinessException(
+        "Impossible de se désinscrire d'une mission annulée.",
+      );
+    }
+
+    const registration = this.registrations.find(
+      (reg) => reg.getVolunteerUuid() === userUuid,
+    );
+
+    if (!registration) {
+      throw new BusinessException(
+        "Cet utilisateur n'est pas inscrit à cette mission.",
+      );
+    }
+
+    this.registrations.splice(this.registrations.indexOf(registration), 1);
   }
 
   public getUuid(): string {
@@ -183,5 +217,9 @@ export class Mission {
 
   public getRegistrations(): Registration[] {
     return this.registrations;
+  }
+  
+  public getOrganizerUuid(): string[] {
+    return this.organizerUuid;
   }
 }

@@ -28,4 +28,13 @@ export class RegistrationRepository implements IRegistrationRepository {
       registration.getStatus(),
     ]);
   }
+
+  async deleteRegistration(
+    targetUuid: string,
+    missionUuid: string,
+  ): Promise<void> {
+    const query = `DELETE FROM inscription WHERE id_user = (SELECT user_id FROM user WHERE user_uuid = ?) AND id_mission = (SELECT mission_id FROM mission WHERE mission_uuid = ?)`;
+
+    await this.db.execute(query, [targetUuid, missionUuid]);
+  }
 }

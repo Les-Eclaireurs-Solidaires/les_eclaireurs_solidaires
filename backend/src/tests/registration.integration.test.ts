@@ -139,3 +139,9 @@ describe("Flux d'Inscription à une Mission", () => {
     expect(row.id_user).toBe(userId);
   });
 });
+
+describe("Flux de désinscription à une Mission", () => {
+  
+});
+
+
