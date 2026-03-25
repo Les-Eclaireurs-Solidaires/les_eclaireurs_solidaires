@@ -1,4 +1,8 @@
-export interface IRegistrationService{
-    applyToMission(volunteerUuid:string,missionUuid:string):Promise<void>;
-    deleteRegistration(targetUuid:string,requesterUuid:string,missionUuid:string):Promise<void>;
+export interface IRegistrationService {
+  registerVolunteer(volunteerUuid: string, missionUuid: string): Promise<void>;
+  cancelRegistration(
+    targetUuid: string,
+    requesterUuid: string,
+    missionUuid: string,
+  ): Promise<void>;
 }

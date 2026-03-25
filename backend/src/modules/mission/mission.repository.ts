@@ -18,7 +18,7 @@ export class MissionRepository implements IMissionRepository {
                                   id_inscription_status AS status,
                                   user.user_uuid AS volunteerUuid
                                   FROM inscription
-                                  LEFT JOIN user ON inscription.id_user = user.user_id
+                                  LEFT JOIN \`user\` ON inscription.id_user = user.user_id
                                   WHERE id_mission = (SELECT mission_id FROM mission WHERE mission_uuid = ?)
                                   ORDER BY inscription_date DESC`;
     const [resultInscription] = await this.db.execute<RowDataPacket[]>(
@@ -39,25 +39,26 @@ export class MissionRepository implements IMissionRepository {
 
   async findByUuid(uuid: string): Promise<Mission | null> {
     const query = `SELECT 
-                      mission_id AS id,
-                      mission_uuid AS uuid,
-                      mission_name AS name,
-                      mission_description AS description,
-                      mission_date_start AS dateStart,
-                      mission_date_end AS dateEnd,
-                      mission_address AS address,
-                      mission_nbr_volunteer_needed AS nbrVolunteerNeeded,
-                      mission_created_at AS createdAt,
-                      mission_updated_at AS updatedAt,
-                      mission_deleted_at AS deletedAt,
-                      id_city AS cityId,
+                      mission.mission_id AS id,
+                      mission.mission_uuid AS uuid,
+                      mission.mission_name AS name,
+                      mission.mission_description AS description,
+                      mission.mission_date_start AS dateStart,
+                      mission.mission_date_end AS dateEnd,
+                      mission.mission_address AS address,
+                      mission.mission_nbr_volunteer_needed AS nbrVolunteerNeeded,
+                      mission.mission_created_at AS createdAt,
+                      mission.mission_updated_at AS updatedAt,
+                      mission.mission_deleted_at AS deletedAt,
+                      mission.id_city AS cityId,
                       mission_status.mission_status_name AS status,
-                      GROUP_CONCAT(mission_organizer.id_organizer SEPARATOR ',') AS organizerUuid
+                      GROUP_CONCAT(organizer.user_uuid SEPARATOR ',') AS organizerUuid
                       FROM mission
                       LEFT JOIN mission_status ON mission.id_mission_status = mission_status.mission_status_id
                       LEFT JOIN mission_organizer ON mission.mission_id = mission_organizer.id_mission
-                      WHERE mission_uuid = ?
-                      GROUP BY mission_uuid`;
+                      LEFT JOIN \`user\` AS organizer ON mission_organizer.id_organizer = organizer.user_id
+                      WHERE mission.mission_uuid = ?
+                      GROUP BY mission.mission_uuid`;
     const [result] = await this.db.execute<RowDataPacket[]>(query, [uuid]);
 
     const row = result[0];
@@ -88,24 +89,25 @@ export class MissionRepository implements IMissionRepository {
 
   async findByName(name: string): Promise<Mission | null> {
     const query = `SELECT 
-                      mission_uuid AS uuid,
-                      mission_name AS name,
-                      mission_description AS description,
-                      mission_date_start AS dateStart,
-                      mission_date_end AS dateEnd,
-                      mission_address AS address,
-                      mission_nbr_volunteer_needed AS nbrVolunteerNeeded,
-                      mission_created_at AS createdAt,
-                      mission_updated_at AS updatedAt,
-                      mission_deleted_at AS deletedAt,
-                      id_city AS cityId,
+                      mission.mission_uuid AS uuid,
+                      mission.mission_name AS name,
+                      mission.mission_description AS description,
+                      mission.mission_date_start AS dateStart,
+                      mission.mission_date_end AS dateEnd,
+                      mission.mission_address AS address,
+                      mission.mission_nbr_volunteer_needed AS nbrVolunteerNeeded,
+                      mission.mission_created_at AS createdAt,
+                      mission.mission_updated_at AS updatedAt,
+                      mission.mission_deleted_at AS deletedAt,
+                      mission.id_city AS cityId,
                       mission_status.mission_status_name AS status,
-                      GROUP_CONCAT(mission_organizer.id_organizer SEPARATOR ',') AS organizerUuid
+                      GROUP_CONCAT(organizer.user_uuid SEPARATOR ',') AS organizerUuid
                       FROM mission
                       LEFT JOIN mission_status ON mission.id_mission_status = mission_status.mission_status_id
                       LEFT JOIN mission_organizer ON mission.mission_uuid = mission_organizer.id_mission
-                      WHERE mission_name = ?
-                      GROUP BY mission_uuid`;
+                      LEFT JOIN \`user\` AS organizer ON mission_organizer.id_organizer = organizer.user_id
+                      WHERE mission.mission_name = ?
+                      GROUP BY mission.mission_uuid`;
     const [result] = await this.db.execute<RowDataPacket[]>(query, [name]);
 
     const row = result[0];

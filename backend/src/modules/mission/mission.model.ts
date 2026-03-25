@@ -141,7 +141,7 @@ export class Mission {
     this.registrations.push(registration);
   }
 
-  public removeRegistration(userUuid: string): void {
+  public removeRegistration(userUuid: string,registrationStatus: RegistrationStatus): void {
     if (this.status === MissionStatus.TERMINEE) {
       throw new BusinessException(
         "Impossible de se désinscrire d'une mission terminée.",
@@ -163,8 +163,7 @@ export class Mission {
         "Cet utilisateur n'est pas inscrit à cette mission.",
       );
     }
-
-    this.registrations.splice(this.registrations.indexOf(registration), 1);
+    registration.setStatus(registrationStatus);
   }
 
   public getUuid(): string {
@@ -218,7 +217,7 @@ export class Mission {
   public getRegistrations(): Registration[] {
     return this.registrations;
   }
-  
+
   public getOrganizerUuid(): string[] {
     return this.organizerUuid;
   }

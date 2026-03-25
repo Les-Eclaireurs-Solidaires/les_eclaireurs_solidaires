@@ -1,6 +1,7 @@
 import type { Pool } from "mysql2/promise";
 import type { Registration } from "./registration.model.js";
 import type { IRegistrationRepository } from "./registrationRepository.interface.js";
+import type { RegistrationStatus } from "./registrationStatus.enum.js";
 
 export class RegistrationRepository implements IRegistrationRepository {
   constructor(private db: Pool) {}
@@ -29,12 +30,13 @@ export class RegistrationRepository implements IRegistrationRepository {
     ]);
   }
 
-  async deleteRegistration(
+  async updateRegistrationStatus(
     targetUuid: string,
     missionUuid: string,
+    registrationStatus: RegistrationStatus,
   ): Promise<void> {
-    const query = `DELETE FROM inscription WHERE id_user = (SELECT user_id FROM user WHERE user_uuid = ?) AND id_mission = (SELECT mission_id FROM mission WHERE mission_uuid = ?)`;
+    const query = `UPDATE inscription SET id_inscription_status = ? WHERE id_user = (SELECT user_id FROM user WHERE user_uuid = ?) AND id_mission = (SELECT mission_id FROM mission WHERE mission_uuid = ?)`;
 
-    await this.db.execute(query, [targetUuid, missionUuid]);
+    await this.db.execute(query, [registrationStatus, targetUuid, missionUuid]);
   }
 }

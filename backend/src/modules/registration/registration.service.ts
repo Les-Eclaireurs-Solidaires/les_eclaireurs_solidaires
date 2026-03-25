@@ -16,7 +16,7 @@ export class RegistrationService implements IRegistrationService {
     private userRepository: IUserRepository,
   ) {}
 
-  public async applyToMission(
+  public async registerVolunteer(
     volunteerUuid: string,
     missionUuid: string,
   ): Promise<void> {
@@ -45,29 +45,42 @@ export class RegistrationService implements IRegistrationService {
     await this.registrationRepository.saveRegistration(newRegistration);
   }
 
-  public async deleteRegistration(
+  public async cancelRegistration(
     targetUserUuid: string,
     requesterUuid: string,
     missionUuid: string,
   ): Promise<void> {
     const missionToApply = await this.missionRepository.findByUuid(missionUuid);
+    const requesterUser = await this.userRepository.findByUuid(requesterUuid);
+
     if (!missionToApply)
       throw new NotFoundException("La mission n'existe pas.");
 
-    
+    if (!requesterUser)
+      throw new NotFoundException("L'utilisateur n'existe pas.");
 
-    if (
-      requesterUuid != targetUserUuid &&
-      !missionToApply
-        .getOrganizerUuid()
-        .includes(requesterUuid)
-    )
+    const isSelf = requesterUuid === targetUserUuid;
+
+    const isOrganizer = missionToApply
+      .getOrganizerUuid()
+      .includes(requesterUuid);
+    const isSuperAdmin = requesterUser.getRoleId() === 1;
+
+    if (!isSelf && !isOrganizer && !isSuperAdmin)
       throw new BusinessException(
         "L'utilisateur n'est pas autorisé à supprimer cette inscription.",
       );
 
-    missionToApply.removeRegistration(targetUserUuid);
+    const registrationStatus = isSelf
+      ? RegistrationStatus.ANNULEE
+      : RegistrationStatus.REFUSEE;
 
-    await this.registrationRepository.deleteRegistration(targetUserUuid, missionUuid);
+    missionToApply.removeRegistration(targetUserUuid, registrationStatus);
+
+    await this.registrationRepository.updateRegistrationStatus(
+      targetUserUuid,
+      missionUuid,
+      registrationStatus,
+    );
   }
 }

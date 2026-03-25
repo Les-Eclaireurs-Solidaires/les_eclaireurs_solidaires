@@ -30,7 +30,7 @@ export class RegistrationController {
         UserRole.ORGANISATEUR,
         UserRole.SUPER_ADMIN,
       ]),
-      this.applyToMission,
+      this.registerVolunteer,
     );
     this.registrationRouter.delete(
       "/registration/:targetUserUuid",
@@ -44,7 +44,7 @@ export class RegistrationController {
     );
   }
 
-  private applyToMission = async (
+  private registerVolunteer = async (
     req: Request,
     res: Response,
     next: NextFunction,
@@ -59,7 +59,7 @@ export class RegistrationController {
       throw new BusinessException("L'utilisateur n'a pas été trouvé.");
     }
 
-    await this.regitrationService.applyToMission(volunteerUuid, missionUuid);
+    await this.regitrationService.registerVolunteer(volunteerUuid, missionUuid);
 
     return res
       .status(201)
@@ -83,7 +83,7 @@ export class RegistrationController {
     if (!targetUserUuid)
       throw new BusinessException("Le paramètre voulu n'a pas été trouvé.");
 
-    await this.regitrationService.deleteRegistration(
+    await this.regitrationService.cancelRegistration(
       targetUserUuid,
       requesterUuid,
       missionUuid,
