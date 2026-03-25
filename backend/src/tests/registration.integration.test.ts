@@ -1,28 +1,26 @@
-import dotenv from "dotenv";
-dotenv.config({ path: ".env.test" });
-
 import { describe, it, expect, beforeAll, beforeEach, afterAll } from "vitest";
-import { AppConfig } from "../config/app.js";
 import {
   type Pool,
   type ResultSetHeader,
   type RowDataPacket,
 } from "mysql2/promise";
-import { Database } from "../database/database.config.js";
-import { AuthController } from "../modules/auth/auth.controller.js";
-import { MissionController } from "../modules/mission/mission.controller.js";
-import { AuthService } from "../modules/auth/auth.service.js";
-import { UserRepository } from "../modules/user/user.repository.js";
-import { RegistrationService } from "../modules/registration/registration.service.js";
-import { MissionService } from "../modules/mission/mission.service.js";
-import { MissionRepository } from "../modules/mission/mission.repository.js";
-import { RegistrationController } from "../modules/registration/registration.controller.js";
-import { RegistrationRepository } from "../modules/registration/registration.repository.js";
-import { HashUtil } from "../utils/hash.util.js";
+import { Database } from "../infra/database/DatabaseConfig.js";
+import { AuthController } from "../modules/auth/AuthController.js";
+import { MissionController } from "../modules/mission/MissionController.js";
+import { AuthService } from "../modules/auth/AuthService.js";
+import { UserRepository } from "../modules/user/UserRepository.js";
+import { RegistrationService } from "../modules/registration/RegistrationService.js";
+import { MissionService } from "../modules/mission/MissionService.js";
+import { MissionRepository } from "../modules/mission/MissionRepository.js";
+import { RegistrationController } from "../modules/registration/RegistrationController.js";
+import { RegistrationRepository } from "../modules/registration/RegistrationRepository.js";
 import supertest from "supertest";
-import { TokenUtil } from "../utils/token.util.js";
-import { UserRole } from "../modules/user/userRole.enum.js";
-import { RegistrationStatus } from "../modules/registration/registrationStatus.enum.js";
+import { UserRole } from "../modules/user/UserRoleEnum.js";
+import { RegistrationStatus } from "../modules/registration/RegistrationStatusEnum.js";
+import { AppConfig } from "../infra/web/AppConfig.js";
+import { HashService } from "../infra/security/HashService.js";
+import type { ITokenService } from "../modules/auth/ITokenService.js";
+import { TokenService } from "../infra/security/TokenService.js";
 
 let app: any;
 let dbPool: Pool;
@@ -31,20 +29,22 @@ let missionId: number;
 let registrationId: number;
 let fakeCsrf: string = "valid-test-token";
 let adminId: number;
+let tokenService:ITokenService
 
 beforeAll(() => {
   dbPool = Database.getInstance().getConnection();
 
-  const hashUtil = new HashUtil();
+  const hashService = new HashService();
+  tokenService = new TokenService();
   const userRepository = new UserRepository(dbPool);
   const missionRepository = new MissionRepository(dbPool);
   const registrationRepository = new RegistrationRepository(dbPool);
 
-  const authService = new AuthService(userRepository, hashUtil);
-  const authController = new AuthController(authService);
+  const authService = new AuthService(userRepository, hashService,tokenService);
+  const authController = new AuthController(authService,tokenService);
 
   const missionService = new MissionService(missionRepository);
-  const missionController = new MissionController(missionService);
+  const missionController = new MissionController(missionService,tokenService);
 
   const registrationService = new RegistrationService(
     missionRepository,
@@ -53,6 +53,7 @@ beforeAll(() => {
   );
   const registrationController = new RegistrationController(
     registrationService,
+    tokenService,
   );
 
   const appConfig = new AppConfig(
@@ -128,7 +129,7 @@ describe("Flux d'inscription d'une Mission", () => {
     expect(response.status).toBe(401);
   });
   it("devrait retourner 201 si le token est valide", async () => {
-    const accessToken = TokenUtil.generateAccessToken({
+    const accessToken = tokenService.generateAccessToken({
       uuid: "user-uuid-123",
       roleId: 3,
     });
@@ -174,7 +175,7 @@ describe("Flux de désinscription d'une Mission", () => {
   });
   it("devrait renvoyer 400 si un intrus, bénévole non-inscrit à la mission, essaie de supprimer une inscription qui n'est pas la sienne", async () => {
     // On genere l'acces token d'un utilisateur qui n'est pas inscrit a la mission
-    const accessToken = TokenUtil.generateAccessToken({
+    const accessToken = tokenService.generateAccessToken({
       uuid: "user-uuid-789",
       roleId: 3,
     });
@@ -189,7 +190,7 @@ describe("Flux de désinscription d'une Mission", () => {
   });
   it("devrait renvoyer 400 si un intrus, organisateur, essaie de supprimer une inscription sur une mission qu'il n'organise pas", async () => {
     // On genere l'acces token de l'organisateur intrus
-    const accessToken = TokenUtil.generateAccessToken({
+    const accessToken = tokenService.generateAccessToken({
       uuid: "user-uuid-546",
       roleId: 2,
     });
@@ -204,9 +205,9 @@ describe("Flux de désinscription d'une Mission", () => {
   });
   it("devrait renvoyer 200 si le bénévole inscrit supprime son inscription, status inscription = annulée", async () => {
     // 1. Token du bénévole légitime
-    const accessToken = TokenUtil.generateAccessToken({
-      uuid: "user-uuid-123", 
-      roleId: UserRole.BENEVOLE, 
+    const accessToken = tokenService.generateAccessToken({
+      uuid: "user-uuid-123",
+      roleId: UserRole.BENEVOLE,
     });
 
     // 2. Requête d'annulation
@@ -222,20 +223,20 @@ describe("Flux de désinscription d'une Mission", () => {
     // 4. Vérification du Soft Delete en base de données
     const [inscriptionResult] = await dbPool.execute<RowDataPacket[]>(
       "SELECT id_inscription_status FROM inscription WHERE id_mission = ? AND id_user = ?",
-      [missionId, volunteerId]
+      [missionId, volunteerId],
     );
-    
+
     // L'inscription existe toujours physiquement...
-    expect(inscriptionResult.length).toBe(1); 
-     const row = inscriptionResult[0] as RowDataPacket;
+    expect(inscriptionResult.length).toBe(1);
+    const row = inscriptionResult[0] as RowDataPacket;
     expect(row.id_inscription_status).toBe(RegistrationStatus.ANNULEE);
   });
 
   it("devrait renvoyer 200 si le bénévole inscrit est désinscrit par un organisateur de la mission, status inscription = refusée", async () => {
     // 1. Token de l'organisateur de la mission
-    const accessToken = TokenUtil.generateAccessToken({
-      uuid: "user-uuid-456", 
-      roleId: UserRole.ORGANISATEUR, 
+    const accessToken = tokenService.generateAccessToken({
+      uuid: "user-uuid-456",
+      roleId: UserRole.ORGANISATEUR,
     });
 
     // 2. L'organisateur supprime l'inscription du bénévole cible
@@ -244,17 +245,17 @@ describe("Flux de désinscription d'une Mission", () => {
       .set("Cookie", [`XSRF-TOKEN=${fakeCsrf}`, `accessToken=${accessToken}`])
       .set("x-xsrf-token", fakeCsrf)
       .send();
-      
+
     // 3. Vérification de la réponse HTTP
     expect(response.status).toBe(200);
 
     // 4. Vérification du Soft Delete en base de données
     const [inscriptionResult] = await dbPool.execute<RowDataPacket[]>(
       "SELECT id_inscription_status FROM inscription WHERE id_mission = ? AND id_user = ?",
-      [missionId, volunteerId]
+      [missionId, volunteerId],
     );
-    
-    expect(inscriptionResult.length).toBe(1); 
+
+    expect(inscriptionResult.length).toBe(1);
     const row = inscriptionResult[0] as RowDataPacket;
     expect(row.id_inscription_status).toBe(RegistrationStatus.REFUSEE);
   });
