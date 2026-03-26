@@ -3,6 +3,7 @@ import { User } from "./UserModel.js";
 import type { IUser } from "./IUserModel.js";
 import type { IUserRepository } from "./IUserRepository.js";
 import { EmptyUpdateError } from "../../infra/exceptions/EmptyUpdateError.js";
+import { EmailAlreadyExistError } from "../../domain/exceptions/auth/EmailAlreadyExistError.js";
 
 export class UserRepository implements IUserRepository {
   private readonly columnMapping: { [key: string]: string } = {
@@ -92,8 +93,15 @@ export class UserRepository implements IUserRepository {
       user.getRoleId(),
     ];
 
-    await this.db.execute(query, values);
-    return user;
+    try {
+      await this.db.execute<ResultSetHeader>(query, values);
+      return user;
+    } catch (error: any) {
+      if (error.code === "ER_DUP_ENTRY") {
+        throw new EmailAlreadyExistError(user.getEmail());
+      }
+      throw error;
+    }
   }
 
   async update(user: User): Promise<boolean> {

@@ -3,4 +3,5 @@ import type { Mission } from "./MissionModel.js";
 
 export interface IMissionService {
   createMission(missionDTO: CreateMissionDTO): Promise<Mission>;
+  cancelMission(missionUuid: string, requesterUuid: string, roleID: number): Promise<void>;
 }

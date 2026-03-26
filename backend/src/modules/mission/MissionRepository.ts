@@ -4,6 +4,7 @@ import { Mission } from "./MissionModel.js";
 import type { IMission } from "./IMissionModel.js";
 import { Registration } from "../registration/RegistrationModel.js";
 import { DataIntegrityError } from "../../infra/exceptions/DataIntegrityError.js";
+import { MissionNameAlreadyExistError } from "../../domain/exceptions/mission/MissionNameAlreadyExistError.js";
 
 export class MissionRepository implements IMissionRepository {
   constructor(private db: Pool) {}
@@ -12,15 +13,15 @@ export class MissionRepository implements IMissionRepository {
     missionUuid: string,
   ): Promise<Registration[]> {
     const queryInscription = `SELECT
-                                  inscription_id AS id,
-                                  inscription_date AS date,
-                                  inscription_recall_send_at AS recallSendAt, 
-                                  id_inscription_status AS status,
-                                  user.user_uuid AS volunteerUuid
-                                  FROM inscription
-                                  LEFT JOIN \`user\` ON inscription.id_user = user.user_id
-                                  WHERE id_mission = (SELECT mission_id FROM mission WHERE mission_uuid = ?)
-                                  ORDER BY inscription_date DESC`;
+                                inscription_id AS id,
+                                inscription_date AS date,
+                                inscription_recall_send_at AS recallSendAt, 
+                                id_inscription_status AS status,
+                                user.user_uuid AS volunteerUuid
+                                FROM inscription
+                                LEFT JOIN \`user\` ON inscription.id_user = user.user_id
+                                WHERE id_mission = (SELECT mission_id FROM mission WHERE mission_uuid = ?)
+                                ORDER BY inscription_date DESC`;
     const [resultInscription] = await this.db.execute<RowDataPacket[]>(
       queryInscription,
       [missionUuid],
@@ -110,7 +111,7 @@ export class MissionRepository implements IMissionRepository {
                       GROUP_CONCAT(organizer.user_uuid SEPARATOR ',') AS organizerUuid
                       FROM mission
                       LEFT JOIN mission_status ON mission.id_mission_status = mission_status.mission_status_id
-                      LEFT JOIN mission_organizer ON mission.mission_uuid = mission_organizer.id_mission
+                      LEFT JOIN mission_organizer ON mission.mission_id = mission_organizer.id_mission
                       LEFT JOIN \`user\` AS organizer ON mission_organizer.id_organizer = organizer.user_id
                       WHERE mission.mission_name = ?
                       GROUP BY mission.mission_uuid`;
@@ -189,6 +190,63 @@ export class MissionRepository implements IMissionRepository {
       }
       await connection.commit();
       return missionToCreate;
+    } catch (error: any) {
+      if (error.code === "ER_DUP_ENTRY") {
+        throw new MissionNameAlreadyExistError(
+          `La mission : ${missionToCreate.getName()} existe déjà.`,
+        );
+      }
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
+  }
+
+  async update(mission: Mission): Promise<void> {
+    const connection = await this.db.getConnection();
+    const queryMission = `UPDATE mission SET
+                            mission_name = ?,
+                            mission_description = ?,
+                            mission_date_start = ?,
+                            mission_date_end = ?,
+                            mission_address = ?,
+                            mission_nbr_volunteer_needed = ?,
+                            mission_updated_at = ?,
+                            mission_deleted_at = ?,
+                            id_city = ?,
+                            id_mission_status = ?
+                            WHERE mission_uuid = ?`;
+    const queryRegistration = `UPDATE inscription SET
+                                id_inscription_status = ?
+                                WHERE id_user = (SELECT user_id FROM \`user\` WHERE user_uuid = ?) AND id_mission = (SELECT mission_id FROM mission WHERE mission_uuid = ?)`;
+
+    try {
+      await connection.beginTransaction();
+
+      const result = await connection.execute<ResultSetHeader>(queryMission, [
+        mission.getName(),
+        mission.getDescription(),
+        mission.getDateStart(),
+        mission.getDateEnd(),
+        mission.getAddress(),
+        mission.getNbrVolunteerNeeded(),
+        mission.getUpdatedAt(),
+        mission.getDeletedAt(),
+        mission.getCityId(),
+        mission.getStatus(),
+        mission.getUuid(),
+      ]);
+
+      for (const registration of mission.getRegistrations()) {
+        await connection.execute<ResultSetHeader>(queryRegistration, [
+          registration.getStatus(),
+          registration.getVolunteerUuid(),
+          mission.getUuid(),
+        ]);
+      }
+
+      await connection.commit();
     } catch (error) {
       await connection.rollback();
       throw error;
