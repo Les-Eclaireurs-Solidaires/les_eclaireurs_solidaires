@@ -96,7 +96,11 @@ export class AuthService {
     return response;
   }
 
-  async logout(user: User) {
+  async logout(uuid: string) {
+    const user: User | null = await this.userRepository.findByUuid(uuid);
+    if (!user) {
+      throw new UserNotFoundError();
+    }
     user.registerNewRefreshToken(null);
     await this.userRepository.update(user);
   }

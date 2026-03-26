@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
-import { type Pool } from "mysql2/promise";
+import { type Pool, type RowDataPacket } from "mysql2/promise";
 import { Database } from "../infra/database/DatabaseConfig.js";
 import { AuthController } from "../modules/auth/AuthController.js";
 import { MissionController } from "../modules/mission/MissionController.js";
@@ -17,7 +17,7 @@ import { TokenService } from "../infra/security/TokenService.js";
 import request from "supertest";
 import { UserRole } from "../modules/user/UserRoleEnum.js";
 
-let app: any;
+let app: AppConfig; // 'any' a été remplacé par 'Express'
 let dbPool: Pool;
 let userUuid: string = "test-user-uuid";
 let missionUuid: string = "test-mission-uuid";
@@ -87,11 +87,11 @@ const setupDatabase = async () => {
          VALUES (?, 'orga@test.com', 'hash', NOW(), 2)`,
     [userUuid],
   );
-  const [userRows]: any = await dbPool.execute(
+  const [userRows] = await dbPool.execute<RowDataPacket[]>(
     "SELECT user_id FROM user WHERE user_uuid = ?",
     [userUuid],
   );
-  const userId = userRows[0].user_id;
+  const userId = userRows[0]!.user_id;
 
   // C. Injecter la mission en BDD (Statut 1 = PUBLIEE)
   await dbPool.execute(
@@ -99,11 +99,11 @@ const setupDatabase = async () => {
          VALUES (?, 'Mission Test Concurrence', '2026-05-01', '2026-05-02', 'Paris', 5, NOW(), 1, 1)`,
     [missionUuid],
   );
-  const [missionRows]: any = await dbPool.execute(
+  const [missionRows] = await dbPool.execute<RowDataPacket[]>(
     "SELECT mission_id FROM mission WHERE mission_uuid = ?",
     [missionUuid],
   );
-  localMissionId = missionRows[0].mission_id;
+  localMissionId = missionRows[0]!.mission_id;
 
   // D. Lier l'organisateur à sa mission
   await dbPool.execute(
@@ -116,7 +116,7 @@ const setupDatabase = async () => {
         INSERT INTO user (user_uuid, user_email, user_password, user_created_at, id_role) 
         VALUES ('benevole-uuid', 'ben@test.com', 'hash', NOW(), 3)
       `);
-  const [benRows]: any = await dbPool.execute(
+  const [benRows] = await dbPool.execute<RowDataPacket[]>(
     "SELECT user_id FROM user WHERE user_uuid = 'benevole-uuid'",
   );
   await dbPool.execute(
@@ -150,45 +150,77 @@ describe("Flux de suppression d'une mission", () => {
     const responses = await Promise.all(requests);
 
     const successResponses = responses.filter((res) => res.status === 200);
+    const failedResponses = responses.filter((res) => res.status !== 200);
 
-    if (successResponses.length === 0) {
-      console.log("Statut d'erreur persistant :", responses[0]?.status);
-      console.log("Corps d'erreur persistant :", responses[0]?.body);
-    }
+    // Assertion renforcée : exactement une requête doit réussir.
+    expect(successResponses.length).toBe(1);
+    // Toutes les autres doivent échouer.
+    expect(failedResponses.length).toBe(concurrentRequests - 1);
 
-    expect(successResponses.length).toBeGreaterThan(0);
+    // Idéalement, on vérifie que les échecs sont bien des 404 Not Found,
+    // car la mission a été "supprimée" par la première requête.
+    const allFailedWithNotFound = failedResponses.every(
+      (res) => res.status === 404,
+    );
+    // Note: Le code actuel peut renvoyer 400 si la logique de service vérifie le statut avant de supprimer.
+    // L'important est de valider un échec contrôlé.
 
-    const [missionResult]: any = await dbPool.execute(
+    const [missionResult] = await dbPool.execute<RowDataPacket[]>(
       "SELECT id_mission_status, mission_deleted_at FROM mission WHERE mission_uuid = ?",
       [missionUuid],
     );
     expect(missionResult[0].id_mission_status).toBe(4);
     expect(missionResult[0].mission_deleted_at).not.toBeNull();
 
-    const [registrationResult]: any = await dbPool.execute(
+    const [registrationResult] = await dbPool.execute<RowDataPacket[]>(
       `SELECT id_inscription_status FROM inscription WHERE id_mission = ?`,
       [localMissionId],
     );
     expect(registrationResult[0].id_inscription_status).toBe(4);
-    if (localMissionId > 0) {
-      await dbPool
-        .execute("DELETE FROM inscription WHERE id_mission = ?", [
-          localMissionId,
-        ])
-        .catch(() => {});
-      await dbPool
-        .execute("DELETE FROM mission_organizer WHERE id_mission = ?", [
-          localMissionId,
-        ])
-        .catch(() => {});
-    }
-    await dbPool
-      .execute("DELETE FROM mission WHERE mission_uuid = ?", [missionUuid])
-      .catch(() => {});
-    await dbPool
-      .execute(
-        "DELETE FROM user WHERE user_email IN ('orga@test.com', 'ben@test.com')",
-      )
-      .catch(() => {});
+  });
+});
+
+// NOUVEAU BLOC DE TESTS POUR LA RÉCUPÉRATION DES MISSIONS
+describe("Flux de lecture des missions (GET)", () => {
+  beforeEach(async () => {
+    // On réinitialise la base pour avoir des données propres
+    await setupDatabase();
+
+    token = tokenService.generateAccessToken({
+      uuid: userUuid,
+      roleId: UserRole.BENEVOLE, // Un bénévole qui cherche une mission
+    });
+  });
+
+  it("devrait récupérer le catalogue des missions avec des filtres dynamiques (Query Parameters)", async () => {
+    // La mission injectée dans setupDatabase est à Paris (cityId=1) et PUBLIEE (status=1)
+    const response = await request(app)
+      .get("/mission/missions?cityId=1&status=1")
+      .set("Cookie", `accessToken=${token}`);
+
+    expect(response.status).toBe(200);
+    expect(response.body.message).toBe("Missions found successfully");
+    expect(Array.isArray(response.body.missions)).toBe(true);
+    expect(response.body.missions.length).toBeGreaterThan(0);
+
+    // On vérifie que la mission retournée correspond bien à celle en base
+    expect(response.body.missions[0].uuid).toBe(missionUuid);
+    expect(response.body.missions[0].name).toBe("Mission Test Concurrence");
+    expect(response.body.missions[0].cityId).toBe(1);
+  });
+
+  it("devrait récupérer les détails d'une mission spécifique via son UUID", async () => {
+    const response = await request(app)
+      .get(`/mission/mission/${missionUuid}`)
+      .set("Cookie", `accessToken=${token}`);
+
+    expect(response.status).toBe(200);
+    expect(response.body.message).toBe("Mission found successfully");
+    expect(response.body.mission).toBeDefined();
+
+    // On vérifie l'hydratation et le mapping
+    expect(response.body.mission.uuid).toBe(missionUuid);
+    expect(response.body.mission.name).toBe("Mission Test Concurrence");
+    expect(response.body.mission.nbrVolunteerNeeded).toBe(5);
   });
 });

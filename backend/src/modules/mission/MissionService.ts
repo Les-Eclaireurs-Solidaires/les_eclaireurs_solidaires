@@ -57,4 +57,20 @@ export class MissionService implements IMissionService {
 
     await this.missionRepository.update(mission);
   }
+
+  async getMission(missionUuid: string): Promise<Mission> {
+    const missionToSend = await this.missionRepository.findByUuid(missionUuid);
+
+    if (!missionToSend) {
+      throw new MissionNotFoundError();
+    }
+
+    return missionToSend;
+  }
+
+  async getMissions(filters: any): Promise<Mission[]> {
+    const missions = await this.missionRepository.findMany(filters);
+
+    return missions;
+  }
 }
