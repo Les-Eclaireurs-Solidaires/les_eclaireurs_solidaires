@@ -8,10 +8,12 @@ import type { IMissionService } from "./IMissionService.js";
 import { requireAuth } from "../../infra/web/middlewares/AuthMiddleware.js";
 import { requireRole } from "../../infra/web/middlewares/RoleMiddleware.js";
 import { UserRole } from "../user/UserRoleEnum.js";
-import { validateDto } from "../../infra/web/middlewares/ValidateDtoMiddleware.js";
 import { CreateMissionDTO } from "./dtos/CreateMissionDTO.js";
 import type { ITokenService } from "../auth/ITokenService.js";
 import { BadRequestError } from "../../infra/exceptions/BadRequestError.js";
+import { validateBody, validateQuery } from "../../infra/web/middlewares/ValidateDtoMiddleware.js";
+import { SearchMissionDTO } from "./dtos/SearchMissionDTO.js";
+import type { SearchMission } from "./payload/SearchMission.js";
 
 export class MissionController {
   private missionRouter: Router = Router();
@@ -32,7 +34,7 @@ export class MissionController {
       "/createMission",
       requireAuth(this.tokenService),
       requireRole([UserRole.ORGANISATEUR, UserRole.SUPER_ADMIN]),
-      validateDto(CreateMissionDTO),
+      validateBody(CreateMissionDTO),
       this.createMission,
     );
     this.missionRouter.delete(
@@ -45,6 +47,17 @@ export class MissionController {
       ]),
       this.cancelMission,
     );
+    this.missionRouter.get(
+      "/missions",
+      requireAuth(this.tokenService),
+      validateQuery(SearchMissionDTO),
+      this.getMissions,
+    );
+    this.missionRouter.get(
+      "/mission/:missionUuid",
+      requireAuth(this.tokenService),
+      this.getMission,
+    );
   }
 
   private createMission = async (
@@ -52,7 +65,7 @@ export class MissionController {
     res: Response,
     next: NextFunction,
   ) => {
-    const createMissionDto: CreateMissionDTO = req.body;
+    const createMissionDto: CreateMissionDTO = res.locals.validateBody;
 
     const result = await this.missionService.createMission(createMissionDto);
 
@@ -70,15 +83,40 @@ export class MissionController {
     const requesterUuid = req.user!.uuid;
     const roleID = req.user!.roleId;
 
-
     if (!missionUuid || !requesterUuid || !roleID) {
       throw new BadRequestError("Le paramètre voulu n'a pas été trouvé.");
     }
 
     await this.missionService.cancelMission(missionUuid, requesterUuid, roleID);
 
-    return res
-      .status(200)
-      .json({ message: "Mission canceled successfully" });
+    return res.status(200).json({ message: "Mission canceled successfully" });
+  };
+
+  private getMissions = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    const filters: SearchMission = res.locals.validateQuery;
+
+    const missions = await this.missionService.getMissions(filters);
+
+    return res.status(200).json({ message: "Missions found successfully", missions});
+  };
+
+  private getMission = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    const missionUuid = req.params.missionUuid as string;
+
+    if (!missionUuid) {
+      new BadRequestError("Le paramètre voulu n'a pas été trouvé.");
+    }
+
+    const mission = await this.missionService.getMission(missionUuid);
+
+    return res.status(200).json({ message: "Mission found successfully", mission});
   };
 }

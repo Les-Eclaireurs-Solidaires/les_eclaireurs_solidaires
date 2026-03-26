@@ -6,19 +6,21 @@ import {
 } from "express";
 import type { AuthService } from "./AuthService.js";
 import { envConfig } from "../../infra/config/EnvConfig.js";
-import { validateDto } from "../../infra/web/middlewares/ValidateDtoMiddleware.js";
 import { requireAuth } from "../../infra/web/middlewares/AuthMiddleware.js";
 import type { AuthResponse } from "./IAuthResponse.js";
 import { RegisterDTO } from "./dtos/RegisterDTO.js";
 import { LoginDTO } from "./dtos/LoginDTO.js";
 import type { ITokenService } from "./ITokenService.js";
-import { UnauthorizedError } from "../../infra/exceptions/UnauthorizedError.js";
 import { UnauthenticatedError } from "../../infra/exceptions/UnauthenticatedError.js";
+import { validateBody } from "../../infra/web/middlewares/ValidateDtoMiddleware.js";
 
 export class AuthController {
   private authRouter: Router = Router();
 
-  constructor(private authService: AuthService, private tokenService: ITokenService) {
+  constructor(
+    private authService: AuthService,
+    private tokenService: ITokenService,
+  ) {
     this.initializeRoutes();
   }
 
@@ -27,11 +29,19 @@ export class AuthController {
   }
 
   private initializeRoutes(): void {
-    this.authRouter.post("/register", validateDto(RegisterDTO), this.register);
-    this.authRouter.post("/login", validateDto(LoginDTO), this.login);
-    this.authRouter.post("/logout", requireAuth(this.tokenService), this.logout);
+    this.authRouter.post("/register", validateBody(RegisterDTO), this.register);
+    this.authRouter.post("/login", validateBody(LoginDTO), this.login);
+    this.authRouter.post(
+      "/logout",
+      requireAuth(this.tokenService),
+      this.logout,
+    );
     this.authRouter.post("/refresh", this.refresh);
-    this.authRouter.get("/me", requireAuth(this.tokenService), this.getCurrentUser);
+    this.authRouter.get(
+      "/me",
+      requireAuth(this.tokenService),
+      this.getCurrentUser,
+    );
   }
 
   private register = async (
@@ -40,7 +50,7 @@ export class AuthController {
     next: NextFunction,
   ) => {
     //on recupere le req.body qui contient les infos de l'utilisateur a enregistrer via le register DTO
-    const registerDto: RegisterDTO = req.body;
+    const registerDto: RegisterDTO = res.locals.validateBody;
 
     //on appelle le service d'enregistrement de l'utilisateur
     const result = await this.authService.register(
@@ -58,7 +68,7 @@ export class AuthController {
 
   public login = async (req: Request, res: Response, next: NextFunction) => {
     //on recupere le req.body qui contient les infos de l'utilisateur a connecter via le login DTO
-    const loginDto: LoginDTO = req.body;
+    const loginDto: LoginDTO = res.locals.validateBody;
 
     //on appelle le service de connexion de l'utilisateur
     const result = await this.authService.login(
@@ -70,7 +80,7 @@ export class AuthController {
 
     //on retourne une reponse avec un message de succes ou d'erreur
     return res
-      .status(201)
+      .status(200)
       .json({ message: "User logged in successfully", user: result.user });
 
     //sinon, l'erreur est gerer par le middleware de gestion des erreurs et une reponse avec un message d'erreur est retournee
@@ -91,7 +101,7 @@ export class AuthController {
   };
 
   public getCurrentUser = async (req: Request, res: Response) => {
-       const user = await this.authService.getCurrentUser(req.user!.uuid);
+    const user = await this.authService.getCurrentUser(req.user!.uuid);
     return res.status(200).json(user);
   };
 
