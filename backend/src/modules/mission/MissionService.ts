@@ -4,19 +4,14 @@ import crypto from "crypto";
 import type { IMissionRepository } from "./IMissionRepository.js";
 import type { IMissionService } from "./IMissionService.js";
 import type { CreateMissionDTO } from "./dtos/CreateMissionDTO.js";
+import { MissionNotFoundError } from "../../domain/exceptions/mission/MissionNotFoundError.js";
+import { UserRole } from "../user/UserRoleEnum.js";
+import { UnauthorizedCancelMissionError } from "../../domain/exceptions/mission/UnauthorizedCancelMissionError.js";
 
 export class MissionService implements IMissionService {
   constructor(private missionRepository: IMissionRepository) {}
 
   async createMission(missionDTO: CreateMissionDTO): Promise<Mission> {
-    // On regarde si il existe une mission avec le meme nom en BDD
-    const existingMission = await this.missionRepository.findByName(
-      missionDTO.name,
-    );
-    if (existingMission) {
-      throw new MissionNameAlreadyExistError(missionDTO.name);
-    }
-
     const organizerIds = missionDTO.organizerIds;
 
     const mission: Mission = new Mission({
@@ -37,5 +32,29 @@ export class MissionService implements IMissionService {
 
     // On retourne la mission au controleur
     return result;
+  }
+  async cancelMission(
+    missionUuid: string,
+    requesterUuid: string,
+    roleID: UserRole,
+  ): Promise<void> {
+    const mission = await this.missionRepository.findByUuid(missionUuid);
+
+    if (!mission) {
+      throw new MissionNotFoundError();
+    }
+
+    const isSuperAdmin = roleID === UserRole.SUPER_ADMIN;
+    const isOrganizer = mission.getOrganizerUuid().includes(requesterUuid);
+
+    if (!isSuperAdmin && !isOrganizer) {
+      throw new UnauthorizedCancelMissionError(
+        "Seul l'organisateur de la mission ou l'administrateur peuvent annuler la mission.",
+      );
+    }
+
+    mission.cancel();
+
+    await this.missionRepository.update(mission);
   }
 }

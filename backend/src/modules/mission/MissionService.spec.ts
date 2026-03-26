@@ -40,6 +40,7 @@ describe("MissionService", () => {
       findByUuid: vi.fn(),
       findByName: vi.fn(),
       create: vi.fn(),
+      update: vi.fn(),
     };
 
     missionService = new MissionService(mockMissionRepository);
@@ -48,8 +49,9 @@ describe("MissionService", () => {
   describe("createMission()", () => {
     it("doit lever une erreur si le nom de la mission existe déjà", async () => {
       // ÉTAPE 1 : Préparer le contexte (Arrange)
-      vi.mocked(mockMissionRepository.findByName).mockResolvedValue(
-        defaultMission,
+      // On simule que la méthode `create` du repository lève une erreur de duplicata
+      vi.mocked(mockMissionRepository.create).mockRejectedValue(
+        new MissionNameAlreadyExistError(`La mission : ${defaultMissionDTO.name} existe déjà.`),
       );
 
       // ÉTAPE 2 & 3 : Agir et Vérifier (Act & Assert)
@@ -59,7 +61,6 @@ describe("MissionService", () => {
     });
     it("doit créer et retourner une mission avec succès.", async () => {
       // 1. Prepa
-      vi.mocked(mockMissionRepository.findByName).mockResolvedValue(null);
       vi.mocked(mockMissionRepository.create).mockResolvedValue(defaultMission);
 
       // 2. Action

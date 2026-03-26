@@ -29,7 +29,7 @@ let missionId: number;
 let registrationId: number;
 let fakeCsrf: string = "valid-test-token";
 let adminId: number;
-let tokenService:ITokenService
+let tokenService: ITokenService;
 
 beforeAll(() => {
   dbPool = Database.getInstance().getConnection();
@@ -40,11 +40,15 @@ beforeAll(() => {
   const missionRepository = new MissionRepository(dbPool);
   const registrationRepository = new RegistrationRepository(dbPool);
 
-  const authService = new AuthService(userRepository, hashService,tokenService);
-  const authController = new AuthController(authService,tokenService);
+  const authService = new AuthService(
+    userRepository,
+    hashService,
+    tokenService,
+  );
+  const authController = new AuthController(authService, tokenService);
 
   const missionService = new MissionService(missionRepository);
-  const missionController = new MissionController(missionService,tokenService);
+  const missionController = new MissionController(missionService, tokenService);
 
   const registrationService = new RegistrationService(
     missionRepository,

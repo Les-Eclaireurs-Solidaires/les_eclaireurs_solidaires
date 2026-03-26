@@ -35,7 +35,7 @@ export class Registration {
     return this.status;
   }
 
-  setStatus(status: RegistrationStatus): void {
+  public changeStatus(status: RegistrationStatus): void {
     this.status = status;
   }
 }

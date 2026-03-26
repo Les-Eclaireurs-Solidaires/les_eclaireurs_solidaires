@@ -17,15 +17,8 @@ export class AuthService {
   ) {}
 
   async register(email: string, password: string) {
-    //à ce niveau on est sûr des données grâce au DTO
-    //on vérifie que l'email n'est pas déja utilisé
-    const existingUser: User | null =
-      await this.userRepository.findByEmail(email);
-
-    if (existingUser) {
-      throw new EmailAlreadyExistError(email);
-    }
-    //si on a pas d'utilisateur correspondant au mail
+    // à ce niveau on est sûr des données grâce au DTO
+    // on ne vérifie plus si l'email existe, on essaie de créer directement
     //on cree un nouvel utilisateur
     const user: User = new User({
       email,
@@ -91,7 +84,6 @@ export class AuthService {
       await this.hashService.hashString(refreshToken);
     user.registerNewRefreshToken(hashedRefreshToken);
 
-
     //on met a jour le refresh token dans la base de donnees
     await this.userRepository.update(user);
 
@@ -147,8 +139,7 @@ export class AuthService {
 
     const hashedRefreshToken =
       await this.hashService.hashString(newRefreshToken);
-      user.registerNewRefreshToken(hashedRefreshToken);
-
+    user.registerNewRefreshToken(hashedRefreshToken);
 
     await this.userRepository.update(user);
 

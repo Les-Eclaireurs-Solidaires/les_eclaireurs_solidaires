@@ -69,39 +69,24 @@ export class Mission {
   public cancel(): void {
     if (
       this.status === MissionStatus.TERMINEE ||
-      this.status === MissionStatus.ANNULEE
+      this.status === MissionStatus.ANNULEE ||
+      this.deletedAt !== null
     ) {
       throw new MissionStatusError("La mission ne peut pas être annulée.");
     }
 
     this.status = MissionStatus.ANNULEE;
+    this.deletedAt = new Date();
     this.updatedAt = new Date();
 
     this.registrations.forEach((registration) => {
-      registration.setStatus(RegistrationStatus.ANNULEE);
+      registration.changeStatus(RegistrationStatus.ANNULEE);
     });
   }
 
   public complete(): void {
     this.status = MissionStatus.TERMINEE;
     this.updatedAt = new Date();
-  }
-
-  public delete(): void {
-    if (this.deletedAt) {
-      throw new MissionStatusError("La mission a déjà été supprimée.");
-    }
-    this.deletedAt = new Date();
-    this.updatedAt = new Date();
-    if (
-      this.status !== MissionStatus.TERMINEE &&
-      this.status !== MissionStatus.ANNULEE
-    ) {
-      this.status = MissionStatus.ANNULEE;
-      this.registrations.forEach((registration) => {
-        registration.setStatus(RegistrationStatus.ANNULEE);
-      });
-    }
   }
 
   public addRegistration(registration: Registration): void {
@@ -165,7 +150,7 @@ export class Mission {
         "Cet utilisateur n'est pas inscrit à cette mission.",
       );
     }
-    registration.setStatus(registrationStatus);
+    registration.changeStatus(registrationStatus);
   }
 
   public getUuid(): string {

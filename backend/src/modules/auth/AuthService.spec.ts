@@ -49,22 +49,11 @@ describe("AuthService", () => {
       const password = "password123";
 
       // On simule que l'email existe déjà en retour de FindEmail()
-      vi.mocked(mockUserRepository.findByEmail).mockResolvedValue(
-        new User({
-          uuid: "123e4567-e89b-12d3-a456-426614174000",
-          email: "test@test.com",
-          password: "password123",
-          refreshToken: null,
-          firstName: null,
-          lastName: null,
-          avatarUrl: "public/avatar/default.png",
-          createdAt: new Date(),
-          updatedAt: null,
-          deletedAt: null,
-          cityId: null,
-          roleId: 3,
-        }),
+      vi.mocked(mockUserRepository.create).mockRejectedValue(
+        new EmailAlreadyExistError(existingEmail),
       );
+
+      vi.mocked(mockHashService.hashString).mockResolvedValue("hashedPassword");
 
       // ÉTAPE 2 & 3 : Agir et Vérifier (Act & Assert)
       await expect(
