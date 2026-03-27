@@ -122,7 +122,7 @@ const setupDatabase = async () => {
   await dbPool.execute(
     `INSERT INTO inscription (inscription_date, id_user, id_mission, id_inscription_status) 
          VALUES (NOW(), ?, ?, 1)`,
-    [benRows[0].user_id, localMissionId],
+    [benRows[0]?.user_id, localMissionId],
   );
 };
 
@@ -169,14 +169,14 @@ describe("Flux de suppression d'une mission", () => {
       "SELECT id_mission_status, mission_deleted_at FROM mission WHERE mission_uuid = ?",
       [missionUuid],
     );
-    expect(missionResult[0].id_mission_status).toBe(4);
-    expect(missionResult[0].mission_deleted_at).not.toBeNull();
+    expect(missionResult[0]?.id_mission_status).toBe(4);
+    expect(missionResult[0]?.mission_deleted_at).not.toBeNull();
 
     const [registrationResult] = await dbPool.execute<RowDataPacket[]>(
       `SELECT id_inscription_status FROM inscription WHERE id_mission = ?`,
       [localMissionId],
     );
-    expect(registrationResult[0].id_inscription_status).toBe(4);
+    expect(registrationResult[0]?.id_inscription_status).toBe(4);
   });
 });
 

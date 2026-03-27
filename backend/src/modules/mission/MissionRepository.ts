@@ -6,6 +6,7 @@ import { Registration } from "../registration/RegistrationModel.js";
 import { DataIntegrityError } from "../../infra/exceptions/DataIntegrityError.js";
 import { MissionNameAlreadyExistError } from "../../domain/exceptions/mission/MissionNameAlreadyExistError.js";
 import type { SearchMission } from "./payload/SearchMission.js";
+import { MissionStatusError } from "../../domain/exceptions/mission/MissionStatusError.js";
 
 export class MissionRepository implements IMissionRepository {
   constructor(private db: Pool) {}
@@ -217,7 +218,7 @@ export class MissionRepository implements IMissionRepository {
                             mission_deleted_at = ?,
                             id_city = ?,
                             id_mission_status = ?
-                            WHERE mission_uuid = ?`;
+                            WHERE mission_uuid = ? AND mission_deleted_at IS NULL`;
     const queryRegistration = `UPDATE inscription SET
                                 id_inscription_status = ?
                                 WHERE id_user = (SELECT user_id FROM \`user\` WHERE user_uuid = ?) AND id_mission = (SELECT mission_id FROM mission WHERE mission_uuid = ?)`;
@@ -225,7 +226,7 @@ export class MissionRepository implements IMissionRepository {
     try {
       await connection.beginTransaction();
 
-      const result = await connection.execute<ResultSetHeader>(queryMission, [
+      const [result] = await connection.execute<ResultSetHeader>(queryMission, [
         mission.getName(),
         mission.getDescription(),
         mission.getDateStart(),
@@ -238,6 +239,8 @@ export class MissionRepository implements IMissionRepository {
         mission.getStatus(),
         mission.getUuid(),
       ]);
+
+      if (result.affectedRows === 0) throw new MissionStatusError("La mission a déjà été annulée ou modifiée.")
 
       for (const registration of mission.getRegistrations()) {
         await connection.execute<ResultSetHeader>(queryRegistration, [
