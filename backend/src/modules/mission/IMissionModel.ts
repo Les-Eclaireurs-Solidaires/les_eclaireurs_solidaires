@@ -15,5 +15,7 @@ export interface IMission {
   organizerUuids: string[];
   cityId: number;
   status?: MissionStatus;
-  registrations?: Registration[];
+  registrations: Registration[];
+  remainingPlaces?: number;
+  isFull?: boolean;
 }

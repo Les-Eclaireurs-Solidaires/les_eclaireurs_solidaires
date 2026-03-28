@@ -11,7 +11,10 @@ import { UserRole } from "../user/UserRoleEnum.js";
 import { CreateMissionDTO } from "./dtos/CreateMissionDTO.js";
 import type { ITokenService } from "../auth/ITokenService.js";
 import { BadRequestError } from "../../infra/exceptions/BadRequestError.js";
-import { validateBody, validateQuery } from "../../infra/web/middlewares/ValidateDtoMiddleware.js";
+import {
+  validateBody,
+  validateQuery,
+} from "../../infra/web/middlewares/ValidateDtoMiddleware.js";
 import { SearchMissionDTO } from "./dtos/SearchMissionDTO.js";
 import type { SearchMission } from "./payload/SearchMission.js";
 
@@ -69,9 +72,10 @@ export class MissionController {
 
     const result = await this.missionService.createMission(createMissionDto);
 
-    return res
-      .status(201)
-      .json({ message: "Mission created successfully", mission: result });
+    return res.status(201).json({
+      message: "Mission created successfully",
+      mission: result.toResponse(),
+    });
   };
 
   private cancelMission = async (
@@ -89,7 +93,9 @@ export class MissionController {
 
     await this.missionService.cancelMission(missionUuid, requesterUuid, roleID);
 
-    return res.status(200).json({ message: "Mission canceled successfully" });
+    return res.status(200).json({
+      message: "Mission canceled successfully",
+    });
   };
 
   private getMissions = async (
@@ -100,8 +106,12 @@ export class MissionController {
     const filters: SearchMission = res.locals.validateQuery;
 
     const missions = await this.missionService.getMissions(filters);
+    const missionsResponse = missions.map((mission) => mission.toResponse());
 
-    return res.status(200).json({ message: "Missions found successfully", missions});
+    return res.status(200).json({
+      message: "Missions found successfully",
+      missions: missionsResponse,
+    });
   };
 
   private getMission = async (
@@ -117,6 +127,9 @@ export class MissionController {
 
     const mission = await this.missionService.getMission(missionUuid);
 
-    return res.status(200).json({ message: "Mission found successfully", mission});
+    return res.status(200).json({
+      message: "Mission found successfully",
+      mission: mission.toResponse(),
+    });
   };
 }

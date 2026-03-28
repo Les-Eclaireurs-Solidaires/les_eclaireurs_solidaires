@@ -23,6 +23,8 @@ export class Mission {
   private cityId: number;
   private status: MissionStatus;
   private registrations: Registration[];
+  private remainingPlacesFromRepo?: number | undefined;
+  private isFull: boolean;
 
   constructor(param: IMission) {
     this.uuid = param.uuid;
@@ -42,7 +44,30 @@ export class Mission {
     this.status = param.status || MissionStatus.PUBLIEE;
     this.registrations = param.registrations || [];
 
+    this.remainingPlacesFromRepo = param.remainingPlaces || undefined;
+    this.isFull = param.isFull || false;
+
     this.validateDate();
+  }
+
+  public toResponse() {
+    return {
+      uuid: this.uuid,
+      name: this.name,
+      description: this.description,
+      dateStart: this.dateStart,
+      dateEnd: this.dateEnd,
+      address: this.address,
+      nbrVolunteerNeeded: this.nbrVolunteerNeeded,
+      createdAt: this.createdAt,
+      updatedAt: this.updatedAt,
+      deletedAt: this.deletedAt,
+      cityId: this.cityId,
+      status: this.status,
+      organizerUuid: this.organizerUuid,
+      remainingPlaces: this.getAvailablePlacesCount(),
+      isFull: !this.hasAvailablePlaces(),
+    };
   }
 
   private validateDate(): void {
@@ -54,6 +79,14 @@ export class Mission {
   }
 
   public getAvailablePlacesCount(): number {
+    if (this.remainingPlacesFromRepo !== undefined) {
+      return this.remainingPlacesFromRepo;
+    }
+
+    if (this.isFull) {
+      return 0;
+    }
+
     const validRegistration = this.registrations.filter(
       (registration) =>
         registration.getStatus() === RegistrationStatus.VALIDEE ||

@@ -143,6 +143,88 @@ export class MissionRepository implements IMissionRepository {
     } as IMission);
   }
 
+  async findMany(filters: SearchMission): Promise<Mission[]> {
+    let query = `SELECT 
+                      mission.mission_uuid AS uuid,
+                      mission.mission_name AS name,
+                      mission.mission_description AS description,
+                      mission.mission_date_start AS dateStart,
+                      mission.mission_date_end AS dateEnd,
+                      mission.mission_address AS address,
+                      mission.mission_nbr_volunteer_needed AS nbrVolunteerNeeded,
+                      (mission.mission_nbr_volunteer_needed - IFNULL(valid_inscriptions.valid_count,0)) AS remainingPlaces,
+
+                      mission.mission_created_at AS createdAt,
+                      mission.mission_updated_at AS updatedAt,
+                      mission.mission_deleted_at AS deletedAt,
+
+                      mission.id_city AS cityId,
+                      mission_status.mission_status_id AS status,
+
+                      GROUP_CONCAT(organizer.user_uuid SEPARATOR ',') AS organizerUuid
+
+                      FROM mission
+
+                      LEFT JOIN mission_status ON mission.id_mission_status = mission_status.mission_status_id
+                      LEFT JOIN mission_organizer ON mission.mission_id = mission_organizer.id_mission
+                      LEFT JOIN \`user\` AS organizer ON mission_organizer.id_organizer = organizer.user_id
+                      LEFT JOIN (SELECT id_mission, COUNT(*) as valid_count
+                      FROM inscription
+                      WHERE id_inscription_status IN (1, 2)
+                      GROUP BY id_mission) AS valid_inscriptions ON mission.mission_id = valid_inscriptions.id_mission
+                      `;
+
+    const conditions: string[] = ["mission.mission_deleted_at IS NULL"];
+    const params: any[] = [];
+
+    if (filters.status) {
+      conditions.push("mission.id_mission_status = ?");
+      params.push(filters.status);
+    }
+
+    if (filters.cityId) {
+      conditions.push("mission.id_city = ?");
+      params.push(filters.cityId);
+    }
+
+    if (filters.dateStart) {
+      conditions.push("mission.mission_date_start >= ?");
+      params.push(filters.dateStart);
+    }
+
+    if (conditions.length > 0) {
+      query += " WHERE " + conditions.join(" AND ");
+    }
+    query += " GROUP BY mission.mission_uuid";
+
+    const [rows] = await this.db.execute<RowDataPacket[]>(query, params);
+
+    const missions: Mission[] = [];
+
+    for (const row of rows) {
+      missions.push(
+        new Mission({
+          uuid: row.uuid,
+          name: row.name,
+          description: row.description,
+          dateStart: row.dateStart,
+          dateEnd: row.dateEnd,
+          address: row.address,
+          nbrVolunteerNeeded: row.nbrVolunteerNeeded,
+          remainingPlaces: Number(row.remainingPlaces),
+          createdAt: row.createdAt,
+          updatedAt: row.updatedAt,
+          deletedAt: row.deletedAt,
+          cityId: row.cityId,
+          status: row.status,
+          organizerUuids: row.organizerUuid ? row.organizerUuid.split(",") : [],
+        } as IMission), 
+      );
+    }
+
+    return missions;
+  }
+
   async create(
     missionToCreate: Mission,
     organizerIds: number[],
@@ -240,7 +322,10 @@ export class MissionRepository implements IMissionRepository {
         mission.getUuid(),
       ]);
 
-      if (result.affectedRows === 0) throw new MissionStatusError("La mission a déjà été annulée ou modifiée.")
+      if (result.affectedRows === 0)
+        throw new MissionStatusError(
+          "La mission a déjà été annulée ou modifiée.",
+        );
 
       for (const registration of mission.getRegistrations()) {
         await connection.execute<ResultSetHeader>(queryRegistration, [
@@ -257,78 +342,5 @@ export class MissionRepository implements IMissionRepository {
     } finally {
       connection.release();
     }
-  }
-  async findMany(filters: SearchMission): Promise<Mission[]> {
-    let query = `SELECT 
-                      mission.mission_uuid AS uuid,
-                      mission.mission_name AS name,
-                      mission.mission_description AS description,
-                      mission.mission_date_start AS dateStart,
-                      mission.mission_date_end AS dateEnd,
-                      mission.mission_address AS address,
-                      mission.mission_nbr_volunteer_needed AS nbrVolunteerNeeded,
-                      mission.mission_created_at AS createdAt,
-                      mission.mission_updated_at AS updatedAt,
-                      mission.mission_deleted_at AS deletedAt,
-                      mission.id_city AS cityId,
-                      mission_status.mission_status_id AS status,
-                      GROUP_CONCAT(organizer.user_uuid SEPARATOR ',') AS organizerUuid
-                      FROM mission
-                      LEFT JOIN mission_status ON mission.id_mission_status = mission_status.mission_status_id
-                      LEFT JOIN mission_organizer ON mission.mission_id = mission_organizer.id_mission
-                      LEFT JOIN \`user\` AS organizer ON mission_organizer.id_organizer = organizer.user_id`;
-
-    const conditions: string[] = ["mission.mission_deleted_at IS NULL"];
-    const params: any[] = [];
-
-    if (filters.status) {
-      conditions.push("mission.id_mission_status = ?");
-      params.push(filters.status);
-    }
-
-    if (filters.cityId) {
-      conditions.push("mission.id_city = ?");
-      params.push(filters.cityId);
-    }
-
-    if (filters.dateStart) {
-      conditions.push("mission.mission_date_start >= ?");
-      params.push(filters.dateStart);
-    }
-
-    if (conditions.length > 0) {
-      query += " WHERE " + conditions.join(" AND ");
-    }
-    query += " GROUP BY mission.mission_uuid";
-
-    const [rows] = await this.db.execute<RowDataPacket[]>(query, params);
-
-    const missions: Mission[] = [];
-
-    for (const row of rows) {
-      // On hydrate les inscriptions pour chaque mission
-      const registrationsData = await this.hydrateRegistrations(row.uuid);
-
-      missions.push(
-        new Mission({
-          uuid: row.uuid,
-          name: row.name,
-          description: row.description,
-          dateStart: row.dateStart,
-          dateEnd: row.dateEnd,
-          address: row.address,
-          nbrVolunteerNeeded: row.nbrVolunteerNeeded,
-          createdAt: row.createdAt,
-          updatedAt: row.updatedAt,
-          deletedAt: row.deletedAt,
-          cityId: row.cityId,
-          status: row.status,
-          organizerUuids: row.organizerUuid ? row.organizerUuid.split(",") : [],
-          registrations: registrationsData,
-        } as IMission), // On cast en IMission car l'interface attend certains champs
-      );
-    }
-
-    return missions;
   }
 }
