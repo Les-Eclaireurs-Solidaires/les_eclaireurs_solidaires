@@ -52,13 +52,11 @@ export class MissionController {
     );
     this.missionRouter.get(
       "/missions",
-      requireAuth(this.tokenService),
       validateQuery(SearchMissionDTO),
       this.getMissions,
     );
     this.missionRouter.get(
       "/mission/:missionUuid",
-      requireAuth(this.tokenService),
       this.getMission,
     );
   }
