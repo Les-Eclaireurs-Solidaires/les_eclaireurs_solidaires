@@ -1,0 +1,51 @@
+openapi: 3.0.0
+info:
+  title: API Les Éclaireurs Solidaires
+  version: 1.0.0
+paths: 
+  /mission/{missionUuid}:
+    get: 
+      summary : Récupère les détails d'une mission
+      parameters:
+        - in: path
+          name: missionUuid
+          schema:
+            type: string
+          required: true
+          description: Représente l'identifiant unique d'une mission
+      responses:
+        200:
+          description: Mission Trouvée
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  mission:
+                    type: object
+                    properties:
+
+        400:
+          description: Erreur de requête - le paramètre missionUuid est manquant ou invalide
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        404:
+          description: Mission non trouvée
+
+components:
+  schemas:
+    Mission:
+      type: object
+      properties:
+        uuid:
+          type: string
+          description: Identifiant unique de la mission
+
+  
