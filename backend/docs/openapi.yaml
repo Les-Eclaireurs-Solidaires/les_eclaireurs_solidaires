@@ -41,11 +41,50 @@ paths:
 
 components:
   schemas:
+    MissionStatus:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Identifiant unique du statut de la mission
+        name:
+          type: string
+          description: Nom du statut de la mission
+      description: BROUILLON, PUBLIEE, TERMINEE, ANNULEE qui correspondent a des status precis
     Mission:
       type: object
+      required:
+        - uuid
+        - name
+        - dateStart
+        - dateEnd
+        - address
+        - nbrVolunteerNeeded
+        - organizers
+        - city
+        - status
+        - registration
       properties:
         uuid:
           type: string
           description: Identifiant unique de la mission
+        name:
+          type: string
+          description: Nom de la mission
+        description:
+          type: string
+          description: Description de la mission
+        dateStart:
+          type: string
+          format: date-time
+          description: Date de début de la mission
+        dateEnd:
+          type: string
+          format: date-time
+          description: Date de fin de la mission
+        status:
+          type: $ref: '#/components/schemas/MissionStatus'
+          description: Statut de la mission
+        
 
   
