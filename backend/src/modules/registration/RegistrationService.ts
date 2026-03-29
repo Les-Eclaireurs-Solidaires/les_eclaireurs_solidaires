@@ -7,6 +7,7 @@ import type { IRegistrationRepository } from "./IRegistrationRepository.js";
 import type { IRegistrationService } from "./IRegistrationService.js";
 import { RegistrationStatus } from "./RegistrationStatusEnum.js";
 import { UnauthorizedCancelRegistrationError } from "../../domain/exceptions/registration/UnauthorizedCancelRegistrationError.js";
+import { UserRole } from "../user/UserRoleEnum.js";
 
 export class RegistrationService implements IRegistrationService {
   constructor(
@@ -61,7 +62,7 @@ export class RegistrationService implements IRegistrationService {
     const isOrganizer = missionToApply
       .getOrganizerUuid()
       .includes(requesterUuid);
-    const isSuperAdmin = requesterUser.getRoleId() === 1;
+    const isSuperAdmin = requesterUser.getRoleId() === UserRole.SUPER_ADMIN;
 
     if (!isSelf && !isOrganizer && !isSuperAdmin)
       throw new UnauthorizedCancelRegistrationError();

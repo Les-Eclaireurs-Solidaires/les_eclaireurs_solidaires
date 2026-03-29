@@ -7,6 +7,9 @@ import type { CreateMissionDTO } from "./dtos/CreateMissionDTO.js";
 import { MissionNotFoundError } from "../../domain/exceptions/mission/MissionNotFoundError.js";
 import { UserRole } from "../user/UserRoleEnum.js";
 import { UnauthorizedCancelMissionError } from "../../domain/exceptions/mission/UnauthorizedCancelMissionError.js";
+import type { SearchMission } from "./payload/SearchMission.js";
+import type { SearchMissionDTO } from "./dtos/SearchMissionDTO.js";
+import { MissionStatus } from "./MissionStatusEnum.js";
 
 export class MissionService implements IMissionService {
   constructor(private missionRepository: IMissionRepository) {}
@@ -68,8 +71,28 @@ export class MissionService implements IMissionService {
     return missionToSend;
   }
 
-  async getMissions(filters: any): Promise<Mission[]> {
-    const missions = await this.missionRepository.findMany(filters);
+  async getMissions(filters: SearchMissionDTO): Promise<Mission[]> {
+    const searchPayload: SearchMission = {};
+    if (filters.status !== undefined) {
+      searchPayload.status = filters.status;
+    }
+    if (filters.cityId !== undefined) {
+      searchPayload.cityId = filters.cityId;
+    }
+    if (filters.dateStart !== undefined) {
+      const startDate = new Date(filters.dateStart);
+      startDate.setHours(0, 0, 0, 0);
+      searchPayload.dateStart = startDate;
+
+      const toDate = new Date(startDate);
+      toDate.setDate(startDate.getDate() + 1);
+      searchPayload.dateToDate = toDate;
+    }
+    if (filters.name !== undefined) {
+      searchPayload.name = filters.name;
+    }    
+
+    const missions = await this.missionRepository.findMany(searchPayload);
 
     return missions;
   }

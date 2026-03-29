@@ -3,11 +3,16 @@ import { Home } from './home/home';
 import { Login } from './authentication/login/login';
 import { Register } from './authentication/register/register';
 import { Authentication } from './authentication/authentication';
+import { MissionsPage } from './missions.page/missions.page';
 
 export const routes: Routes = [
     {
         path: '',
         component: Home
+    },
+    {
+        path: 'missions',
+        component: MissionsPage
     },
     {
         path: 'login',

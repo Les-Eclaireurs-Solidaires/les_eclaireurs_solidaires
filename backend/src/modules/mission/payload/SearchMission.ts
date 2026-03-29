@@ -5,4 +5,5 @@ export interface SearchMission {
   name?: string
   cityId?: number;
   dateStart?: Date;
+  dateToDate?: Date;
 }

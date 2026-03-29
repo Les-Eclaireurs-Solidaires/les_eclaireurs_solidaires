@@ -1,4 +1,3 @@
-import "dotenv/config";
 import "reflect-metadata";
 import { AuthService } from "./modules/auth/AuthService.js";
 import { AuthController } from "./modules/auth/AuthController.js";
