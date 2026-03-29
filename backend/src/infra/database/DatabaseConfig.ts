@@ -1,4 +1,3 @@
-import "dotenv/config";
 import mysql, { type Pool, type PoolOptions } from "mysql2/promise";
 import { envConfig } from "../config/EnvConfig.js";
 

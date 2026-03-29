@@ -101,9 +101,9 @@ export class MissionController {
     res: Response,
     next: NextFunction,
   ) => {
-    const filters: SearchMission = res.locals.validateQuery;
+    const filtersDTO: SearchMissionDTO = res.locals.validateQuery;
 
-    const missions = await this.missionService.getMissions(filters);
+    const missions = await this.missionService.getMissions(filtersDTO);
     const missionsResponse = missions.map((mission) => mission.toResponse());
 
     return res.status(200).json({
@@ -120,7 +120,7 @@ export class MissionController {
     const missionUuid = req.params.missionUuid as string;
 
     if (!missionUuid) {
-      new BadRequestError("Le paramètre voulu n'a pas été trouvé.");
+      throw new BadRequestError("Le paramètre voulu n'a pas été trouvé.");
     }
 
     const mission = await this.missionService.getMission(missionUuid);

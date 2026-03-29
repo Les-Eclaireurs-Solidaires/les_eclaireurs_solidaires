@@ -187,9 +187,10 @@ export class MissionRepository implements IMissionRepository {
       params.push(filters.cityId);
     }
 
-    if (filters.dateStart) {
-      conditions.push("mission.mission_date_start >= ?");
+    if (filters.dateStart && filters.dateToDate) {
+      conditions.push("mission.mission_date_start >= ? AND mission.mission_date_start < ?");
       params.push(filters.dateStart);
+      params.push(filters.dateToDate);
     }
 
     if (conditions.length > 0) {

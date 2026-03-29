@@ -122,12 +122,7 @@ export class AuthService {
       throw new UserNotFoundError();
     }
 
-    const isRefreshTokenValid = await this.hashService.compareStringToHash(
-      refreshToken,
-      user.getRefreshToken()!,
-    );
-
-    if (!isRefreshTokenValid) {
+    if (user.getRefreshToken() === null) {
       throw new InvalidTokenError();
     }
 
