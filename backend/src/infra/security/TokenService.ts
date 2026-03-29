@@ -22,6 +22,8 @@ export class TokenService implements ITokenService {
 
   generateRefreshToken(payload: TokenPayload): string {
     const refreshSecret = envConfig.jwtRefreshSecret;
+    if(!Object.values(UserRole).includes(payload.roleId)) throw new InvalidTokenError();
+    
     const options: SignOptions = {
       expiresIn: envConfig.jwtRefreshExpiration! as ms.StringValue,
     };

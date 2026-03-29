@@ -17,17 +17,12 @@ export class AuthService {
   ) {}
 
   async register(email: string, password: string) {
-    // à ce niveau on est sûr des données grâce au DTO
-    // on ne vérifie plus si l'email existe, on essaie de créer directement
-    //on cree un nouvel utilisateur
     const user: User = new User({
       email,
       password,
     });
 
-    //on hash le mot de passe
     const hashedPassword: string = await this.hashService.hashString(password);
-    //on genere un token d'authentification et un refresh token
     const accessToken: string = this.tokenService.generateAccessToken({
       uuid: user.getUuid(),
       roleId: user.getRoleId(),
@@ -42,9 +37,7 @@ export class AuthService {
     user.registerNewRefreshToken(hashedRefreshToken);
     user.changePassword(hashedPassword);
 
-    //on enregistre l'utilisateur dans la base de donnees
     await this.userRepository.create(user);
-    //on retourne une reponse avec un message de succes ou d'erreur
     const response: AuthResponse = {
       accessToken,
       refreshToken: refreshToken,
@@ -55,13 +48,10 @@ export class AuthService {
   }
 
   async login(email: string, password: string) {
-    //on verifie que l'email existe dans la base de donnees
     const user: User | null = await this.userRepository.findByEmail(email);
     if (!user) {
       throw new InvalidCredentialsError();
     }
-    //on compare le mot de passe avec le mot de passe hash dans la base de donnees
-    // getPassword() est une méthode de UserModel qui retourne le mot de passe hashé de l'utilisateur
     const isPasswordValid: boolean = await this.hashService.compareStringToHash(
       password,
       user.getPassword(),
@@ -69,7 +59,6 @@ export class AuthService {
     if (!isPasswordValid) {
       throw new InvalidCredentialsError();
     }
-    //si la comparaison est reussie, on genere un token d'authentification et un refresh token
     const accessToken: string = this.tokenService.generateAccessToken({
       uuid: user.getUuid(),
       roleId: user.getRoleId(),
@@ -84,8 +73,9 @@ export class AuthService {
       await this.hashService.hashString(refreshToken);
     user.registerNewRefreshToken(hashedRefreshToken);
 
-    //on met a jour le refresh token dans la base de donnees
-    await this.userRepository.update(user);
+    
+    const isUpdated = await this.userRepository.update(user);
+    if(!isUpdated) throw new UserNotFoundError();
 
     const response: AuthResponse = {
       accessToken,
@@ -140,7 +130,8 @@ export class AuthService {
       await this.hashService.hashString(newRefreshToken);
     user.registerNewRefreshToken(hashedRefreshToken);
 
-    await this.userRepository.update(user);
+    const isUpdated = await this.userRepository.update(user);
+    if(!isUpdated) throw new UserNotFoundError();
 
     const response: AuthResponse = {
       accessToken,

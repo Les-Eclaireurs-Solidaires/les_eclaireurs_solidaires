@@ -1,4 +1,4 @@
-import type { Pool, RowDataPacket } from "mysql2/promise";
+import type { Pool, ResultSetHeader, RowDataPacket } from "mysql2/promise";
 import type { Registration } from "./RegistrationModel.js";
 import type { IRegistrationRepository } from "./IRegistrationRepository.js";
 import type { RegistrationStatus } from "./RegistrationStatusEnum.js";
@@ -72,6 +72,13 @@ export class RegistrationRepository implements IRegistrationRepository {
   ): Promise<void> {
     const query = `UPDATE inscription SET id_inscription_status = ? WHERE id_user = (SELECT user_id FROM user WHERE user_uuid = ?) AND id_mission = (SELECT mission_id FROM mission WHERE mission_uuid = ?)`;
 
-    await this.db.execute(query, [registrationStatus, targetUuid, missionUuid]);
+    const [result] = await this.db.execute<ResultSetHeader>(query, [
+      registrationStatus,
+      targetUuid,
+      missionUuid,
+    ]);
+    if (result.affectedRows === 0) {
+      throw new MissionNotFoundError();
+    }
   }
 }

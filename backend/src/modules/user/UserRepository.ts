@@ -4,6 +4,8 @@ import type { IUser } from "./IUserModel.js";
 import type { IUserRepository } from "./IUserRepository.js";
 import { EmptyUpdateError } from "../../infra/exceptions/EmptyUpdateError.js";
 import { EmailAlreadyExistError } from "../../domain/exceptions/auth/EmailAlreadyExistError.js";
+import { MissionNameAlreadyExistError } from "../../domain/exceptions/mission/MissionNameAlreadyExistError.js";
+import { threadId } from "node:worker_threads";
 
 export class UserRepository implements IUserRepository {
   private readonly columnMapping: { [key: string]: string } = {
@@ -105,6 +107,7 @@ export class UserRepository implements IUserRepository {
   }
 
   async update(user: User): Promise<boolean> {
+    const connection = await this.db.getConnection();
     const query = `UPDATE \`user\` 
                     SET 
                       user_email = ?, 
@@ -117,6 +120,7 @@ export class UserRepository implements IUserRepository {
                       id_city = ?, 
                       id_role = ? 
                     WHERE user_uuid = ?`;
+
     const values = [
       user.getEmail(),
       user.getPassword(),
@@ -129,9 +133,9 @@ export class UserRepository implements IUserRepository {
       user.getRoleId(),
       user.getUuid(),
     ];
-
-    const [result] = await this.db.execute<ResultSetHeader>(query, values);
-    return result.affectedRows > 0;
+      const result = await this.db.execute<ResultSetHeader>(query, values);
+      return result[0].affectedRows > 0;
+  
   }
 
   async delete(uuid: string): Promise<boolean> {

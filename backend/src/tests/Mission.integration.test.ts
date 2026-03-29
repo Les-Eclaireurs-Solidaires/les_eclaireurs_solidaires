@@ -16,8 +16,9 @@ import type { ITokenService } from "../modules/auth/ITokenService.js";
 import { TokenService } from "../infra/security/TokenService.js";
 import request from "supertest";
 import { UserRole } from "../modules/user/UserRoleEnum.js";
+import { type Express } from "express";
 
-let app: any; // 'any' a été remplacé par 'Express'
+let app: Express;
 let dbPool: Pool;
 let userUuid: string = "test-user-uuid";
 let missionUuid: string = "test-mission-uuid";
@@ -61,7 +62,7 @@ beforeAll(() => {
     registrationController,
   );
 
-  app = appConfig.getApp();
+  app = appConfig.getApp() as Express;
 });
 
 afterAll(async () => {

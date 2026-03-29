@@ -21,8 +21,9 @@ import { AppConfig } from "../infra/web/AppConfig.js";
 import { HashService } from "../infra/security/HashService.js";
 import type { ITokenService } from "../modules/auth/ITokenService.js";
 import { TokenService } from "../infra/security/TokenService.js";
+import type { Express } from "express";
 
-let app: any;
+let app: Express;
 let dbPool: Pool;
 let volunteerId: number;
 let missionId: number;

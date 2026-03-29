@@ -16,7 +16,7 @@ export class RegistrationController {
   private registrationRouter: Router = Router({ mergeParams: true });
 
   constructor(
-    private regitrationService: IRegistrationService,
+    private registrationService: IRegistrationService,
     private tokenService: ITokenService,
   ) {
     this.initializeRoutes();
@@ -61,7 +61,7 @@ export class RegistrationController {
       throw new BadRequestError("Le paramètre voulu n'a pas été trouvé.");
     }
 
-    await this.regitrationService.registerVolunteer(volunteerUuid, missionUuid);
+    await this.registrationService.registerVolunteer(volunteerUuid, missionUuid);
 
     return res
       .status(201)
@@ -75,14 +75,12 @@ export class RegistrationController {
   ) => {
     const missionUuid = req.params.missionUuid as string;
     const targetUserUuid = req.params.targetUserUuid as string;
-
-    if (!req.user) throw new UnauthenticatedError();
     const requesterUuid = req.user!.uuid;
 
     if (!missionUuid || !targetUserUuid)
       throw new BadRequestError("Le paramètre voulu n'a pas été trouvé.");
 
-    await this.regitrationService.cancelRegistration(
+    await this.registrationService.cancelRegistration(
       targetUserUuid,
       requesterUuid,
       missionUuid,

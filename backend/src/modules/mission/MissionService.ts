@@ -15,7 +15,7 @@ export class MissionService implements IMissionService {
   constructor(private missionRepository: IMissionRepository) {}
 
   async createMission(missionDTO: CreateMissionDTO): Promise<Mission> {
-    const organizerIds = missionDTO.organizerIds;
+    const organizerUuids = missionDTO.organizerUuids;
 
     const mission: Mission = new Mission({
       uuid: crypto.randomUUID(),
@@ -26,12 +26,12 @@ export class MissionService implements IMissionService {
       address: missionDTO.address,
       nbrVolunteerNeeded: missionDTO.nbrVolunteerNeeded,
       cityId: missionDTO.cityId,
-      organizerUuids: organizerIds.map((id) => id.toString()),
+      organizerUuids: organizerUuids.map((uuid) => uuid.toString()),
       registrations: [],
     });
 
     // On cree la mission
-    const result = await this.missionRepository.create(mission, organizerIds);
+    const result = await this.missionRepository.create(mission, organizerUuids);
 
     // On retourne la mission au controleur
     return result;

@@ -31,6 +31,11 @@ export class Database {
     return Database.instance;
   }
 
+  public async disconnect(): Promise<void> {
+    await this.connection.end();
+  }
+
+
   public getConnection(): Pool {
     return this.connection;
   }

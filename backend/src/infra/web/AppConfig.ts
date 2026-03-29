@@ -1,5 +1,5 @@
 import cookieParser from "cookie-parser";
-import express from "express";
+import express, { type Express } from "express";
 import cors from "cors";
 import helmet from "helmet";
 import type { AuthController } from "../../modules/auth/AuthController.js";
@@ -8,11 +8,15 @@ import type { RegistrationController } from "../../modules/registration/Registra
 import { envConfig } from "../config/EnvConfig.js";
 import { csrfProtection } from "./middlewares/CSRFMiddleware.js";
 import { errorHandler } from "./middlewares/ErrorMiddleware.js";
+import type { Server } from "node:http";
+import { Database } from "../database/DatabaseConfig.js";
 
 export class AppConfig {
-  private app: express.Application;
+  private app: Express;
   private port: number;
   private host: string;
+  private server?: Server;
+
 
   constructor(
     private authController: AuthController,
@@ -61,12 +65,28 @@ export class AppConfig {
   }
 
   public listen() {
-    this.app.listen(this.port, this.host, () => {
+    this.server = this.app.listen(this.port, this.host, () => {
       console.log(`Server started on http://${this.host}:${this.port}`);
     });
   }
 
-  public getApp() {
+  public async stop(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      if (this.server) {
+        this.server.close(async (err) => {
+          if (err) return reject(err);
+          // Quand le serveur Express est coupé, on coupe la base de données !
+          await Database.getInstance().disconnect();
+          resolve();
+        });
+      } else {
+        // Si le serveur n'a jamais démarré (ex: pendant certains tests)
+        Database.getInstance().disconnect().then(resolve).catch(reject);
+      }
+    });
+  }
+
+  public getApp(): Express {
     return this.app;
   }
 }

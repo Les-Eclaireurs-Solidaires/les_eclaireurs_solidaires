@@ -91,7 +91,7 @@ export class MissionRepository implements IMissionRepository {
       deletedAt: row.deletedAt,
       cityId: row.cityId,
       status: row.status,
-      organizerUuids: row.organizerUuid.split(","),
+      organizerUuids: row.organizerUuid ? row.organizerUuid.split(",") : [],
       registrations: registrationsData,
     } as IMission);
   }
@@ -138,7 +138,7 @@ export class MissionRepository implements IMissionRepository {
       deletedAt: row.deletedAt,
       cityId: row.cityId,
       status: row.status,
-      organizerUuids: row.organizerUuid.split(","),
+      organizerUuids: row.organizerUuid ? row.organizerUuid.split(",") : [],
       registrations: registrationsData,
     } as IMission);
   }
@@ -188,7 +188,9 @@ export class MissionRepository implements IMissionRepository {
     }
 
     if (filters.dateStart && filters.dateToDate) {
-      conditions.push("mission.mission_date_start >= ? AND mission.mission_date_start < ?");
+      conditions.push(
+        "mission.mission_date_start >= ? AND mission.mission_date_start < ?",
+      );
       params.push(filters.dateStart);
       params.push(filters.dateToDate);
     }
@@ -219,7 +221,7 @@ export class MissionRepository implements IMissionRepository {
           cityId: row.cityId,
           status: row.status,
           organizerUuids: row.organizerUuid ? row.organizerUuid.split(",") : [],
-        } as IMission), 
+        } as IMission),
       );
     }
 
@@ -228,7 +230,7 @@ export class MissionRepository implements IMissionRepository {
 
   async create(
     missionToCreate: Mission,
-    organizerIds: number[],
+    organizerUuids: string[],
   ): Promise<Mission> {
     const queryMission = `INSERT INTO mission (
                             mission_uuid,
@@ -248,7 +250,9 @@ export class MissionRepository implements IMissionRepository {
                                     id_mission,
                                     id_organizer
                                     )
-                                    VALUES (?, ?)`;
+                                    SELECT ?, user.user_id
+                                    FROM \`user\`
+                                    WHERE user_uuid = ?`;
 
     const connection = await this.db.getConnection();
 
@@ -267,21 +271,25 @@ export class MissionRepository implements IMissionRepository {
         missionToCreate.getStatus(),
       ]);
       const missionId = result.insertId;
-      for (const organizerId of organizerIds) {
+      for (const organizerUuid of organizerUuids) {
         await connection.execute(queryMissionOrganizer, [
           missionId,
-          organizerId,
+          organizerUuid,
         ]);
       }
       await connection.commit();
       return missionToCreate;
-    } catch (error: any) {
-      if (error.code === "ER_DUP_ENTRY") {
-        throw new MissionNameAlreadyExistError(
-          `La mission : ${missionToCreate.getName()} existe déjà.`,
-        );
-      }
+    } catch (error: unknown) {
       await connection.rollback();
+
+      if (typeof error === "object" && error !== null && "code" in error) {
+        if ((error as { code: string }).code === "ER_DUP_ENTRY") {
+          throw new MissionNameAlreadyExistError(
+            `La mission : ${missionToCreate.getName()} existe déjà.`,
+          );
+        }
+      }
+
       throw error;
     } finally {
       connection.release();

@@ -5,15 +5,15 @@ import type { IUserRepository } from "../user/IUserRepository.js";
 import { InvalidCredentialsError } from "../../domain/exceptions/auth/InvalidCredentialsError.js";
 import { EmailAlreadyExistError } from "../../domain/exceptions/auth/EmailAlreadyExistError.js";
 import type { IHashService } from "./IHashService.js";
+import type { ITokenService } from "./ITokenService.js";
 
 describe("AuthService", () => {
   let authService: AuthService;
   let mockUserRepository: IUserRepository;
   let mockHashService: IHashService;
-  let mockTokenService: any;
+  let mockTokenService: ITokenService;
 
   beforeEach(() => {
-    // 1. On fabrique un faux UserRepository
     mockUserRepository = {
       findByEmail: vi.fn(),
       findByUuid: vi.fn(),
@@ -32,6 +32,7 @@ describe("AuthService", () => {
       generateRefreshToken: vi.fn().mockReturnValue("accessToken"),
       verifyAccessToken: vi.fn(),
       verifyRefreshToken: vi.fn(),
+      generateRandomToken: vi.fn(),
     };
 
     // 2. On instancie le service en lui injectant le faux repository

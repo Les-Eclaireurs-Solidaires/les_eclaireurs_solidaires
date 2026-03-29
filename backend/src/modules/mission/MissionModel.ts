@@ -80,7 +80,7 @@ export class Mission {
 
   public getAvailablePlacesCount(): number {
     if (this.remainingPlacesFromRepo !== undefined) {
-      return this.remainingPlacesFromRepo;
+      return Math.max(0,this.remainingPlacesFromRepo);
     }
 
     if (this.isFull) {
@@ -92,7 +92,7 @@ export class Mission {
         registration.getStatus() === RegistrationStatus.VALIDEE ||
         registration.getStatus() === RegistrationStatus.EN_ATTENTE,
     );
-    return this.nbrVolunteerNeeded - validRegistration.length;
+    return Math.max(0, this.nbrVolunteerNeeded - validRegistration.length);
   }
 
   public hasAvailablePlaces(): boolean {
