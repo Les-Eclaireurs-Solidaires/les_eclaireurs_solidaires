@@ -175,6 +175,7 @@ describe("AuthService", () => {
       vi.mocked(mockUserRepository.findByEmail).mockResolvedValue(user);
       vi.mocked(mockHashService.compareStringToHash).mockResolvedValue(true);
       vi.mocked(mockHashService.hashString).mockResolvedValue("hashedPassword");
+      vi.mocked(mockUserRepository.update).mockResolvedValue(true);
 
       // Etape 2
       const result = await authService.login(email, password);

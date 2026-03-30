@@ -33,12 +33,13 @@ describe("MissionService", () => {
       address: "25 avenue Marie Reynoard",
       nbrVolunteerNeeded: 15,
       cityId: 5,
-      organizerIds: [1],
+      organizerUuids: ["123e4567-e89b-12d3-a456-426614174001"],
     });
 
     mockMissionRepository = {
       findByUuid: vi.fn(),
       findByName: vi.fn(),
+      findMany: vi.fn(),
       create: vi.fn(),
       update: vi.fn(),
     };
@@ -51,7 +52,9 @@ describe("MissionService", () => {
       // ÉTAPE 1 : Préparer le contexte (Arrange)
       // On simule que la méthode `create` du repository lève une erreur de duplicata
       vi.mocked(mockMissionRepository.create).mockRejectedValue(
-        new MissionNameAlreadyExistError(`La mission : ${defaultMissionDTO.name} existe déjà.`),
+        new MissionNameAlreadyExistError(
+          `La mission : ${defaultMissionDTO.name} existe déjà.`,
+        ),
       );
 
       // ÉTAPE 2 & 3 : Agir et Vérifier (Act & Assert)

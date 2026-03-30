@@ -78,6 +78,7 @@ const setupDatabase = async () => {
   // On vide les tables pour avoir un environnement vierge
   await dbPool.execute("DELETE FROM inscription");
   await dbPool.execute("DELETE FROM mission_organizer");
+  await dbPool.execute("DELETE FROM mission_category");
   await dbPool.execute("DELETE FROM mission");
   await dbPool.execute("DELETE FROM `user`");
   // On crée la ville pour les tests
@@ -157,7 +158,148 @@ describe("Flux d'inscription d'une Mission", () => {
     expect(row.id_user).toBe(volunteerId);
   });
 });
+describe("Siège Musical - Last Slot Race Condition", () => {
+  let missionUuidLastSlot: string = "mission-last-slot-uuid";
+  let missionIdLastSlot: number;
+  let volunteer1Uuid: string = "volunteer-1-uuid";
+  let volunteer2Uuid: string = "volunteer-2-uuid";
+  let volunteer1Id: number;
+  let volunteer2Id: number;
+  let organizerId: number;
 
+  beforeEach(async () => {
+    // Setup: Reinitialize DB
+    await dbPool.execute("DELETE FROM inscription");
+    await dbPool.execute("DELETE FROM mission_organizer");
+    await dbPool.execute("DELETE FROM mission_category");
+    await dbPool.execute("DELETE FROM mission");
+    await dbPool.execute("DELETE FROM `user`");
+
+    // Create city
+    await dbPool.execute(
+      "INSERT IGNORE INTO city (city_id, city_name, city_zip) VALUES (1, 'Paris', '75000')",
+    );
+
+    // Create organizer
+    const [organizerRes] = await dbPool.execute<ResultSetHeader>(`
+      INSERT INTO \`user\` (user_uuid, user_email, user_password, user_created_at, id_role)
+      VALUES ('organizer-uuid', 'organizer@test.com', 'hashed', NOW(), ${UserRole.ORGANISATEUR})
+    `);
+    organizerId = organizerRes.insertId;
+
+    // Create 2 volunteers
+    const [vol1Res] = await dbPool.execute<ResultSetHeader>(
+      `
+      INSERT INTO \`user\` (user_uuid, user_email, user_password, user_created_at, id_role)
+      VALUES (?, 'volunteer1@test.com', 'hashed', NOW(), ${UserRole.BENEVOLE})
+    `,
+      [volunteer1Uuid],
+    );
+    volunteer1Id = vol1Res.insertId;
+
+    const [vol2Res] = await dbPool.execute<ResultSetHeader>(
+      `
+      INSERT INTO \`user\` (user_uuid, user_email, user_password, user_created_at, id_role)
+      VALUES (?, 'volunteer2@test.com', 'hashed', NOW(), ${UserRole.BENEVOLE})
+    `,
+      [volunteer2Uuid],
+    );
+    volunteer2Id = vol2Res.insertId;
+
+    // Create mission with capacity = 1 (CRITICAL: only 1 slot!)
+    const [missionRes] = await dbPool.execute<ResultSetHeader>(
+      `
+      INSERT INTO mission 
+      (mission_uuid, mission_name, mission_date_start, mission_date_end, mission_address, mission_nbr_volunteer_needed, mission_created_at, id_city, id_mission_status)
+      VALUES (?, 'Mission Siège Musical', '2026-05-15', '2026-05-16', '10 rue du test', 1, NOW(), 1, 2)
+    `,
+      [missionUuidLastSlot],
+    );
+    missionIdLastSlot = missionRes.insertId;
+
+    // Link organizer to mission
+    await dbPool.execute(
+      `
+      INSERT INTO mission_organizer (id_mission, id_organizer)
+      VALUES (?, ?)
+    `,
+      [missionIdLastSlot, organizerId],
+    );
+  });
+
+  it("devrait garantir qu'un seul bénévole s'inscrive quand deux envoient POST simultanés sur la dernière place", async () => {
+    // Generate tokens for both volunteers
+    const token1 = tokenService.generateAccessToken({
+      uuid: volunteer1Uuid,
+      roleId: UserRole.BENEVOLE,
+    });
+
+    const token2 = tokenService.generateAccessToken({
+      uuid: volunteer2Uuid,
+      roleId: UserRole.BENEVOLE,
+    });
+
+    // Launch 2 concurrent registration requests to the same mission (capacity = 1)
+    const [response1, response2] = await Promise.all([
+      supertest(app)
+        .post(`/mission/${missionUuidLastSlot}/registration`)
+        .set("Cookie", [`XSRF-TOKEN=${fakeCsrf}`, `accessToken=${token1}`])
+        .set("x-xsrf-token", fakeCsrf)
+        .send(),
+
+      supertest(app)
+        .post(`/mission/${missionUuidLastSlot}/registration`)
+        .set("Cookie", [`XSRF-TOKEN=${fakeCsrf}`, `accessToken=${token2}`])
+        .set("x-xsrf-token", fakeCsrf)
+        .send(),
+    ]);
+
+    // Assert: ONE must succeed (201), ONE must fail (409 Mission Full or 400)
+    const successCount = [response1, response2].filter(
+      (r) => r.status === 201,
+    ).length;
+    const failureCount = [response1, response2].filter(
+      (r) => r.status === 409 || r.status === 400,
+    ).length;
+
+    expect(successCount).toBe(1);
+    expect(failureCount).toBe(1);
+
+    // Assert: Verify which one succeeded and which failed
+    if (response1.status === 201) {
+      expect(response1.status).toBe(201);
+      expect([400, 409]).toContain(response2.status);
+    } else {
+      expect(response2.status).toBe(201);
+      expect([400, 409]).toContain(response1.status);
+    }
+
+    // CRITICAL: Verify DB integrity - exactly 1 inscription for this mission
+    const [inscriptionRows] = await dbPool.execute<RowDataPacket[]>(
+      "SELECT COUNT(*) as cnt FROM inscription WHERE id_mission = ?",
+      [missionIdLastSlot],
+    );
+
+    expect(inscriptionRows[0]?.cnt).toBe(1);
+
+    // Verify the successful volunteer is the one inscribed
+    const [successfulInscription] = await dbPool.execute<RowDataPacket[]>(
+      "SELECT id_user FROM inscription WHERE id_mission = ?",
+      [missionIdLastSlot],
+    );
+
+    const inscribedUserId = successfulInscription[0]?.id_user;
+    expect([volunteer1Id, volunteer2Id]).toContain(inscribedUserId);
+
+    // Verify the status is valid (EN_ATTENTE = 1 or VALIDEE = 2)
+    const [statusCheck] = await dbPool.execute<RowDataPacket[]>(
+      "SELECT id_inscription_status FROM inscription WHERE id_mission = ? LIMIT 1",
+      [missionIdLastSlot],
+    );
+
+    expect([1, 2]).toContain(statusCheck[0]?.id_inscription_status);
+  });
+});
 describe("Flux de désinscription d'une Mission", () => {
   beforeEach(async () => {
     await setupDatabase();
