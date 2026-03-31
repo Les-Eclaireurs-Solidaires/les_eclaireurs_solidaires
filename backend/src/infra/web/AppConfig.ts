@@ -2,11 +2,7 @@ import cookieParser from "cookie-parser";
 import express, { type Express } from "express";
 import cors from "cors";
 import helmet from "helmet";
-import type { AuthController } from "../../modules/auth/AuthController.js";
-import type { MissionController } from "../../modules/mission/MissionController.js";
-import type { RegistrationController } from "../../modules/registration/RegistrationController.js";
 import { envConfig } from "../config/EnvConfig.js";
-import { csrfProtection } from "./middlewares/CSRFMiddleware.js";
 import { errorHandler } from "./middlewares/ErrorMiddleware.js";
 import type { Server } from "node:http";
 import { Database } from "../database/DatabaseConfig.js";
@@ -18,7 +14,8 @@ export class AppConfig {
   private server?: Server;
 
 
-  constructor() {
+  constructor(
+  ) {
     this.app = express();
     this.port = envConfig.port;
     this.host = envConfig.host;
@@ -35,7 +32,6 @@ export class AppConfig {
       cors(),
     );
     this.app.use(cookieParser());
-    this.app.use(csrfProtection);
   }
 
   private initializeRoutes() {
