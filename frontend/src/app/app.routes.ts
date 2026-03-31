@@ -1,10 +1,10 @@
 import { Routes } from '@angular/router';
-import { Home } from './home/home';
+import { Home } from './components/pages/home/home';
 import { Login } from './authentication/login/login';
 import { Register } from './authentication/register/register';
 import { Authentication } from './authentication/authentication';
-import { MissionsPage } from './components/missions.page/missions.page';
-import { MissionDetail } from './components/mission-detail/mission-detail';
+import { MissionsPage } from './components/pages/missions.page/missions.page';
+import { MissionDetailPage } from './components/pages/mission-detail-page/mission-detail-page';
 
 export const routes: Routes = [
     {
@@ -16,8 +16,8 @@ export const routes: Routes = [
         component: MissionsPage
     },
     {
-        path: 'missions/:id',
-        component: MissionDetail
+        path: 'mission/:uuid',
+        component: MissionDetailPage
     },
     {
         path: 'login',

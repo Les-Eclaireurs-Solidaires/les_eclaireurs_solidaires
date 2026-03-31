@@ -1,7 +1,7 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { map, Observable } from 'rxjs';
-import { IMissionResponse, MissionStatus } from '../models/mission-response.interface';
+import { IMissionResponse } from '../models/mission-response.interface';
 import { SearchMission } from '../dtos/search-mission';
 import { formatDate } from '@angular/common';
 

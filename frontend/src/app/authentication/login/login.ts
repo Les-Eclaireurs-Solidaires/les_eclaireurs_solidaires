@@ -11,6 +11,7 @@ import { AuthService } from '../../services/auth-service';
 import { UserModel } from '../../models/user.model';
 import { UserService } from '../../services/user.service';
 import { Router } from '@angular/router';
+import { NotificationService } from '../../services/notification.service';
 
 @Component({
   selector: 'app-login',
@@ -32,6 +33,7 @@ export class Login {
   private authService = inject(AuthService);
   private userService = inject(UserService);
   private router = inject(Router);
+  private notificationService= inject(NotificationService);
 
 
 
@@ -53,6 +55,7 @@ export class Login {
         },
         error: (error) => {
           console.log(error);
+          this.notificationService.showError(error.error.message);
         }
       }
     );

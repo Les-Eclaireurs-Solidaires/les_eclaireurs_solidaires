@@ -1,4 +1,4 @@
-import { Injectable, WritableSignal, computed, inject, resource, signal } from '@angular/core';
+import { Injectable, WritableSignal, inject, signal } from '@angular/core';
 import { MissionAPIService } from './mission-api.service';
 import { MissionModel } from '../models/mission.model';
 import { SearchMission } from '../dtos/search-mission';
@@ -13,15 +13,21 @@ export class MissionStateService {
 
   public missions = signal<MissionModel[]>([]);
   public recentMissions = signal<MissionModel[]>([]);
+  public selectedMission = signal<MissionModel | null>(null);
 
-  /* public missionsResource = rxResource<MissionModel[], SearchMission>({
-    defaultValue: [],
-    params: () => this.searchFilters(),
-    stream: ({ params }) =>
-      this.missionAPIService
-        .getAllMissions(params)
-        .pipe(map((missions) => missions.map((m) => new MissionModel(m)))),
-  }); */
+  public loadMission(uuid: string) {
+    if (this.selectedMission() != null && this.selectedMission()?.uuid === uuid) return;
+    this.missionAPIService.getMissionByUuid(uuid).subscribe({
+      next: (mission) => {
+        this.selectedMission.set(new MissionModel(mission));
+      },
+      error: (err) => {
+        console.error(err);
+        this.selectedMission.set(null);
+        throw new MissionsNotFoundError('Erreur lors de la récupération de la mission');
+      },
+    });
+  }
 
   public loadMissions() {
     if (this.missions().length > 0) return;
@@ -34,16 +40,8 @@ export class MissionStateService {
       error: (err) => {
         console.error(err);
         this.missions.set([]);
-        throw new MissionsNotFoundError("Erreur lors de la récupération des missions");
+        throw new MissionsNotFoundError('Erreur lors de la récupération des missions');
       },
-    });
-  }
-
-  public loadRecentMissions() {
-    if (this.recentMissions().length > 0) return;
-
-    this.missions().filter((mission) => {
-      mission.dateStart > new Date();
     });
   }
 }

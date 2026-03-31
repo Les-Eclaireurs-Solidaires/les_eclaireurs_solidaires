@@ -1,4 +1,4 @@
-import { Component, input } from '@angular/core';
+import { Component, input, output } from '@angular/core';
 import { MissionModel } from '../../models/mission.model';
 
 @Component({
@@ -7,7 +7,7 @@ import { MissionModel } from '../../models/mission.model';
   templateUrl: './mission-detail.html',
   styleUrl: './mission-detail.css',
 })
-export class MissionDetail {
-  mission = input.required<MissionModel>();
-
+export class MissionDetail{
+  public mission = input.required<MissionModel>();
+  public backClick = output<void>();  
 }

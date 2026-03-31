@@ -1,7 +1,6 @@
-import { Component, inject, input, WritableSignal } from '@angular/core';
+import { Component, input, output } from '@angular/core';
 import { MissionModel } from '../../models/mission.model';
 import { MissionCard } from '../mission-card/mission-card';
-import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-mission-list-component',
@@ -10,12 +9,11 @@ import { Router } from '@angular/router';
   styleUrl: './mission-list-component.css',
 })
 export class MissionListComponent {
-  private router = inject(Router);
   public missions = input<MissionModel[]>([]);
 
-  onMissionClicked(mission: MissionModel) {
-    console.log(mission);
-    this.router.navigate(['/missions', mission.uuid]);
-  }
+  public missionSelected = output<MissionModel>();
 
+  onMissionClicked(mission: MissionModel) {
+    this.missionSelected.emit(mission);
+  }
 }

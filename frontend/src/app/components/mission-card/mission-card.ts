@@ -1,8 +1,5 @@
-import { Component, inject, input } from '@angular/core';
-import { IMissionResponse } from '../../models/mission-response.interface';
+import { Component, input } from '@angular/core';
 import { MissionModel } from '../../models/mission.model';
-import { Router } from '@angular/router';
-import {MatProgressBarModule} from '@angular/material/progress-bar';
 import {MatCardModule} from '@angular/material/card';
 import {MatChipsModule} from '@angular/material/chips';
 
@@ -14,7 +11,6 @@ import {MatChipsModule} from '@angular/material/chips';
   styleUrl: './mission-card.css',
 })
 export class MissionCard {
-  private router = inject(Router);
   public mission = input.required<MissionModel>();
 
   onMissionClicked() {
