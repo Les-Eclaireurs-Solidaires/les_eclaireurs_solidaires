@@ -1,0 +1,11 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      target: development
+    command: npm run dev
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    ports:
+      - "${BACKEND_PORT}:${BACKEND_PORT}"
