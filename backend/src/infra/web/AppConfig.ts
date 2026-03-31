@@ -2,8 +2,14 @@ import cookieParser from "cookie-parser";
 import express, { type Express } from "express";
 import cors from "cors";
 import helmet from "helmet";
+import type { AuthController } from "../../modules/auth/AuthController.js";
+import type { MissionController } from "../../modules/mission/MissionController.js";
+import type { RegistrationController } from "../../modules/registration/RegistrationController.js";
 import { envConfig } from "../config/EnvConfig.js";
+import { csrfProtection } from "./middlewares/CSRFMiddleware.js";
+import { errorHandler } from "./middlewares/ErrorMiddleware.js";
 import type { Server } from "node:http";
+import { Database } from "../database/DatabaseConfig.js";
 
 export class AppConfig {
   private app: Express;
@@ -12,13 +18,13 @@ export class AppConfig {
   private server?: Server;
 
 
-  constructor(
-  ) {
+  constructor() {
     this.app = express();
     this.port = envConfig.port;
     this.host = envConfig.host;
     this.initializeMiddlewares();
     this.initializeRoutes();
+    this.initializeErrorHandling();
   }
 
   private initializeMiddlewares() {
@@ -29,6 +35,7 @@ export class AppConfig {
       cors(),
     );
     this.app.use(cookieParser());
+    this.app.use(csrfProtection);
   }
 
   private initializeRoutes() {
@@ -37,9 +44,29 @@ export class AppConfig {
     });
   }
 
+  private initializeErrorHandling() {
+    this.app.use(errorHandler);
+  }
+
   public listen() {
     this.server = this.app.listen(this.port, this.host, () => {
       console.log(`Server started on http://${this.host}:${this.port}`);
+    });
+  }
+
+  public async stop(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      if (this.server) {
+        this.server.close(async (err) => {
+          if (err) return reject(err);
+          // Quand le serveur Express est coupé, on coupe la base de données !
+          await Database.getInstance().disconnect();
+          resolve();
+        });
+      } else {
+        // Si le serveur n'a jamais démarré (ex: pendant certains tests)
+        Database.getInstance().disconnect().then(resolve).catch(reject);
+      }
     });
   }
 
