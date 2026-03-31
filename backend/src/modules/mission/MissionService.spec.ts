@@ -49,27 +49,21 @@ describe("MissionService", () => {
 
   describe("createMission()", () => {
     it("doit lever une erreur si le nom de la mission existe déjà", async () => {
-      // ÉTAPE 1 : Préparer le contexte (Arrange)
-      // On simule que la méthode `create` du repository lève une erreur de duplicata
       vi.mocked(mockMissionRepository.create).mockRejectedValue(
         new MissionNameAlreadyExistError(
           `La mission : ${defaultMissionDTO.name} existe déjà.`,
         ),
       );
 
-      // ÉTAPE 2 & 3 : Agir et Vérifier (Act & Assert)
       await expect(
         missionService.createMission(defaultMissionDTO),
       ).rejects.toThrow(MissionNameAlreadyExistError);
     });
     it("doit créer et retourner une mission avec succès.", async () => {
-      // 1. Prepa
       vi.mocked(mockMissionRepository.create).mockResolvedValue(defaultMission);
 
-      // 2. Action
       const result = await missionService.createMission(defaultMissionDTO);
 
-      // 3. Verif
       expect(result).toMatchObject({
         uuid: "123e4567-e89b-12d3-a456-426614174000",
         name: "Aider à la récolte d'habits.",

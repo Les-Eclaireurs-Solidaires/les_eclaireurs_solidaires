@@ -9,7 +9,6 @@ import { UserRole } from "../user/UserRoleEnum.js";
 import { UnauthorizedCancelMissionError } from "../../domain/exceptions/mission/UnauthorizedCancelMissionError.js";
 import type { SearchMission } from "./payload/SearchMission.js";
 import type { SearchMissionDTO } from "./dtos/SearchMissionDTO.js";
-import { MissionStatus } from "./MissionStatusEnum.js";
 
 export class MissionService implements IMissionService {
   constructor(private missionRepository: IMissionRepository) {}
@@ -30,10 +29,8 @@ export class MissionService implements IMissionService {
       registrations: [],
     });
 
-    // On cree la mission
     const result = await this.missionRepository.create(mission, organizerUuids);
 
-    // On retourne la mission au controleur
     return result;
   }
   async cancelMission(

@@ -1,5 +1,5 @@
 import { HttpInterceptorFn } from '@angular/common/http';
-import { inject, PLATFORM_ID } from '@angular/core';
+import { inject, PLATFORM_ID, REQUEST } from '@angular/core';
 import { isPlatformServer } from '@angular/common';
 
 export const baseUrlInterceptor: HttpInterceptorFn = (req, next) => {
@@ -8,8 +8,18 @@ export const baseUrlInterceptor: HttpInterceptorFn = (req, next) => {
 
   if (req.url.startsWith('/')) {
     const baseUrl = isServer ? 'http://backend:3000' : 'http://localhost:3000';
-    const apiReq = req.clone({ url: `${baseUrl}${req.url}` });
-    return next(apiReq);
+    let headers = req.headers;
+
+    if (isServer) {
+      const serverRequest = inject(REQUEST, { optional: true });
+      const cookie = serverRequest?.headers.get('cookie');
+      if (cookie) {
+        headers = headers.set('cookie', cookie);
+      }
+    }
+
+    return next(req.clone({ url: `${baseUrl}${req.url}`, headers }));
   }
+
   return next(req);
 };

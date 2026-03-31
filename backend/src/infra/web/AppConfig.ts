@@ -34,6 +34,7 @@ export class AppConfig {
   private initializeMiddlewares() {
     this.app.use(express.json());
     this.app.use(express.urlencoded({ extended: true }));
+    this.app.use(helmet());
     this.app.use(
       cors({
         origin: "http://localhost:4200",
@@ -43,7 +44,6 @@ export class AppConfig {
         exposedHeaders: ["X-XSRF-TOKEN"],
       }),
     );
-    this.app.use(helmet());
     this.app.use(cookieParser());
     this.app.use(csrfProtection);
   }

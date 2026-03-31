@@ -9,11 +9,28 @@
         <mat-form-field appearance="outline" subscriptSizing="dynamic">
           <mat-label>Email</mat-label>
           <input matInput formControlName="email" type="email" required />
+          @if (loginForm.get('email')?.hasError('required') && loginForm.get('email')?.touched) {
+            <mat-error>L'adresse email est obligatoire.</mat-error>
+          }
+          @if (loginForm.get('email')?.hasError('email') && loginForm.get('email')?.touched) {
+            <mat-error>Le format de l'email est invalide.</mat-error>
+          }
+          <mat-error></mat-error>
         </mat-form-field>
 
         <mat-form-field appearance="outline" subscriptSizing="dynamic">
           <mat-label>Password</mat-label>
           <input matInput formControlName="password" type="password" required />
+          @if (
+            loginForm.get('password')?.hasError('required') && loginForm.get('password')?.touched
+          ) {
+            <mat-error>Le mot de passe est obligatoire.</mat-error>
+          }
+          @if (
+            loginForm.get('password')?.hasError('password') && loginForm.get('password')?.touched
+          ) {
+            <mat-error>Le format du mot de passe est invalide.</mat-error>
+          }
         </mat-form-field>
       </div>
       <mat-card-actions class="card-login-actions">

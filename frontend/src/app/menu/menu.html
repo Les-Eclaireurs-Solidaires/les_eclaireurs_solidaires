@@ -1,8 +1,16 @@
 <mat-toolbar-row>
-  <button matFab color="primary" routerLink="login">
-    <mat-icon>login</mat-icon>
-    <span>Se Connecter</span>
-  </button>
+  @if (userService.isAuthenticated()) {
+    <mat-label>Bienvenue{{ userService.currentUser()?.getEmail() ?? "" }}</mat-label>
+    <button matFab color="primary" (click)="userService.logout()">
+      <mat-icon></mat-icon>
+      <span>Déconnexion</span>
+    </button>
+  } @else {
+    <button matFab color="primary" routerLink="login">
+      <mat-icon>login</mat-icon>
+      <span>Se Connecter</span>
+    </button>
+  }
   <button matFab color="primary" routerLink="missions">
     <mat-icon>list_alt</mat-icon>
     <span>Missions</span>

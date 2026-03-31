@@ -1,6 +1,4 @@
 <p>mission-list-component works!</p>
 @for (mission of missions() ; track mission.uuid) {
-  <ul>
-    <li>{{mission.name}}</li>
-  </ul>
+  <app-mission-card [mission]="mission" (click)="onMissionClicked(mission)"></app-mission-card>
 }

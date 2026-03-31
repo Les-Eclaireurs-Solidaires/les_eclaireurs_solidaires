@@ -94,7 +94,6 @@ const setupDatabase = async () => {
   );
   const userId = userRows[0]!.user_id;
 
-  // C. Injecter la mission en BDD (Statut 1 = PUBLIEE)
   await dbPool.execute(
     `INSERT INTO mission (mission_uuid, mission_name, mission_date_start, mission_date_end, mission_address, mission_nbr_volunteer_needed, mission_created_at, id_city, id_mission_status) 
          VALUES (?, 'Mission Test Concurrence', '2026-05-01', '2026-05-02', 'Paris', 5, NOW(), 1, 1)`,
@@ -106,13 +105,11 @@ const setupDatabase = async () => {
   );
   localMissionId = missionRows[0]!.mission_id;
 
-  // D. Lier l'organisateur à sa mission
   await dbPool.execute(
     `INSERT INTO mission_organizer (id_organizer, id_mission) VALUES (?, ?)`,
     [userId, localMissionId],
   );
 
-  // E. Ajouter un faux bénévole inscrit (Statut 1 = EN_ATTENTE) pour tester la cascade
   await dbPool.execute(`
         INSERT INTO user (user_uuid, user_email, user_password, user_created_at, id_role) 
         VALUES ('benevole-uuid', 'ben@test.com', 'hash', NOW(), 3)
@@ -153,18 +150,12 @@ describe("Flux de suppression d'une mission", () => {
     const successResponses = responses.filter((res) => res.status === 200);
     const failedResponses = responses.filter((res) => res.status !== 200);
 
-    // Assertion renforcée : exactement une requête doit réussir.
     expect(successResponses.length).toBe(1);
-    // Toutes les autres doivent échouer.
     expect(failedResponses.length).toBe(concurrentRequests - 1);
 
-    // Idéalement, on vérifie que les échecs sont bien des 404 Not Found,
-    // car la mission a été "supprimée" par la première requête.
     const allFailedWithNotFound = failedResponses.every(
       (res) => res.status === 404,
     );
-    // Note: Le code actuel peut renvoyer 400 si la logique de service vérifie le statut avant de supprimer.
-    // L'important est de valider un échec contrôlé.
 
     const [missionResult] = await dbPool.execute<RowDataPacket[]>(
       "SELECT id_mission_status, mission_deleted_at FROM mission WHERE mission_uuid = ?",
@@ -181,10 +172,8 @@ describe("Flux de suppression d'une mission", () => {
   });
 });
 
-// NOUVEAU BLOC DE TESTS POUR LA RÉCUPÉRATION DES MISSIONS
 describe("Flux de lecture des missions (GET)", () => {
   beforeEach(async () => {
-    // On réinitialise la base pour avoir des données propres
     await setupDatabase();
 
     token = tokenService.generateAccessToken({
@@ -194,7 +183,6 @@ describe("Flux de lecture des missions (GET)", () => {
   });
 
   it("devrait récupérer le catalogue des missions avec des filtres dynamiques (Query Parameters)", async () => {
-    // La mission injectée dans setupDatabase est à Paris (cityId=1) et PUBLIEE (status=1)
     const response = await request(app)
       .get("/mission/missions?cityId=1&status=1")
       .set("Cookie", `accessToken=${token}`);
@@ -204,7 +192,6 @@ describe("Flux de lecture des missions (GET)", () => {
     expect(Array.isArray(response.body.missions)).toBe(true);
     expect(response.body.missions.length).toBeGreaterThan(0);
 
-    // On vérifie que la mission retournée correspond bien à celle en base
     expect(response.body.missions[0].uuid).toBe(missionUuid);
     expect(response.body.missions[0].name).toBe("Mission Test Concurrence");
     expect(response.body.missions[0].cityId).toBe(1);

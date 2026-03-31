@@ -16,7 +16,6 @@ import {
   validateQuery,
 } from "../../infra/web/middlewares/ValidateDtoMiddleware.js";
 import { SearchMissionDTO } from "./dtos/SearchMissionDTO.js";
-import type { SearchMission } from "./payload/SearchMission.js";
 
 export class MissionController {
   private missionRouter: Router = Router();

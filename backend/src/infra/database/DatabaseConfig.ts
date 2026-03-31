@@ -35,7 +35,6 @@ export class Database {
     await this.connection.end();
   }
 
-
   public getConnection(): Pool {
     return this.connection;
   }

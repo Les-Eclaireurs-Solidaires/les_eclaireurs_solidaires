@@ -104,7 +104,6 @@ export const errorHandler = (
     }
   }
 
-  // 3. ERREUR SERVEUR NON GEREE (Crash)
   return res.status(500).json({
     message: "Erreur interne du serveur.",
     stack: envConfig.nodeEnv === "development" ? err.stack : undefined,

@@ -10,7 +10,6 @@ import { BadRequestError } from "../../infra/exceptions/BadRequestError.js";
 import { requireAuth } from "../../infra/web/middlewares/AuthMiddleware.js";
 import { requireRole } from "../../infra/web/middlewares/RoleMiddleware.js";
 import type { ITokenService } from "../auth/ITokenService.js";
-import { UnauthenticatedError } from "../../infra/exceptions/UnauthenticatedError.js";
 
 export class RegistrationController {
   private registrationRouter: Router = Router({ mergeParams: true });

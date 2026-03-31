@@ -45,41 +45,30 @@ describe("AuthService", () => {
 
   describe("register()", () => {
     it("doit lever une erreur 400 si l'email existe déjà", async () => {
-      // ÉTAPE 1 : Préparer le contexte (Arrange)
       const existingEmail = "test@test.com";
       const password = "password123";
 
-      // On simule que l'email existe déjà en retour de FindEmail()
       vi.mocked(mockUserRepository.create).mockRejectedValue(
         new EmailAlreadyExistError(existingEmail),
       );
 
       vi.mocked(mockHashService.hashString).mockResolvedValue("hashedPassword");
 
-      // ÉTAPE 2 & 3 : Agir et Vérifier (Act & Assert)
       await expect(
         authService.register(existingEmail, password),
       ).rejects.toMatchObject(new EmailAlreadyExistError(existingEmail));
     });
     it("doit inscrire l'utilisateur et renvoyer les tokens si l'email est disponible", async () => {
-      // ÉTAPE 1 : Préparer le contexte (Arrange)
       const newEmail = "nouveau@test.com";
       const password = "password123";
 
-      // On simule que l'email est libre en renvoyant null
       vi.mocked(mockUserRepository.findByEmail).mockResolvedValue(null);
-      // On simule un password valide
       vi.mocked(mockHashService.hashString).mockResolvedValue("hashedPassword");
 
-      // ÉTAPE 2 : Agir (Act)
       const result = await authService.register(newEmail, password);
 
-      // ÉTAPE 3 : Vérifier (Assert)
-      // On vérifie que result contient une propriété 'accessToken'
       expect(result).toHaveProperty("accessToken");
-      // On vérifie que result contient une propriété 'refreshToken'
       expect(result).toHaveProperty("refreshToken");
-      // On vérifie que result contient une propriété 'user'
       expect(result).toMatchObject({
         user: {
           uuid: expect.any(String),
@@ -87,8 +76,7 @@ describe("AuthService", () => {
           roleId: 3,
         },
       });
-      // On vérifie que le repository a bien été appelé pour sauvegarder en BDD
-      // et que l'objet qu'il recoit en param est valide
+
       expect(mockUserRepository.create).toHaveBeenCalledOnce();
       expect(mockUserRepository.create).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -110,24 +98,19 @@ describe("AuthService", () => {
 
   describe("login()", () => {
     it("doit lever une erreur 400 si l'email n'existe pas", async () => {
-      // ÉTAPE 1 : Préparer le contexte (Arrange)
       const email = "test@test.com";
       const password = "password123";
 
-      // On simule que l'email n'existe pas
       vi.mocked(mockUserRepository.findByEmail).mockResolvedValue(null);
 
-      // ÉTAPE 2 & 3 : Agir et Vérifier (Act & Assert)
       await expect(authService.login(email, password)).rejects.toMatchObject(
         new InvalidCredentialsError(),
       );
     });
     it("doit lever une erreur 400 si le mot de passe est incorrect", async () => {
-      // ÉTAPE 1 : Préparer le contexte (Arrange)
       const email = "test2@test.com";
       const password = "password123";
 
-      // On simule que l'email existe
       vi.mocked(mockUserRepository.findByEmail).mockResolvedValue(
         new User({
           uuid: "123e4567-e89b-12d3-a456-426614 174000",
@@ -145,16 +128,13 @@ describe("AuthService", () => {
         }),
       );
 
-      // On simule que le password est invalide
       vi.mocked(mockHashService.compareStringToHash).mockResolvedValue(false);
 
-      // ÉTAPE 2 & 3 : Agir et Vérifier (Act & Assert)
       await expect(authService.login(email, password)).rejects.toMatchObject(
         new InvalidCredentialsError(),
       );
     });
     it("doit connecter l'utilisateur et renvoyer les tokens si l'email et le mot de passe sont valides", async () => {
-      // ÉTAPE 1 : Préparer le contexte (Arrange)
       const email = "test@test.com";
       const password = "password123";
       const user = new User({
@@ -177,10 +157,8 @@ describe("AuthService", () => {
       vi.mocked(mockHashService.hashString).mockResolvedValue("hashedPassword");
       vi.mocked(mockUserRepository.update).mockResolvedValue(true);
 
-      // Etape 2
       const result = await authService.login(email, password);
 
-      // Etape 3
       expect(result).toHaveProperty("accessToken");
       expect(result).toHaveProperty("refreshToken");
       expect(result).toMatchObject({

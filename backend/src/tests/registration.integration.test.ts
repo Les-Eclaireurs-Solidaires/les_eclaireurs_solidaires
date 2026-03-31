@@ -75,42 +75,35 @@ afterAll(async () => {
 });
 
 const setupDatabase = async () => {
-  // On vide les tables pour avoir un environnement vierge
   await dbPool.execute("DELETE FROM inscription");
   await dbPool.execute("DELETE FROM mission_organizer");
   await dbPool.execute("DELETE FROM mission_category");
   await dbPool.execute("DELETE FROM mission");
   await dbPool.execute("DELETE FROM `user`");
-  // On crée la ville pour les tests
   await dbPool.execute(
     "INSERT IGNORE INTO city (city_id, city_name, city_zip) VALUES (1, 'Paris', '75000')",
   );
-  // On insert le user unique SuperAdmin
   const [adminResult] = await dbPool.execute<ResultSetHeader>(`
     INSERT INTO \`user\` (user_uuid, user_email, user_password, user_created_at, id_role) 
       VALUES ('user-uuid-admin', 'admin@test.com', 'hashed_password', NOW(), ${UserRole.SUPER_ADMIN})`);
   adminId = adminResult.insertId;
-  // On insert un user Organizer
   const [organizerResult] = await dbPool.execute<ResultSetHeader>(`
       INSERT INTO \`user\` (user_uuid, user_email, user_password, user_created_at, id_role) 
       VALUES ('user-uuid-456', 'organizer@test.com', 'hashed_password', NOW(), ${UserRole.ORGANISATEUR})
     `);
   const organizerId = organizerResult.insertId;
 
-  // On insère une mission de test "en dur"
   const [missionResult] = await dbPool.execute<ResultSetHeader>(`
       INSERT INTO mission (mission_uuid, mission_name, mission_date_start, mission_date_end, mission_address, mission_nbr_volunteer_needed, mission_created_at, id_city, id_mission_status) 
       VALUES ('mission-uuid-123', 'Mission Test', '2026-01-01', '2026-01-02', '10 rue test', 1, NOW(), 1, 2)
     `);
   missionId = missionResult.insertId;
 
-  // On lie la mission et l'organizer
   await dbPool.execute(`
       INSERT INTO mission_organizer (id_mission, id_organizer) 
       VALUES (${missionId}, ${organizerId})
     `);
 
-  // On insère un faux bénévole
   const [volunteerResult] = await dbPool.execute<ResultSetHeader>(`
       INSERT INTO \`user\` (user_uuid, user_email, user_password, user_created_at, id_role) 
       VALUES ('user-uuid-123', 'benevole@test.com', 'hashed_password', NOW(), ${UserRole.BENEVOLE})
@@ -127,7 +120,6 @@ describe("Flux d'inscription d'une Mission", () => {
   it("devrait retourner 401 si le token est manquant", async () => {
     const response = await supertest(app)
       .post("/mission/mission-uuid-123/registration")
-      // On valide la couche CSRF
       .set("Cookie", [`XSRF-TOKEN=${fakeCsrf}`])
       .set("x-xsrf-token", fakeCsrf)
       .send();
@@ -168,26 +160,22 @@ describe("Siège Musical - Last Slot Race Condition", () => {
   let organizerId: number;
 
   beforeEach(async () => {
-    // Setup: Reinitialize DB
     await dbPool.execute("DELETE FROM inscription");
     await dbPool.execute("DELETE FROM mission_organizer");
     await dbPool.execute("DELETE FROM mission_category");
     await dbPool.execute("DELETE FROM mission");
     await dbPool.execute("DELETE FROM `user`");
 
-    // Create city
     await dbPool.execute(
       "INSERT IGNORE INTO city (city_id, city_name, city_zip) VALUES (1, 'Paris', '75000')",
     );
 
-    // Create organizer
     const [organizerRes] = await dbPool.execute<ResultSetHeader>(`
       INSERT INTO \`user\` (user_uuid, user_email, user_password, user_created_at, id_role)
       VALUES ('organizer-uuid', 'organizer@test.com', 'hashed', NOW(), ${UserRole.ORGANISATEUR})
     `);
     organizerId = organizerRes.insertId;
 
-    // Create 2 volunteers
     const [vol1Res] = await dbPool.execute<ResultSetHeader>(
       `
       INSERT INTO \`user\` (user_uuid, user_email, user_password, user_created_at, id_role)
@@ -206,7 +194,6 @@ describe("Siège Musical - Last Slot Race Condition", () => {
     );
     volunteer2Id = vol2Res.insertId;
 
-    // Create mission with capacity = 1 (CRITICAL: only 1 slot!)
     const [missionRes] = await dbPool.execute<ResultSetHeader>(
       `
       INSERT INTO mission 
@@ -217,7 +204,6 @@ describe("Siège Musical - Last Slot Race Condition", () => {
     );
     missionIdLastSlot = missionRes.insertId;
 
-    // Link organizer to mission
     await dbPool.execute(
       `
       INSERT INTO mission_organizer (id_mission, id_organizer)
@@ -228,7 +214,6 @@ describe("Siège Musical - Last Slot Race Condition", () => {
   });
 
   it("devrait garantir qu'un seul bénévole s'inscrive quand deux envoient POST simultanés sur la dernière place", async () => {
-    // Generate tokens for both volunteers
     const token1 = tokenService.generateAccessToken({
       uuid: volunteer1Uuid,
       roleId: UserRole.BENEVOLE,
@@ -239,7 +224,6 @@ describe("Siège Musical - Last Slot Race Condition", () => {
       roleId: UserRole.BENEVOLE,
     });
 
-    // Launch 2 concurrent registration requests to the same mission (capacity = 1)
     const [response1, response2] = await Promise.all([
       supertest(app)
         .post(`/mission/${missionUuidLastSlot}/registration`)
@@ -254,7 +238,6 @@ describe("Siège Musical - Last Slot Race Condition", () => {
         .send(),
     ]);
 
-    // Assert: ONE must succeed (201), ONE must fail (409 Mission Full or 400)
     const successCount = [response1, response2].filter(
       (r) => r.status === 201,
     ).length;
@@ -265,7 +248,6 @@ describe("Siège Musical - Last Slot Race Condition", () => {
     expect(successCount).toBe(1);
     expect(failureCount).toBe(1);
 
-    // Assert: Verify which one succeeded and which failed
     if (response1.status === 201) {
       expect(response1.status).toBe(201);
       expect([400, 409]).toContain(response2.status);
@@ -274,7 +256,6 @@ describe("Siège Musical - Last Slot Race Condition", () => {
       expect([400, 409]).toContain(response1.status);
     }
 
-    // CRITICAL: Verify DB integrity - exactly 1 inscription for this mission
     const [inscriptionRows] = await dbPool.execute<RowDataPacket[]>(
       "SELECT COUNT(*) as cnt FROM inscription WHERE id_mission = ?",
       [missionIdLastSlot],
@@ -282,7 +263,6 @@ describe("Siège Musical - Last Slot Race Condition", () => {
 
     expect(inscriptionRows[0]?.cnt).toBe(1);
 
-    // Verify the successful volunteer is the one inscribed
     const [successfulInscription] = await dbPool.execute<RowDataPacket[]>(
       "SELECT id_user FROM inscription WHERE id_mission = ?",
       [missionIdLastSlot],
@@ -291,7 +271,6 @@ describe("Siège Musical - Last Slot Race Condition", () => {
     const inscribedUserId = successfulInscription[0]?.id_user;
     expect([volunteer1Id, volunteer2Id]).toContain(inscribedUserId);
 
-    // Verify the status is valid (EN_ATTENTE = 1 or VALIDEE = 2)
     const [statusCheck] = await dbPool.execute<RowDataPacket[]>(
       "SELECT id_inscription_status FROM inscription WHERE id_mission = ? LIMIT 1",
       [missionIdLastSlot],
@@ -321,7 +300,6 @@ describe("Flux de désinscription d'une Mission", () => {
     `);
   });
   it("devrait renvoyer 400 si un intrus, bénévole non-inscrit à la mission, essaie de supprimer une inscription qui n'est pas la sienne", async () => {
-    // On genere l'acces token d'un utilisateur qui n'est pas inscrit a la mission
     const accessToken = tokenService.generateAccessToken({
       uuid: "user-uuid-789",
       roleId: 3,
@@ -336,7 +314,6 @@ describe("Flux de désinscription d'une Mission", () => {
     expect(response.status).toBe(400);
   });
   it("devrait renvoyer 400 si un intrus, organisateur, essaie de supprimer une inscription sur une mission qu'il n'organise pas", async () => {
-    // On genere l'acces token de l'organisateur intrus
     const accessToken = tokenService.generateAccessToken({
       uuid: "user-uuid-546",
       roleId: 2,
@@ -351,52 +328,43 @@ describe("Flux de désinscription d'une Mission", () => {
     expect(response.status).toBe(400);
   });
   it("devrait renvoyer 200 si le bénévole inscrit supprime son inscription, status inscription = annulée", async () => {
-    // 1. Token du bénévole légitime
     const accessToken = tokenService.generateAccessToken({
       uuid: "user-uuid-123",
       roleId: UserRole.BENEVOLE,
     });
 
-    // 2. Requête d'annulation
     const response = await supertest(app)
       .delete("/mission/mission-uuid-123/registration/user-uuid-123")
       .set("Cookie", [`XSRF-TOKEN=${fakeCsrf}`, `accessToken=${accessToken}`])
       .set("x-xsrf-token", fakeCsrf)
       .send();
 
-    // 3. Vérification de la réponse HTTP
     expect(response.status).toBe(200);
 
-    // 4. Vérification du Soft Delete en base de données
     const [inscriptionResult] = await dbPool.execute<RowDataPacket[]>(
       "SELECT id_inscription_status FROM inscription WHERE id_mission = ? AND id_user = ?",
       [missionId, volunteerId],
     );
 
-    // L'inscription existe toujours physiquement...
     expect(inscriptionResult.length).toBe(1);
     const row = inscriptionResult[0] as RowDataPacket;
     expect(row.id_inscription_status).toBe(RegistrationStatus.ANNULEE);
   });
 
   it("devrait renvoyer 200 si le bénévole inscrit est désinscrit par un organisateur de la mission, status inscription = refusée", async () => {
-    // 1. Token de l'organisateur de la mission
     const accessToken = tokenService.generateAccessToken({
       uuid: "user-uuid-456",
       roleId: UserRole.ORGANISATEUR,
     });
 
-    // 2. L'organisateur supprime l'inscription du bénévole cible
     const response = await supertest(app)
       .delete("/mission/mission-uuid-123/registration/user-uuid-123")
       .set("Cookie", [`XSRF-TOKEN=${fakeCsrf}`, `accessToken=${accessToken}`])
       .set("x-xsrf-token", fakeCsrf)
       .send();
 
-    // 3. Vérification de la réponse HTTP
     expect(response.status).toBe(200);
 
-    // 4. Vérification du Soft Delete en base de données
     const [inscriptionResult] = await dbPool.execute<RowDataPacket[]>(
       "SELECT id_inscription_status FROM inscription WHERE id_mission = ? AND id_user = ?",
       [missionId, volunteerId],

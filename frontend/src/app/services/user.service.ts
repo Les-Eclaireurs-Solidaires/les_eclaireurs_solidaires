@@ -1,43 +1,64 @@
-import { inject, Injectable, signal } from '@angular/core';
-import { BehaviorSubject, Observable } from 'rxjs';
-import { DisplayMode, UserModel } from '../models/user.model';
+import {
+  computed,
+  inject,
+  Injectable,
+  makeStateKey,
+  PLATFORM_ID,
+  signal,
+  TransferState,
+} from '@angular/core';
+import { IUserFromBack, UserModel, UserRole } from '../models/user.model';
 import { Router } from '@angular/router';
+import { NotificationService } from './notification.service';
+import { isPlatformBrowser } from '@angular/common';
+import { AuthService } from './auth-service';
 
-@Injectable({
-  providedIn: 'root',
-})
+const USER_KEY = makeStateKey<IUserFromBack | null>('currentUser');
+
+@Injectable({ providedIn: 'root' })
 export class UserService {
-  private userSubject: BehaviorSubject<UserModel> = new BehaviorSubject<UserModel>(new UserModel());
-  public user$: Observable<UserModel> = this.userSubject.asObservable();
+  private readonly transferState = inject(TransferState);
+  private readonly platformId = inject(PLATFORM_ID);
+  readonly router = inject(Router);
+  readonly notificationService = inject(NotificationService);
+  readonly auth = inject(AuthService);
 
-  private isAuthenticated: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(false);
-  public isAuthenticated$: Observable<boolean> = this.isAuthenticated.asObservable();
+  public currentUser = signal<UserModel | null>(this.hydrateFromTransferState());
 
-  private displayMode: BehaviorSubject<DisplayMode> = new BehaviorSubject<DisplayMode>(
-    'VOLUNTEER_MODE',
-  );
-  public displayMode$: Observable<DisplayMode> = this.displayMode.asObservable();
+  public userRole = signal<UserRole>(this.currentUser()?.getRole() ?? UserRole.BENEVOLE);
 
-  router: Router = inject(Router);
+  public isAuthenticated = computed(() => this.currentUser() !== null);
 
-  constructor() {}
-
-  public login(user: UserModel): void {
-    this.userSubject.next(user);
-    this.isAuthenticated.next(true);
+  private hydrateFromTransferState(): UserModel | null {
+    const raw = this.transferState.get(USER_KEY, null);
+    if (!raw) return null;
+    return UserModel.reconstitute(raw);
   }
 
-  public logout(): void {
-    this.userSubject.next(new UserModel());
-    this.isAuthenticated.next(false);
-    this.router.navigate(['login']);
+  public loginUser(user: UserModel) {
+    this.currentUser.set(user);
+    this.userRole.set(user.getRole());
+
+    // Sauvegarder le TransferState pour hydratation côté client
+    this.transferState.set(USER_KEY, user.toJSON());
   }
 
-  public get IsAuthenticated(): boolean {
-    return this.isAuthenticated.getValue();
-  }
+  public logout() {
+    this.auth.logout().subscribe({
+      next: () => {
+        this.currentUser.set(null);
+        this.userRole.set(UserRole.BENEVOLE);
+        this.transferState.remove(USER_KEY);
 
-  public setDisplayMode(mode: DisplayMode): void {
-    this.displayMode.next(mode);
+        if (isPlatformBrowser(this.platformId)) {
+          this.router.navigate(['/']);
+          this.notificationService.showError('Vous avez été déconnecté');
+        }
+      },
+      error: (err) => {
+        console.error(err);
+        this.notificationService.showError('Erreur lors de la déconnexion');
+      },
+    });
   }
 }

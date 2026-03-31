@@ -3,6 +3,7 @@ import {
   type NextFunction,
   type Request,
   type Response,
+  type CookieOptions,
 } from "express";
 import type { AuthService } from "./AuthService.js";
 import { envConfig } from "../../infra/config/EnvConfig.js";
@@ -49,10 +50,8 @@ export class AuthController {
     res: Response,
     next: NextFunction,
   ) => {
-    //on recupere le req.body qui contient les infos de l'utilisateur a enregistrer via le register DTO
     const registerDto: RegisterDTO = res.locals.validateBody;
 
-    //on appelle le service d'enregistrement de l'utilisateur
     const result = await this.authService.register(
       registerDto.email,
       registerDto.password,
@@ -60,17 +59,14 @@ export class AuthController {
 
     this.generateSecurityCookie(res, result);
 
-    //on retourne une reponse avec un message de succes ou d'erreur
     return res
       .status(201)
       .json({ message: "User registered successfully", user: result.user });
   };
 
   public login = async (req: Request, res: Response, next: NextFunction) => {
-    //on recupere le req.body qui contient les infos de l'utilisateur a connecter via le login DTO
     const loginDto: LoginDTO = res.locals.validateBody;
 
-    //on appelle le service de connexion de l'utilisateur
     const result = await this.authService.login(
       loginDto.email,
       loginDto.password,
@@ -78,24 +74,31 @@ export class AuthController {
 
     this.generateSecurityCookie(res, result);
 
-    //on retourne une reponse avec un message de succes ou d'erreur
     return res
       .status(200)
       .json({ message: "User logged in successfully", user: result.user });
-
-    //sinon, l'erreur est gerer par le middleware de gestion des erreurs et une reponse avec un message d'erreur est retournee
   };
 
   public logout = async (req: Request, res: Response) => {
     await this.authService.logout(req.user!.uuid);
 
-    const cookieOptions = {
+    const jwtCookieOptions: CookieOptions= {
       httpOnly: true,
       secure: envConfig.nodeEnv === "production",
-      sameSite: "strict" as const,
+      sameSite: "strict",
+      path: "/",
     };
-    res.clearCookie("accessToken", cookieOptions);
-    res.clearCookie("refreshToken", cookieOptions);
+
+    const csrfCookieOptions: CookieOptions= {
+      httpOnly: false,
+      secure: envConfig.nodeEnv === "production",
+      sameSite: "strict",
+      path: "/",
+    };
+
+    res.clearCookie("accessToken", jwtCookieOptions);
+    res.clearCookie("refreshToken", jwtCookieOptions);
+    res.clearCookie("XSRF-TOKEN", csrfCookieOptions);
 
     return res.status(200).json({ message: "User logged out" });
   };
@@ -116,7 +119,6 @@ export class AuthController {
 
     this.generateSecurityCookie(res, result);
 
-    //on retourne une reponse avec un message de succes ou d'erreur
     return res
       .status(200)
       .json({ message: "Token refreshed successfully", user: result.user });
@@ -127,18 +129,21 @@ export class AuthController {
     res.cookie("XSRF-TOKEN", csrfToken, {
       httpOnly: false,
       secure: envConfig.nodeEnv === "production",
+      path: "/",
       sameSite: "strict",
     });
 
     res.cookie("refreshToken", result.refreshToken, {
       httpOnly: true,
       secure: envConfig.nodeEnv === "production",
+      path: "/",
       sameSite: "strict",
-      maxAge: 7 * 24 * 60 * 60 * 1000, //7jours
+      maxAge: 7 * 24 * 60 * 60 * 1000,
     });
     res.cookie("accessToken", result.accessToken, {
       httpOnly: true,
       secure: envConfig.nodeEnv === "production",
+      path: "/",
       sameSite: "strict",
       maxAge: 15 * 60 * 1000,
     });

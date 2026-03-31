@@ -2,10 +2,7 @@ import type { Pool, ResultSetHeader, RowDataPacket } from "mysql2/promise";
 import { User } from "./UserModel.js";
 import type { IUser } from "./IUserModel.js";
 import type { IUserRepository } from "./IUserRepository.js";
-import { EmptyUpdateError } from "../../infra/exceptions/EmptyUpdateError.js";
 import { EmailAlreadyExistError } from "../../domain/exceptions/auth/EmailAlreadyExistError.js";
-import { MissionNameAlreadyExistError } from "../../domain/exceptions/mission/MissionNameAlreadyExistError.js";
-import { threadId } from "node:worker_threads";
 
 export class UserRepository implements IUserRepository {
   private readonly columnMapping: { [key: string]: string } = {
@@ -87,8 +84,8 @@ export class UserRepository implements IUserRepository {
       user.getEmail(),
       user.getPassword(),
       user.getRefreshToken(),
-      user.getFirstName(), // firstName
-      user.getLastName(), // lastName
+      user.getFirstName(),
+      user.getLastName(), 
       user.getAvatarUrl(),
       user.getCreatedAt(),
       user.getCityId(),

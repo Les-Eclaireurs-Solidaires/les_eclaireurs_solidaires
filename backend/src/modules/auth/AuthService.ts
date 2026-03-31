@@ -1,12 +1,10 @@
 import type { IUserRepository } from "../user/IUserRepository.js";
-import { EmailAlreadyExistError } from "../../domain/exceptions/auth/EmailAlreadyExistError.js";
 import { UserNotFoundError } from "../../domain/exceptions/auth/UserNotFoundError.js";
 import { InvalidCredentialsError } from "../../domain/exceptions/auth/InvalidCredentialsError.js";
 import { User } from "../user/UserModel.js";
 import type { AuthResponse } from "./IAuthResponse.js";
 import type { IHashService } from "./IHashService.js";
 import type { ITokenService } from "./ITokenService.js";
-import { UnauthenticatedError } from "../../infra/exceptions/UnauthenticatedError.js";
 import { InvalidTokenError } from "../../domain/exceptions/auth/InvalidTokenError.js";
 
 export class AuthService {
@@ -38,6 +36,7 @@ export class AuthService {
     user.changePassword(hashedPassword);
 
     await this.userRepository.create(user);
+    
     const response: AuthResponse = {
       accessToken,
       refreshToken: refreshToken,
@@ -100,7 +99,6 @@ export class AuthService {
     if (!user) {
       throw new UserNotFoundError();
     }
-    // On nettoie les données sensibles avant de renvoyer au front !
     return user.toAuthResponse();
   }
 

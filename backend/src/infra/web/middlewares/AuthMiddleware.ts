@@ -9,6 +9,7 @@ return (
   next: NextFunction,
 ) => {
   try {
+    console.log(req.cookies)
     const token = req.cookies.accessToken;
 
     if (!token) {
