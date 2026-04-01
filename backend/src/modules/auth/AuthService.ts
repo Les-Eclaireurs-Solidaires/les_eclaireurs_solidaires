@@ -5,6 +5,7 @@ import { User } from "../user/UserModel.js";
 import type { AuthResponse } from "./IAuthResponse.js";
 import type { IHashService } from "./IHashService.js";
 import type { ITokenService } from "./ITokenService.js";
+import { InvalidTokenError } from "../../domain/exceptions/auth/InvalidTokenError.js";
 
 export class AuthService {
   constructor(
@@ -93,4 +94,49 @@ export class AuthService {
     await this.userRepository.update(user);
   }
 
+  async getCurrentUser(uuid: string) {
+    const user = await this.userRepository.findByUuid(uuid);
+    if (!user) {
+      throw new UserNotFoundError();
+    }
+    return user.toAuthResponse();
+  }
+
+  async refresh(refreshToken: string) {
+    const payload = this.tokenService.verifyRefreshToken(refreshToken);
+
+    const user = await this.userRepository.findByUuid(payload.uuid);
+    if (!user) {
+      throw new UserNotFoundError();
+    }
+
+    if (user.getRefreshToken() === null) {
+      throw new InvalidTokenError();
+    }
+
+    const accessToken = this.tokenService.generateAccessToken({
+      uuid: user.getUuid(),
+      roleId: user.getRoleId(),
+    });
+
+    const newRefreshToken = this.tokenService.generateRefreshToken({
+      uuid: user.getUuid(),
+      roleId: user.getRoleId(),
+    });
+
+    const hashedRefreshToken =
+      await this.hashService.hashString(newRefreshToken);
+    user.registerNewRefreshToken(hashedRefreshToken);
+
+    const isUpdated = await this.userRepository.update(user);
+    if(!isUpdated) throw new UserNotFoundError();
+
+    const response: AuthResponse = {
+      accessToken,
+      refreshToken: newRefreshToken,
+      user: user.toAuthResponse(),
+    };
+
+    return response;
+  }
 }

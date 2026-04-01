@@ -37,6 +37,12 @@ export class AuthController {
       requireAuth(this.tokenService),
       this.logout,
     );
+    this.authRouter.post("/refresh", this.refresh);
+    this.authRouter.get(
+      "/me",
+      requireAuth(this.tokenService),
+      this.getCurrentUser,
+    );
   }
 
   private register = async (
@@ -95,6 +101,27 @@ export class AuthController {
     res.clearCookie("XSRF-TOKEN", csrfCookieOptions);
 
     return res.status(200).json({ message: "User logged out" });
+  };
+
+  public getCurrentUser = async (req: Request, res: Response) => {
+    const user = await this.authService.getCurrentUser(req.user!.uuid);
+    return res.status(200).json(user);
+  };
+
+  public refresh = async (req: Request, res: Response, next: NextFunction) => {
+    const refreshToken = req.cookies.refreshToken;
+
+    if (!refreshToken) {
+      throw new UnauthenticatedError();
+    }
+
+    const result = await this.authService.refresh(refreshToken);
+
+    this.generateSecurityCookie(res, result);
+
+    return res
+      .status(200)
+      .json({ message: "Token refreshed successfully", user: result.user });
   };
 
   private generateSecurityCookie(res: Response, result: AuthResponse) {

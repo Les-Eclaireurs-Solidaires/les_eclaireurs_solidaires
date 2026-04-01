@@ -19,3 +19,20 @@ export function validateBody<T extends object>(dtoClass: ClassConstructor<T>) {
     next();
   };
 }
+
+export function validateQuery<T extends object>(dtoClass: ClassConstructor<T>) {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    const dtoInstance = plainToInstance(dtoClass, req.query);
+    const errors = await validate(dtoInstance);
+    if (errors.length > 0) {
+      throw new DtoValidationError(
+        errors.map((e) => ({
+          property: e.property,
+          constraints: e.constraints,
+        })),
+      );
+    }
+    res.locals.validateQuery = dtoInstance;
+    next();
+  };
+}
