@@ -6,7 +6,10 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "start": "node dist/index.js",
-    "dev": "cross-env CHOKIDAR_USEPOLLING=true tsx watch --clearScreen=false src/index.ts"
+    "dev": "cross-env CHOKIDAR_USEPOLLING=true tsx watch --clearScreen=false src/index.ts",
+    "test": "vitest run --mode test",
+    "test:watch": "vitest --watch --mode test",
+    "test:docker": "vitest run --mode test.docker"
   },
   "keywords": [
     "les",

@@ -1,11 +1,27 @@
 services:
+  mysql:
+    ports:
+      - "3306:3306"                         # ← exposé seulement en dev
+
   backend:
     build:
-      context: ./backend
-      target: development
-    command: npm run dev
-    volumes:
-      - ./backend:/app
-      - /app/node_modules
+      target: development                   # ← surcharge la cible
     ports:
-      - "${BACKEND_PORT}:${BACKEND_PORT}"
+      - "${HOST_BACKEND_PORT}:3000"
+    volumes:
+      - ./backend:/app                      # ← hot-reload
+      - /app/node_modules
+    command: npm run dev
+
+  phpmyadmin:
+    image: phpmyadmin:latest
+    environment:
+      PMA_HOST: mysql
+      PMA_USER: root
+      PMA_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "8080:80"
+    depends_on:
+      - mysql
+    networks:
+      - eclaireurs-network
