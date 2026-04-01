@@ -2,7 +2,9 @@ import cookieParser from "cookie-parser";
 import express, { type Express } from "express";
 import cors from "cors";
 import helmet from "helmet";
+import type { AuthController } from "../../modules/auth/AuthController.js";
 import { envConfig } from "../config/EnvConfig.js";
+import { csrfProtection } from "./middlewares/CSRFMiddleware.js";
 import { errorHandler } from "./middlewares/ErrorMiddleware.js";
 import type { Server } from "node:http";
 import { Database } from "../database/DatabaseConfig.js";
@@ -15,6 +17,7 @@ export class AppConfig {
 
 
   constructor(
+    private authController: AuthController
   ) {
     this.app = express();
     this.port = envConfig.port;
@@ -29,15 +32,23 @@ export class AppConfig {
     this.app.use(express.urlencoded({ extended: true }));
     this.app.use(helmet());
     this.app.use(
-      cors(),
+      cors({
+        origin: "http://localhost:4200",
+        credentials: true,
+        methods: ["GET", "POST", "PUT", "DELETE"],
+        allowedHeaders: ["Content-Type", "Authorization", "X-XSRF-TOKEN"],
+        exposedHeaders: ["X-XSRF-TOKEN"],
+      }),
     );
     this.app.use(cookieParser());
+    this.app.use(csrfProtection);
   }
 
   private initializeRoutes() {
     this.app.get("/", (req, res) => {
       res.send("Hello World!");
     });
+    this.app.use("/auth", this.authController.getRouter());
   }
 
   private initializeErrorHandling() {
