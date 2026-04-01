@@ -53,7 +53,7 @@ const setupDatabase = async () => {
     `);
 
   await database.execute(`
-    INSERT IGNORE INTO mission_category (mission_category_id,mission_category_name)
+    INSERT IGNORE INTO category (category_id,category_name)
      VALUES 
      (1,"SPORT"),(2,"Aide et autre"),(3,"Autre catégorie"),(4,"Catégorie de test")
     `);
@@ -121,7 +121,7 @@ describe("Mission creation flow", () => {
       address: "14 rue du Test",
       nbrVolunteerNeeded: 1,
       cityId: 1,
-      categoryIds: [],
+      categoryIds: [2,3],
       organizerUuids: [orgaUuidOne],
       toPublish: true,
     };
