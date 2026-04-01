@@ -8,6 +8,7 @@ import { csrfProtection } from "./middlewares/CSRFMiddleware.js";
 import { errorHandler } from "./middlewares/ErrorMiddleware.js";
 import type { Server } from "node:http";
 import { Database } from "../database/DatabaseConfig.js";
+import type { MissionController } from "../../modules/mission/MissionController.js";
 
 export class AppConfig {
   private app: Express;
@@ -17,7 +18,8 @@ export class AppConfig {
 
 
   constructor(
-    private authController: AuthController
+    private authController: AuthController,
+    private missionController: MissionController
   ) {
     this.app = express();
     this.port = envConfig.port;
@@ -49,6 +51,7 @@ export class AppConfig {
       res.send("Hello World!");
     });
     this.app.use("/auth", this.authController.getRouter());
+    this.app.use("/mission", this.missionController.getRouter());
   }
 
   private initializeErrorHandling() {
