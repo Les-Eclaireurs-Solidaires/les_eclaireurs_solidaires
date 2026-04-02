@@ -5,6 +5,13 @@ import { RegistrationStatus } from "../registration/RegistrationStatusEnum.js";
 import { MissionStatusError } from "../../domain/exceptions/mission/MissionStatusError.js";
 import { MissionDateError } from "../../domain/exceptions/mission/MissionDateError.js";
 import { GeolocalizationError } from "../../domain/exceptions/mission/GeolocalizationError.js";
+import { MissionFullError } from "../../domain/exceptions/mission/MissionFullError.js";
+import { VolunteerRegisterAlreadyExistError } from "../../domain/exceptions/mission/VolunteerRegisterAlreadyExistError.js";
+import { MissionNotActiveError } from "../../domain/exceptions/mission/MissionNotActiveError.js";
+import { RegistrationNotFoundError } from "../../domain/exceptions/registration/RegistrationNotFoundError.js";
+import { RegistrationStatusError } from "../../domain/exceptions/registration/RegistrationStatusError.js";
+import { error } from "node:console";
+import { MissionNotFoundError } from "../../domain/exceptions/mission/MissionNotFoundError.js";
 
 export class Mission {
   private uuid: string;
@@ -23,7 +30,6 @@ export class Mission {
   private status: MissionStatus;
   private registrations: Registration[];
   private remainingPlacesFromRepo?: number | undefined;
-  private isFull: boolean;
 
   constructor(param: IMission) {
     this.uuid = param.uuid;
@@ -42,14 +48,12 @@ export class Mission {
 
     this.status = param.status || MissionStatus.DRAFT;
 
-
     this.categoryIds = param.categoryIds || [];
     this.organizerUuid = param.organizerUuids;
 
     this.registrations = param.registrations || [];
 
     this.remainingPlacesFromRepo = param.remainingPlaces || undefined;
-    this.isFull = param.isFull || false;
 
     this.validateDate();
   }
@@ -72,9 +76,314 @@ export class Mission {
       registrations: this.registrations.map((registration) => registration),
       categories: this.categoryIds,
       remainingPlaces: this.getAvailablePlacesCount(),
-      isFull: !this.hasAvailablePlaces(),
     };
   }
+
+  public publish(): void {
+    if (this.deletedAt !== null) {
+      throw new MissionStatusError(
+        "Impossible de publier une mission supprimée.",
+      );
+    }
+
+    if (this.status !== MissionStatus.DRAFT) {
+      throw new MissionStatusError(
+        "Impossible de publier une mission qui n'est pas en brouillon.",
+      );
+    }
+
+    if (!this.name || this.name.trim() === "") {
+      throw new MissionStatusError(
+        "Impossible de publier une mission sans nom.",
+      );
+    }
+    const now = new Date();
+    if (!this.dateStart || !this.dateEnd || now >= this.dateStart)
+      throw new MissionDateError(
+        "Impossible de publier une mission sans date ou avec une date de début déjà passée.",
+      );
+    if (!this.description || this.description.trim() === "")
+      throw new MissionStatusError(
+        "Impossible de publier une mission sans description.",
+      );
+
+    if (this.organizerUuid.length === 0) {
+      throw new MissionStatusError(
+        "Impossible de publier une mission sans organisateurs.",
+      );
+    }
+
+    if (!this.hasAvailablePlaces() || this.nbrVolunteerNeeded === 0) {
+      throw new MissionStatusError(
+        "Impossible de publier une mission sans places libres.",
+      );
+    }
+
+    if (!this.cityId || !this.address) {
+      throw new GeolocalizationError("La mission doit avoir une localisation.");
+    }
+
+    this.status = MissionStatus.PUBLISHED;
+    this.updatedAt = new Date();
+  }
+
+  public cancel(): void {
+    if (this.deletedAt !== null) {
+      throw new MissionStatusError(
+        "Impossible d'annuler une mission supprimée.",
+      );
+    }
+    if (this.status !== MissionStatus.PUBLISHED) {
+      throw new MissionStatusError(
+        "Impossible d'annuler une mission qui n'est pas en publiée.",
+      );
+    }
+
+    if (this.registrations.length > 0) {
+      this.registrations.forEach((registration) => {
+        registration.cancel();
+      });
+    }
+
+    this.status = MissionStatus.CANCELED;
+    this.updatedAt = new Date();
+  }
+
+  public delete(): void {
+    if (this.registrations.length > 0) {
+      throw new MissionStatusError(
+        "Impossible de supprimer une mission qui a des inscription en cours.",
+      );
+    }
+    if (this.deletedAt !== null) return;
+    this.deletedAt = new Date();
+    this.status = MissionStatus.CANCELED;
+    this.updatedAt = new Date();
+  }
+
+  public finish(presentUuids: string[]): void {
+    if (this.deletedAt !== null) {
+      throw new MissionStatusError(
+        "Impossible de terminer une mission qui a été supprimée.",
+      );
+    }
+    if (this.status === MissionStatus.DRAFT) {
+      throw new MissionStatusError(
+        "Impossible de terminer une mission qui est en brouillon.",
+      );
+    }
+    if (this.status === MissionStatus.CANCELED) {
+      throw new MissionStatusError(
+        "Impossible de terminer une mission qui a été annulée.",
+      );
+    }
+    if (this.status === MissionStatus.FINISHED) {
+      return;
+    }
+    for (const registration of this.registrations) {
+      // On ne s'occupe que de ceux qui étaient censés venir
+      if (registration.getStatus() === RegistrationStatus.VALIDATED) {
+        if (presentUuids.includes(registration.getVolunteerUuid())) {
+          registration.setPresent();
+        } else {
+          registration.setAbsent(); // Oups, tu dois créer cette méthode dans Registration !
+        }
+      }
+    }
+    this.status = MissionStatus.FINISHED;
+    this.updatedAt = new Date();
+  }
+
+  public addRegistration(registration: Registration): void {
+    const registrationIndex = this.registrations.findIndex(
+      (r) => r.getVolunteerUuid() === registration.getVolunteerUuid(),
+    );
+
+    if (this.deletedAt !== null) {
+      throw new MissionStatusError(
+        "Impossible d'interagir avec une mission supprimée.",
+      );
+    }
+    if (this.status !== MissionStatus.PUBLISHED) {
+      throw new MissionStatusError(
+        "Impossible d'ajouter une inscription à une mission qui n'est pas publiée.",
+      );
+    }
+    if (!this.hasAvailablePlaces()) {
+      throw new MissionFullError(
+        "Impossible d'ajouter une inscription à une mission qui est pleine.",
+      );
+    }
+    if (!this.isRegistrationOpen()) {
+      throw new MissionNotActiveError();
+    }
+    if (registration.getStatus() !== RegistrationStatus.ONHOLD)
+      throw new RegistrationStatusError(
+        "Impossible d'ajouter une inscription qui n'est pas en attente.",
+      );
+
+    if (registration.getMissionUuid() !== this.uuid) {
+      throw new MissionNotFoundError();
+    }
+    if (registrationIndex !== -1) {
+      throw new VolunteerRegisterAlreadyExistError(
+        registration.getVolunteerUuid(),
+      );
+    }
+
+    this.registrations.push(registration);
+
+    if (this.remainingPlacesFromRepo !== undefined) {
+      this.remainingPlacesFromRepo = Math.max(
+        0,
+        this.remainingPlacesFromRepo - 1,
+      );
+    }
+
+    this.updatedAt = new Date();
+  }
+
+  public removeRegistration(targetUuid: string): void {
+    const registrationIndex = this.registrations.findIndex(
+      (registration) => registration.getVolunteerUuid() === targetUuid,
+    );
+    if (this.deletedAt !== null) {
+      throw new MissionStatusError(
+        "Impossible de supprimer une inscription à une mission qui a été supprimée.",
+      );
+    }
+    if (registrationIndex === -1) {
+      throw new RegistrationNotFoundError();
+    }
+    const targetRegistration = this.registrations[
+      registrationIndex
+    ] as Registration;
+
+    const wasConsumingPlace =
+      targetRegistration.getStatus() === RegistrationStatus.VALIDATED ||
+      targetRegistration.getStatus() === RegistrationStatus.ONHOLD;
+
+    this.registrations.splice(registrationIndex, 1);
+
+    if (wasConsumingPlace && this.remainingPlacesFromRepo !== undefined) {
+      this.remainingPlacesFromRepo = Math.min(
+        this.nbrVolunteerNeeded,
+        this.remainingPlacesFromRepo + 1,
+      );
+    }
+
+    this.updatedAt = new Date();
+  }
+
+  public cancelRegistration(targetUuid: string): void {
+    const registrationIndex = this.registrations.findIndex(
+      (registration) => registration.getVolunteerUuid() === targetUuid,
+    );
+    if (this.deletedAt !== null) {
+      throw new MissionStatusError(
+        "Impossible d'annuler une inscription à une mission qui a été supprimée.",
+      );
+    }
+    if (this.status !== MissionStatus.PUBLISHED) {
+      throw new MissionStatusError(
+        "Impossible d'annuler une inscription à une mission qui n'est pas publiée.",
+      );
+    }
+
+    if (registrationIndex === -1) {
+      throw new RegistrationNotFoundError();
+    }
+    const targetRegistration = this.registrations[
+      registrationIndex
+    ] as Registration;
+
+    const wasConsumingPlace =
+      targetRegistration.getStatus() === RegistrationStatus.VALIDATED ||
+      targetRegistration.getStatus() === RegistrationStatus.ONHOLD;
+
+    targetRegistration.cancel();
+
+    if (wasConsumingPlace && this.remainingPlacesFromRepo !== undefined) {
+      this.remainingPlacesFromRepo = Math.min(
+        this.nbrVolunteerNeeded,
+        this.remainingPlacesFromRepo + 1,
+      );
+    }
+
+    this.updatedAt = new Date();
+  }
+
+  public validateRegistration(targetUuid: string): void {
+    if (this.deletedAt !== null) {
+      throw new MissionStatusError(
+        "Impossible de valider une inscription à une mission qui a été supprimée.",
+      );
+    }
+    if (this.status !== MissionStatus.PUBLISHED) {
+      throw new MissionStatusError(
+        "Impossible de valider une inscription à une mission qui n'est pas publiée.",
+      );
+    }
+    const registration = this.registrations.find(
+      (registration) => registration.getVolunteerUuid() === targetUuid,
+    );
+
+    if (!registration) {
+      throw new RegistrationNotFoundError();
+    }
+
+    registration.validate();
+    this.updatedAt = new Date();
+  }
+
+  public refuseRegistration(targetUuid: string): void {
+    const registrationIndex = this.registrations.findIndex(
+      (registration) => registration.getVolunteerUuid() === targetUuid,
+    );
+    if (this.deletedAt !== null) {
+      throw new MissionStatusError(
+        "Impossible de refuser une inscription à une mission qui a été supprimée.",
+      );
+    }
+    if (this.status !== MissionStatus.PUBLISHED) {
+      throw new MissionStatusError(
+        "Impossible de refuser une inscription à une mission qui n'est pas publiée.",
+      );
+    }
+    if (registrationIndex === -1) {
+      throw new RegistrationNotFoundError();
+    }
+    const targetRegistration = this.registrations[
+      registrationIndex
+    ] as Registration;
+
+    const wasConsumingPlace =
+      targetRegistration.getStatus() === RegistrationStatus.VALIDATED ||
+      targetRegistration.getStatus() === RegistrationStatus.ONHOLD;
+
+    targetRegistration.refuse();
+
+    if (wasConsumingPlace && this.remainingPlacesFromRepo !== undefined) {
+      this.remainingPlacesFromRepo = Math.min(
+        this.nbrVolunteerNeeded,
+        this.remainingPlacesFromRepo + 1,
+      );
+    }
+
+    this.updatedAt = new Date();
+  }
+
+  public updateDetail(name: string, description: string) {}
+
+  public changeDate(dateStart: Date, dateEnd: Date): void {}
+
+  public changeLocalisation(address: string, cityId: number): void {}
+
+  public changeCapacity(nbrVolunteerNeeded: number) {}
+
+  public changeOrganizer(organizerUuids: string[]) {}
+
+  public changeCategory(categoryIds: number[]) {}
 
   private validateDate(): void {
     if (this.dateStart > this.dateEnd) {
@@ -89,14 +398,10 @@ export class Mission {
       return Math.max(0, this.remainingPlacesFromRepo);
     }
 
-    if (this.isFull) {
-      return 0;
-    }
-
     const validRegistration = this.registrations.filter(
       (registration) =>
-        registration.getStatus() === RegistrationStatus.VALIDEE ||
-        registration.getStatus() === RegistrationStatus.EN_ATTENTE,
+        registration.getStatus() === RegistrationStatus.VALIDATED ||
+        registration.getStatus() === RegistrationStatus.ONHOLD,
     );
     return Math.max(0, this.nbrVolunteerNeeded - validRegistration.length);
   }
@@ -105,35 +410,14 @@ export class Mission {
     return this.getAvailablePlacesCount() > 0;
   }
 
-  public publish(): void {
-    if (this.status !== MissionStatus.DRAFT) {
-      throw new MissionStatusError(
-        "Impossible de publier une mission qui n'est pas en brouillon.",
-      );
-    }
+  public isRegistrationOpen(): boolean {
+    const now = new Date();
 
-    if (this.organizerUuid.length === 0) {
-      throw new MissionStatusError(
-        "Impossible de publier une mission sans organisateurs.",
-      );
-    }
-
-    if (this.dateStart > this.dateEnd) {
-      throw new MissionDateError(
-        "La date de début doit être antérieure à la date de fin.",
-      );
-    }
-
-    if (!this.cityId || !this.address) {
-      throw new GeolocalizationError("La mission doit avoir une localisation.");
-    }
-
-    if(this.deletedAt !== null){
-      throw new MissionStatusError("Impossible de publier une mission déjà validée ou annulée.")
-    }
-
-    this.status = MissionStatus.PUBLISHED;
-    this.updatedAt = new Date();
+    return (
+      this.status === MissionStatus.PUBLISHED &&
+      now >= this.dateStart &&
+      now <= this.dateEnd
+    );
   }
 
   public getUuid(): string {

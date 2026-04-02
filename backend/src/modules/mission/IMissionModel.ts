@@ -18,5 +18,4 @@ export interface IMission {
   status?: MissionStatus;
   registrations: Registration[];
   remainingPlaces?: number;
-  isFull?: boolean;
 }
