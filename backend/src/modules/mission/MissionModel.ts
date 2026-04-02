@@ -42,6 +42,7 @@ export class Mission {
 
     this.status = param.status || MissionStatus.DRAFT;
 
+
     this.categoryIds = param.categoryIds || [];
     this.organizerUuid = param.organizerUuids;
 
