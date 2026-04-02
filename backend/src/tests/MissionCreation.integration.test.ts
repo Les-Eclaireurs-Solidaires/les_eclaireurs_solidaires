@@ -140,9 +140,9 @@ describe("Mission creation flow", () => {
       address: "Adresse",
       nbrVolunteerNeeded: 1,
       cityId: 1,
-      categoryIds: [],
+      categoryIds: [1,4],
       organizerUuids: [orgaUuidOne],
-      toPublish: true,
+      toPublish: false,
     };
 
     await expect(missionService.createMission(invalidMissionDates)).rejects.toThrow();
