@@ -109,6 +109,8 @@ CREATE TABLE IF NOT EXISTS message_recipient (
 );
 CREATE TABLE IF NOT EXISTS mission_organizer (
     mission_organizer_id INTEGER NOT NULL AUTO_INCREMENT,
+    mission_organizer_is_main TINYINT NOT NULL DEFAULT 0,
+    mission_organizer_is_participant TINYINT NOT NULL DEFAULT 0,
     id_mission INTEGER NOT NULL,
     id_organizer INTEGER NOT NULL,
     PRIMARY KEY (mission_organizer_id),
