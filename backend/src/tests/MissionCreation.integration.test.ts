@@ -150,6 +150,7 @@ beforeAll(() => {
   missionService = new MissionService(
     missionRepository,
     registrationRepository,
+    userRepository,
     database,
   );
 
