@@ -3,10 +3,12 @@ VALUES ('SuperAdmin'),
     ('Organisateur'),
     ('Benevole');
 INSERT INTO `inscription_status` (`inscription_status_name`)
-VALUES ('EN ATTENTE'),
-    ('VALIDEE'),
-    ('REFUSEE'),
-    ('ANNULEE');
+VALUES ('ONHOLD'),
+    ('VALIDATED'),
+    ('REFUSED'),
+    ('CANCELED'),
+    ('PRESENT'),
+    ('ABSENT');
 INSERT INTO `mission_status` (`mission_status_name`)
 VALUES ('DRAFT'),
     ('PUBLISHED'),

@@ -8,21 +8,27 @@ import { HashService } from "./infra/security/HashService.js";
 import { TokenService } from "./infra/security/TokenService.js";
 import { MissionController } from "./modules/mission/MissionController.js";
 import { MissionService } from "./modules/mission/MissionService.js";
-import { Mission } from "./modules/mission/MissionModel.js";
 import { MissionRepository } from "./modules/mission/MissionRepository.js";
+import { RegistrationRepository } from "./modules/registration/RegistrationRepository.js";
+import type { Pool } from "mysql2/promise";
 
-const database = Database.getInstance().getConnection();
+const database: Pool= Database.getInstance().getPool();
+
 const hashService = new HashService();
 const tokenService = new TokenService();
+
 const userRepository = new UserRepository(database);
 const missionRepository = new MissionRepository(database);
+const registrationRepository = new RegistrationRepository(database);
 
 const authService = new AuthService(userRepository, hashService, tokenService);
 const authController = new AuthController(authService, tokenService);
 
-const missionService = new MissionService(missionRepository);
-
+const missionService = new MissionService(missionRepository,registrationRepository,database);
 const missionController = new MissionController(missionService, tokenService);
 
-const appConfig: AppConfig = new AppConfig(authController, missionController);
+const appConfig: AppConfig = new AppConfig(
+  authController,
+  missionController
+);
 appConfig.listen();

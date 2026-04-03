@@ -3,103 +3,162 @@ import { Mission } from "./MissionModel.js";
 import crypto from "crypto";
 import type { IMissionRepository } from "./IMissionRepository.js";
 import type { IMissionService } from "./IMissionService.js";
-import type { CreateMissionDTO } from "./dtos/CreateMissionDTO.js";
 import { MissionStatus } from "./MissionStatusEnum.js";
+import type { UpdateMissionDTO } from "./dtos/UpdateMissionDTO.js";
+import { RegistrationStatus } from "../registration/RegistrationStatusEnum.js";
+import { Registration } from "../registration/RegistrationModel.js";
+import type { SearchMissionDTO } from "./dtos/SearchMissionDTO.js";
+import type { CreateMissionDTO } from "./dtos/CreateMissionDTO.js";
+import type { Pool, PoolConnection } from "mysql2/promise";
+import { MissionNotFoundError } from "../../domain/exceptions/mission/MissionNotFoundError.js";
+import type { IRegistrationRepository } from "../registration/IRegistrationRepository.js";
+import type { IOrganizer } from "../user/IOrganizer.js";
 
 export class MissionService implements IMissionService {
-  constructor(private missionRepository: IMissionRepository) {}
+  constructor(
+    private missionRepository: IMissionRepository,
+    private registrationRepository: IRegistrationRepository,
+    private db: Pool,
+  ) {}
 
   async createMission(missionDTO: CreateMissionDTO): Promise<Mission> {
-    const mission: Mission = new Mission({
-      uuid: crypto.randomUUID(),
-      name: missionDTO.name,
-      description: missionDTO.description || null,
-      dateStart: new Date(missionDTO.dateStart),
-      dateEnd: new Date(missionDTO.dateEnd),
-      createdAt: new Date(),
-      address: missionDTO.address,
-      nbrVolunteerNeeded: missionDTO.nbrVolunteerNeeded,
-      cityId: missionDTO.cityId,
-      organizerUuids: missionDTO.organizerUuids.map((uuid) => uuid.toString()),
-      categoryIds: missionDTO.categoryIds || [],
-      registrations: [],
-      status: MissionStatus.DRAFT,
-    });
+    const connection: PoolConnection = await this.db.getConnection();
 
-    const existingMission = await this.missionRepository.findByName(
-      mission.getName(),
-    );
+    try {
+      await connection.beginTransaction();
 
-    if (existingMission) {
-      throw new MissionNameAlreadyExistError(
-        `La mission : ${mission.getName()} existe déjà.`,
+      const existingMission = await this.missionRepository.findByName(
+        missionDTO.name,
+        connection,
+        true,
       );
+
+      if (existingMission) {
+        throw new MissionNameAlreadyExistError(
+          `La mission : ${missionDTO.name} existe déjà.`,
+        );
+      }
+
+      const uuid: string = crypto.randomUUID();
+      const organizerList: IOrganizer[] = missionDTO.organizers.map(
+        (organizer) => {
+          return {
+            organizerUuid: organizer.organizerUuid,
+            isMain: organizer.isMain || false,
+          };
+        },
+      );
+      const registrationsOrganizer = missionDTO.organizers
+        .filter((organizer) => organizer.isParticipant)
+        .map((organizer) => {
+          return new Registration(
+            {
+              date: new Date(),
+              volunteerUuid: organizer.organizerUuid,
+              status: RegistrationStatus.VALIDATED,
+            },
+            uuid,
+          );
+        });
+
+      const mission: Mission = new Mission({
+        uuid: uuid,
+        name: missionDTO.name,
+        description: missionDTO.description || null,
+        dateStart: new Date(missionDTO.dateStart as string),
+        dateEnd: new Date(missionDTO.dateEnd as string),
+        createdAt: new Date(),
+        address: missionDTO.address || "",
+        nbrVolunteerNeeded: missionDTO.nbrVolunteerNeeded || 0,
+        cityId: missionDTO.cityId || 0,
+        organizers: organizerList,
+        categoryIds: missionDTO.categoryIds || [],
+        registrations: registrationsOrganizer,
+        status: MissionStatus.DRAFT,
+      });
+
+      if (missionDTO.toPublish) mission.publish();
+
+      const result = await this.missionRepository.create(mission, connection);
+
+      for (const registration of mission.getRegistrations()) {
+        await this.registrationRepository.saveRegistration(
+          registration,
+          result.getUuid(),
+          connection,
+        );
+      }
+
+      await connection.commit();
+
+      return result;
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
     }
-
-    if (missionDTO.toPublish) {mission.publish()};
-
-    const result = await this.missionRepository.create(mission);
-
-    return result;
   }
-  /* async cancelMission(
+
+  async updateMission(
+    missionDTO: UpdateMissionDTO,
     missionUuid: string,
-    requesterUuid: string,
-    roleID: UserRole,
-  ): Promise<void> {
-    const mission = await this.missionRepository.findByUuid(missionUuid);
-
-    if (!mission) {
-      throw new MissionNotFoundError();
-    }
-
-    const isSuperAdmin = roleID === UserRole.SUPER_ADMIN;
-    const isOrganizer = mission.getOrganizerUuid().includes(requesterUuid);
-
-    if (!isSuperAdmin && !isOrganizer) {
-      throw new UnauthorizedCancelMissionError(
-        "Seul l'organisateur de la mission ou l'administrateur peuvent annuler la mission.",
-      );
-    }
-
-    mission.cancel();
-
-    await this.missionRepository.update(mission);
+  ): Promise<Mission> {
+    throw new Error("Method not implemented.");
   }
 
-  async getMission(missionUuid: string): Promise<Mission> {
-    const missionToSend = await this.missionRepository.findByUuid(missionUuid);
-
-    if (!missionToSend) {
-      throw new MissionNotFoundError();
-    }
-
-    return missionToSend;
+  async getMissionDetail(missionUuid: string): Promise<Mission> {
+    throw new Error("Method not implemented.");
   }
 
   async getMissions(filters: SearchMissionDTO): Promise<Mission[]> {
-    const searchPayload: SearchMission = {};
-    if (filters.status !== undefined) {
-      searchPayload.status = filters.status;
-    }
-    if (filters.cityId !== undefined) {
-      searchPayload.cityId = filters.cityId;
-    }
-    if (filters.dateStart !== undefined) {
-      const startDate = new Date(filters.dateStart);
-      startDate.setHours(0, 0, 0, 0);
-      searchPayload.dateStart = startDate;
+    throw new Error("Method not implemented.");
+  }
 
-      const toDate = new Date(startDate);
-      toDate.setDate(startDate.getDate() + 1);
-      searchPayload.dateToDate = toDate;
+  async registerVolunteer(
+    missionUuid: string,
+    volunteerUuid: string,
+  ): Promise<void> {
+    const connection: PoolConnection = await this.db.getConnection();
+
+    try {
+      await connection.beginTransaction();
+
+      // On charge la mission AVEC LE VERROU (FOR UPDATE)
+      // penser a mettre le missionId optionnel dans IMission et Mission
+      const mission = await this.missionRepository.findByUuid(
+        missionUuid,
+        connection,
+        true,
+      );
+
+      if (!mission) throw new MissionNotFoundError();
+
+      const registration = new Registration(
+        {
+          date: new Date(),
+          status: RegistrationStatus.ONHOLD,
+          volunteerUuid: volunteerUuid,
+        },
+        missionUuid,
+      );
+      mission.addRegistration(registration);
+
+      // 4. On sauvegarde uniquement la nouvelle ligne
+      // Tu auras besoin d'une méthode pour récupérer le missionId interne (number) si ton Repo l'utilise
+      //const missionId = await this.missionRepository.getInternalId(missionUuid);
+      await this.registrationRepository.saveRegistration(
+        registration,
+        missionUuid,
+        connection,
+      );
+
+      await connection.commit(); // 5. On valide !
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
     }
-    if (filters.name !== undefined) {
-      searchPayload.name = filters.name;
-    }    
-
-    const missions = await this.missionRepository.findMany(searchPayload);
-
-    return missions;
-  } */
+  }
 }
