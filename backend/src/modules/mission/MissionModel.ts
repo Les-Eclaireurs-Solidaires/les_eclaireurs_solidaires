@@ -70,7 +70,7 @@ export class Mission {
     if (!param.uuid) throw new MissionStatusError("Uuid obligatoire.");
     if (!param.name || param.name.trim() === "")
       throw new MissionStatusError("Nom de la mission obligatoire.");
-    if (param.description?.trim() === "")
+    if (!param.description || param.description.trim() === "")
       throw new MissionStatusError("Description de la mission obligatoire.");
     if (param.nbrVolunteerNeeded <= 0)
       throw new MissionStatusError(
@@ -105,14 +105,14 @@ export class Mission {
       (organizer) => organizer.isMain,
     ).length;
 
-    if (mainOrganizerCount === 0)
-      throw new MissionStatusError("Organisateur principal obligatoire.");
-    if (mainOrganizerCount > 1)
-      throw new MissionStatusError("Un seul organisateur principal autorisé.");
+    if (mainOrganizerCount !== 1)
+      throw new MissionStatusError(
+        "Il doit y avoir un seul organisateur principal.",
+      );
 
-    const organizerUuids = param.organizers.map(
-      (organizer) => organizer.organizerUuid,
-    );
+  const organizerUuids = param.organizers.map(
+        (organizer) => organizer.organizerUuid,
+      );
     const uniqueUuids = new Set(organizerUuids);
     if (uniqueUuids.size !== organizerUuids.length)
       throw new MissionStatusError("Les organisateurs doivent être uniques.");

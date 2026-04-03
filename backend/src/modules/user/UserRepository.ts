@@ -1,4 +1,4 @@
-import type { Pool, ResultSetHeader, RowDataPacket } from "mysql2/promise";
+import type { Pool, PoolConnection, ResultSetHeader, RowDataPacket } from "mysql2/promise";
 import { User } from "./UserModel.js";
 import type { IUser } from "./IUserModel.js";
 import type { IUserRepository } from "./IUserRepository.js";
@@ -43,7 +43,8 @@ export class UserRepository implements IUserRepository {
     return new User(rows[0] as IUser);
   }
 
-  async findByUuid(uuid: string): Promise<User | null> {
+  async findByUuid(uuid: string,connection?: PoolConnection): Promise<User | null> {
+    const db = connection || this.db;
     const query = `SELECT 
                       u.user_uuid AS uuid,
                       u.user_email AS email,
@@ -60,7 +61,7 @@ export class UserRepository implements IUserRepository {
                     FROM \`user\` AS u
                     WHERE user_uuid = ?`;
 
-    const [rows] = await this.db.execute<RowDataPacket[]>(query, [uuid]);
+    const [rows] = await db.execute<RowDataPacket[]>(query, [uuid]);
 
     return rows.length === 0 ? null : new User(rows[0] as IUser);
   }
