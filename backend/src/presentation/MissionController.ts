@@ -14,7 +14,7 @@ import {
 } from "../infra/web/middlewares/ValidateDtoMiddleware.js";
 import type { IMissionService } from "../domain/mission/IMissionService.js";
 import { CreateMissionDTO } from "./dto/mission/CreateMissionDTO.js";
-import { UpdateMissionDTO } from "./dto/UpdateMissionDTO.js";
+import { UpdateMissionDTO } from "./dto/mission/UpdateMissionDTO.js";
 import { SearchMissionDTO } from "./dto/mission/SearchMissionDTO.js";
 
 export class MissionController {

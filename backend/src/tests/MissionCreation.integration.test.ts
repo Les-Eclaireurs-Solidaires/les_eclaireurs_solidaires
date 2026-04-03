@@ -1,21 +1,23 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import type { CreateMissionDTO } from "../modules/mission/dtos/CreateMissionDTO.js";
-import { type Pool, type RowDataPacket } from "mysql2/promise";
-import { Database } from "../infra/database/DatabaseConfig.js";
-import { AppConfig } from "../infra/web/AppConfig.js";
-import { AuthController } from "../modules/auth/AuthController.js";
-import { MissionController } from "../modules/mission/MissionController.js";
-import { AuthService } from "../modules/auth/AuthService.js";
 import { type Express } from "express";
-import { TokenService } from "../infra/security/TokenService.js";
+import { MissionService } from "../application/MissionService.js";
+import type { RowDataPacket } from "mysql2";
+import type { Pool } from "mysql2/promise";
+import type { CreateMissionDTO } from "../presentation/dto/mission/CreateMissionDTO.js";
+import { Database } from "../infra/database/DatabaseConfig.js";
 import { HashService } from "../infra/security/HashService.js";
-import { UserRepository } from "../modules/user/UserRepository.js";
-import { MissionService } from "../modules/mission/MissionService.js";
-import { MissionRepository } from "../modules/mission/MissionRepository.js";
-import { RegistrationRepository } from "../modules/registration/RegistrationRepository.js";
-import { MissionStatus } from "../modules/mission/MissionStatusEnum.js";
-import { MissionNameAlreadyExistError } from "../domain/exceptions/mission/MissionNameAlreadyExistError.js";
-import { MissionDateError } from "../domain/exceptions/mission/MissionDateError.js";
+import { TokenService } from "../infra/security/TokenService.js";
+import { UserRepository } from "../infra/repositories/UserRepository.js";
+import { MissionRepository } from "../infra/repositories/MissionRepository.js";
+import { RegistrationRepository } from "../infra/repositories/RegistrationRepository.js";
+import { AuthService } from "../application/AuthService.js";
+import { AuthController } from "../presentation/AuthController.js";
+import { AppConfig } from "../infra/web/AppConfig.js";
+import { MissionController } from "../presentation/MissionController.js";
+import { MissionDateError } from "../domain/mission/exceptions/MissionDateError.js";
+import { MissionStatus } from "../domain/mission/MissionStatusEnum.js";
+import { MissionNameAlreadyExistError } from "../domain/mission/exceptions/MissionNameAlreadyExistError.js";
+
 
 // ─── Fixtures partagées ────────────────────────────────────────────────────────
 

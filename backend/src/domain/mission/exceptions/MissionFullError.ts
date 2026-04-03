@@ -1,5 +1,6 @@
 import { DomainError } from "../../DomainError.js";
 
+
 export class MissionFullError extends DomainError {
   constructor(missionName: string) {
     super(

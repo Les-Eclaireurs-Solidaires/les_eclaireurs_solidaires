@@ -1,4 +1,5 @@
-import { DomainError } from "../DomainError.js";
+import { DomainError } from "../../DomainError.js";
+
 
 export class MissionVolunteerNotRegisteredError extends DomainError {
   constructor(userUuid: string) {
