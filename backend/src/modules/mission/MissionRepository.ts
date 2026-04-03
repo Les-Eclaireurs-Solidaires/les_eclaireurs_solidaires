@@ -141,7 +141,7 @@ export class MissionRepository implements IMissionRepository {
     const categoriesData = await this.hydrateCategories(row.uuid, db);
     const registrationsData = await this.hydrateRegistrations(row.uuid, db);
 
-    return new Mission({
+    return Mission.hydrate({
       uuid: row.uuid,
       name: row.name,
       description: row.description,
@@ -208,7 +208,7 @@ export class MissionRepository implements IMissionRepository {
     const categoriesData = await this.hydrateCategories(row.uuid, db);
     const registrationsData = await this.hydrateRegistrations(row.uuid, db);
 
-    return new Mission({
+    return Mission.hydrate({
       uuid: row.uuid,
       name: row.name,
       description: row.description,

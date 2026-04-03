@@ -24,13 +24,13 @@ export class Mission {
   private createdAt: Date;
   private updatedAt: Date | null;
   private deletedAt: Date | null;
-  private organizers:IOrganizer[];
+  private organizers: IOrganizer[];
   private cityId: number;
   private categoryIds: number[];
   private status: MissionStatus;
   private registrations: Registration[];
 
-  constructor(param: IMission) {
+  private constructor(param: IMission) {
     this.uuid = param.uuid;
     this.name = param.name;
     this.description = param.description || null;
@@ -51,8 +51,75 @@ export class Mission {
     this.organizers = param.organizers;
 
     this.registrations = param.registrations || [];
+  }
 
-    this.validateDate();
+  public static create(param: IMission): Mission {
+    Mission.validateBasicInfo(param);
+    Mission.validateLocalisation(param);
+    Mission.validateDateCoherence(param);
+    Mission.validateOrganizerValid(param);
+    Mission.validateCategoryValid(param);
+    return new Mission(param);
+  }
+
+  public static hydrate(param: IMission): Mission {
+    return new Mission(param);
+  }
+
+  private static validateBasicInfo(param: IMission): void {
+    if (!param.uuid) throw new MissionStatusError("Uuid obligatoire.");
+    if (!param.name || param.name.trim() === "")
+      throw new MissionStatusError("Nom de la mission obligatoire.");
+    if (param.description?.trim() === "")
+      throw new MissionStatusError("Description de la mission obligatoire.");
+    if (param.nbrVolunteerNeeded <= 0)
+      throw new MissionStatusError(
+        "Nombre de participants obligatoire et supérieur à 0.",
+      );
+  }
+
+  private static validateLocalisation(param: IMission): void {
+    if (!param.address || param.address.trim() === "")
+      throw new GeolocalizationError("Adresse obligatoire.");
+    if (!param.cityId) throw new GeolocalizationError("Ville obligatoire.");
+  }
+
+  private static validateDateCoherence(param: IMission): void {
+    const now = new Date();
+    const dateStart = param.dateStart;
+    const dateEnd = param.dateEnd;
+
+    if (!dateStart || !dateEnd) throw new MissionDateError("Date obligatoire.");
+    if (dateStart.getTime() < now.getTime())
+      throw new MissionDateError("Date de début doit être dans le futur.");
+    if (dateStart.getTime() >= dateEnd.getTime())
+      throw new MissionDateError(
+        "Date de début doit être antérieure à la date de fin.",
+      );
+  }
+  private static validateOrganizerValid(param: IMission): void {
+    if (!param.organizers || param.organizers.length === 0)
+      throw new MissionStatusError("Organisateur obligatoire.");
+
+    const mainOrganizerCount = param.organizers.filter(
+      (organizer) => organizer.isMain,
+    ).length;
+
+    if (mainOrganizerCount === 0)
+      throw new MissionStatusError("Organisateur principal obligatoire.");
+    if (mainOrganizerCount > 1)
+      throw new MissionStatusError("Un seul organisateur principal autorisé.");
+
+    const organizerUuids = param.organizers.map(
+      (organizer) => organizer.organizerUuid,
+    );
+    const uniqueUuids = new Set(organizerUuids);
+    if (uniqueUuids.size !== organizerUuids.length)
+      throw new MissionStatusError("Les organisateurs doivent être uniques.");
+  }
+  private static validateCategoryValid(param: IMission): void {
+    if (!param.categoryIds || param.categoryIds.length === 0)
+      throw new MissionStatusError("Catégorie obligatoire.");
   }
 
   public toSummary() {
@@ -345,7 +412,7 @@ export class Mission {
     targetRegistration.refuse();
 
     this.updatedAt = new Date();
-  }  
+  }
 
   public executeRegistration(registration: Registration): void {
     const registrationIndex = this.registrations.findIndex(
@@ -370,14 +437,6 @@ export class Mission {
   public changeOrganizer(organizerUuids: string[]) {}
 
   public changeCategory(categoryIds: number[]) {}
-
-  private validateDate(): void {
-    if (this.dateStart > this.dateEnd) {
-      throw new MissionDateError(
-        "La date de début doit être antérieure à la date de fin.",
-      );
-    }
-  }
 
   public getAvailablePlacesCount(): number {
     const validRegistration = this.registrations.filter(
