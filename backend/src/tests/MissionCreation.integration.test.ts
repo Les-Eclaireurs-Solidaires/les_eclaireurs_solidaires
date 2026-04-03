@@ -134,7 +134,7 @@ describe("Mission creation flow", () => {
       dateStart: new Date(Date.now() + 86400000).toISOString(), // +1 jour
       dateEnd: new Date(Date.now() + 172800000).toISOString(), // +2 jours
       address: "14 rue du Test",
-      nbrVolunteerNeeded: 1,
+      nbrVolunteerNeeded: 5,
       cityId: 1,
       categoryIds: [2, 3],
       toPublish: true,
