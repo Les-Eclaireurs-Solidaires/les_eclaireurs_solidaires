@@ -2,13 +2,13 @@ import cookieParser from "cookie-parser";
 import express, { type Express } from "express";
 import cors from "cors";
 import helmet from "helmet";
-import type { AuthController } from "../../domain/auth/AuthController.js";
 import { envConfig } from "../config/EnvConfig.js";
 import { csrfProtection } from "./middlewares/CSRFMiddleware.js";
 import { errorHandler } from "./middlewares/ErrorMiddleware.js";
 import type { Server } from "node:http";
 import { Database } from "../database/DatabaseConfig.js";
 import type { MissionController } from "../../presentation/MissionController.js";
+import type { AuthController } from "../../presentation/AuthController.js";
 
 export class AppConfig {
   private app: Express;

@@ -1,5 +1,4 @@
-import type { TokenPayload } from "../security/TokenPayload.ts";
-
+import type { TokenPayload } from "../../domain/authentication/TokenPayload.ts";
 
 declare global {
   namespace Express {
@@ -9,4 +8,4 @@ declare global {
   }
 }
 
-export { };
+export {};

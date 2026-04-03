@@ -5,15 +5,15 @@ import {
   type Response,
   type CookieOptions,
 } from "express";
-import type { AuthService } from "./AuthService.js";
-import { envConfig } from "../../infra/config/EnvConfig.js";
-import { requireAuth } from "../../infra/web/middlewares/AuthMiddleware.js";
-import type { AuthResponse } from "./IAuthResponse.js";
-import { RegisterDTO } from "./dtos/RegisterDTO.js";
-import { LoginDTO } from "./dtos/LoginDTO.js";
-import type { ITokenService } from "./ITokenService.js";
-import { UnauthenticatedError } from "../../infra/exceptions/UnauthenticatedError.js";
-import { validateBody } from "../../infra/web/middlewares/ValidateDtoMiddleware.js";
+import type { AuthService } from "../application/AuthService.js";
+import type { ITokenService } from "../domain/authentication/ITokenService.js";
+import { validateBody } from "../infra/web/middlewares/ValidateDtoMiddleware.js";
+import { LoginDTO } from "./dto/auth/LoginDTO.js";
+import { RegisterDTO } from "./dto/auth/RegisterDTO.js";
+import { requireAuth } from "../infra/web/middlewares/AuthMiddleware.js";
+import { envConfig } from "../infra/config/EnvConfig.js";
+import { UnauthenticatedError } from "../infra/exceptions/UnauthenticatedError.js";
+import type { AuthResponse } from "../domain/authentication/AuthResponse.js";
 
 export class AuthController {
   private authRouter: Router = Router();

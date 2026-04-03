@@ -1,4 +1,4 @@
-import type { IUser } from "./IUserModel.js";
+import type { UserParam } from "./UserParam.js";
 
 export class User {
   private uuid: string;
@@ -14,7 +14,7 @@ export class User {
   private cityId: number | null;
   private roleId: number;
 
-  constructor(param: IUser) {
+  constructor(param: UserParam) {
     this.createdAt = param.createdAt || new Date();
     this.uuid = param.uuid || crypto.randomUUID();
     this.avatarUrl = param.avatarUrl || "public/avatar/default.png";

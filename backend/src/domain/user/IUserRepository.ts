@@ -1,5 +1,5 @@
 import type { PoolConnection } from "mysql2/promise";
-import { User } from "./User.js";
+import type { User } from "./User.js";
 
 export interface IUserRepository {
   findByEmail(email: string): Promise<User | null>;

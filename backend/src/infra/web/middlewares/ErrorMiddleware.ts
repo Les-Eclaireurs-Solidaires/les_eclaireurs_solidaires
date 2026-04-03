@@ -1,27 +1,27 @@
 import type { Request, Response, NextFunction } from "express";
 import { envConfig } from "../../config/EnvConfig.js";
-import { DomainError } from "../../../domain/exceptions/DomainError.js";
+import { DomainError } from "../../../domain/DomainError.js";
 import { AppError } from "../../exceptions/AppError.js";
 import { DtoValidationError } from "../../exceptions/DtoValidationError.js";
 import { CSRFError } from "../../exceptions/CSRFError.js";
 import { UnauthorizedError } from "../../exceptions/UnauthorizedError.js";
-import { EmailAlreadyExistError } from "../../../domain/exceptions/auth/EmailAlreadyExistError.js";
-import { UserNotFoundError } from "../../../domain/exceptions/auth/UserNotFoundError.js";
-import { InvalidCredentialsError } from "../../../domain/exceptions/auth/InvalidCredentialsError.js";
-import { MissionDateError } from "../../../domain/exceptions/mission/MissionDateError.js";
-import { MissionFullError } from "../../../domain/exceptions/mission/MissionFullError.js";
-import { MissionNameAlreadyExistError } from "../../../domain/exceptions/mission/MissionNameAlreadyExistError.js";
-import { MissionNotFoundError } from "../../../domain/exceptions/mission/MissionNotFoundError.js";
-import { MissionStatusError } from "../../../domain/exceptions/mission/MissionStatusError.js";
-import { MissionVolunteerNotRegisteredError } from "../../../domain/exceptions/mission/MissionVolunteerNotRegisterError.js";
-import { OrganizerRegisterError } from "../../../domain/exceptions/mission/OrganizerRegisterError.js";
-import { VolunteerRegisterAlreadyExistError } from "../../../domain/exceptions/mission/VolunteerRegisterAlreadyExistError.js";
 import { BadRequestError } from "../../exceptions/BadRequestError.js";
 import { DataIntegrityError } from "../../exceptions/DataIntegrityError.js";
 import { EmptyUpdateError } from "../../exceptions/EmptyUpdateError.js";
 import { UnauthenticatedError } from "../../exceptions/UnauthenticatedError.js";
-import { UnauthorizedCancelRegistrationError } from "../../../domain/exceptions/registration/UnauthorizedCancelRegistrationError.js";
-import { InvalidTokenError } from "../../../domain/exceptions/auth/InvalidTokenError.js";
+import { EmailAlreadyExistError } from "../../../domain/authentication/exceptions/EmailAlreadyExistError.js";
+import { UserNotFoundError } from "../../../domain/user/exceptions/UserNotFoundError.js";
+import { InvalidTokenError } from "../../../domain/authentication/exceptions/InvalidTokenError.js";
+import { MissionDateError } from "../../../domain/mission/exceptions/MissionDateError.js";
+import { InvalidCredentialsError } from "../../../domain/authentication/exceptions/InvalidCredentialsError.js";
+import { UnauthorizedCancelRegistrationError } from "../../../domain/registration/exceptions/UnauthorizedCancelRegistrationError.js";
+import { VolunteerRegisterAlreadyExistError } from "../../../domain/mission/exceptions/VolunteerRegisterAlreadyExistError.js";
+import { OrganizerRegisterError } from "../../../domain/mission/exceptions/OrganizerRegisterError.js";
+import { MissionVolunteerNotRegisteredError } from "../../../domain/mission/exceptions/MissionVolunteerNotRegisterError.js";
+import { MissionStatusError } from "../../../domain/mission/exceptions/MissionStatusError.js";
+import { MissionNotFoundError } from "../../../domain/mission/exceptions/MissionNotFoundError.js";
+import { MissionNameAlreadyExistError } from "../../../domain/mission/exceptions/MissionNameAlreadyExistError.js";
+import { MissionFullError } from "../../../domain/mission/exceptions/MissionFullError.js";
 
 export const errorHandler = (
   err: Error,

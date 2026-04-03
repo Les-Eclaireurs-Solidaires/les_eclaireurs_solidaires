@@ -1,16 +1,16 @@
 import "reflect-metadata";
-import { AuthService } from "./domain/auth/AuthService.js";
-import { AuthController } from "./domain/auth/AuthController.js";
-import { UserRepository } from "./domain/user/UserRepository.js";
+import { UserRepository } from "./infra/repositories/UserRepository.js";
 import { Database } from "./infra/database/DatabaseConfig.js";
 import { AppConfig } from "./infra/web/AppConfig.js";
 import { HashService } from "./infra/security/HashService.js";
 import { TokenService } from "./infra/security/TokenService.js";
 import { MissionController } from "./presentation/MissionController.js";
-import { MissionService } from "./domain/mission/MissionService.js";
-import { MissionRepository } from "./domain/mission/MissionRepository.js";
-import { RegistrationRepository } from "./domain/registration/RegistrationRepository.js";
+import { MissionService } from "./application/MissionService.js";
 import type { Pool } from "mysql2/promise";
+import { MissionRepository } from "./infra/repositories/MissionRepository.js";
+import { RegistrationRepository } from "./infra/repositories/RegistrationRepository.js";
+import { AuthService } from "./application/AuthService.js";
+import { AuthController } from "./presentation/AuthController.js";
 
 const database: Pool = Database.getInstance().getPool();
 

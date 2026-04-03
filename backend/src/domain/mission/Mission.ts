@@ -1,20 +1,16 @@
-import { MissionStatus } from "./MissionStatusEnum.js";
-import type { IMission } from "./IMissionModel.js";
-import { Registration } from "../registration/RegistrationModel.js";
+import { RegistrationNotFoundError } from "../registration/exceptions/RegistrationNotFoundError.js";
+import type { Registration } from "../registration/Registration.js";
 import { RegistrationStatus } from "../registration/RegistrationStatusEnum.js";
-import { MissionStatusError } from "../exceptions/mission/MissionStatusError.js";
-import { MissionFullError } from "../exceptions/mission/MissionFullError.js";
-import { VolunteerRegisterAlreadyExistError } from "../exceptions/mission/VolunteerRegisterAlreadyExistError.js";
-import { MissionNotActiveError } from "../exceptions/mission/MissionNotActiveError.js";
-import { RegistrationNotFoundError } from "../exceptions/registration/RegistrationNotFoundError.js";
-import { RegistrationStatusError } from "../exceptions/registration/RegistrationStatusError.js";
-import { MissionNotFoundError } from "../exceptions/mission/MissionNotFoundError.js";
-import type { IOrganizer } from "../user/IOrganizer.js";
-import type { MissionState } from "../modules/mission/MissionState.js";
-import { DraftState } from "../../domain/modules/mission/DraftState.js";
-import { PublishedState } from "../../domain/modules/mission/PublishedState.js";
-import { CancelledState } from "../../domain/modules/mission/CancelledState.js";
-import { FinishedState } from "../../domain/modules/mission/FinishedState.js";
+import type { Organizer } from "../user/Organizer.js";
+import { MissionStatusError } from "./exceptions/MissionStatusError.js";
+import { VolunteerRegisterAlreadyExistError } from "./exceptions/VolunteerRegisterAlreadyExistError.js";
+import type { MissionParam } from "./MissionParam.js";
+import type { MissionState } from "./MissionState.js";
+import { MissionStatus } from "./MissionStatusEnum.js";
+import { CancelledState } from "./state/CancelledState.js";
+import { DraftState } from "./state/DraftState.js";
+import { FinishedState } from "./state/FinishedState.js";
+import { PublishedState } from "./state/PublishedState.js";
 
 export class Mission {
   private uuid: string;
@@ -27,14 +23,14 @@ export class Mission {
   private createdAt: Date;
   private updatedAt: Date | null;
   private deletedAt: Date | null;
-  private organizers: IOrganizer[];
+  private organizers: Organizer[];
   private cityId: number;
   private categoryIds: number[];
   private status: MissionStatus;
   private registrations: Registration[];
   private state: MissionState = new DraftState();
 
-  private constructor(param: IMission) {
+  private constructor(param: MissionParam) {
     this.uuid = param.uuid;
     this.name = param.name;
     this.description = param.description || null;
@@ -60,7 +56,7 @@ export class Mission {
     this.state.validate(this);
   }
 
-  public static create(param: IMission): Mission {
+  public static create(param: MissionParam): Mission {
     return new Mission({
       ...param,
       status: MissionStatus.DRAFT,
@@ -71,7 +67,7 @@ export class Mission {
     });
   }
 
-  public static hydrate(param: IMission): Mission {
+  public static hydrate(param: MissionParam): Mission {
     return new Mission(param);
   }
 
@@ -100,7 +96,7 @@ export class Mission {
     this.updatedAt = new Date();
   }
 
-  public update(data: Partial<IMission>): void {
+  public update(data: Partial<MissionParam>): void {
     this.ensureNotDeleted();
     if (data.name !== undefined) this.name = data.name;
     if (data.description !== undefined) this.description = data.description;
@@ -258,7 +254,7 @@ export class Mission {
 
   public toSummary() {
     return {
-      uuid: this.uuid,
+      /* uuid: this.uuid,
       name: this.name,
       dateStart: this.dateStart,
       dateEnd: this.dateEnd,
@@ -270,13 +266,13 @@ export class Mission {
       cityId: this.cityId,
       categories: this.categoryIds,
       remainingPlaces: this.getAvailablePlacesCount(),
-      status: this.status,
+      status: this.status, */
     };
   }
 
   public toDetail() {
     return {
-      uuid: this.uuid,
+      /* uuid: this.uuid,
       name: this.name,
       dateStart: this.dateStart,
       dateEnd: this.dateEnd,
@@ -292,7 +288,7 @@ export class Mission {
       organizers: this.organizers,
       registrations: this.registrations.map((registration) =>
         registration.toResponse(),
-      ),
+      ), */
     };
   }
 
@@ -352,7 +348,7 @@ export class Mission {
     return this.registrations;
   }
 
-  public getOrganizers(): IOrganizer[] {
+  public getOrganizers(): Organizer[] {
     return this.organizers;
   }
 

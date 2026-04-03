@@ -1,6 +1,7 @@
 import type { PoolConnection } from "mysql2/promise";
-import type { SearchMissionDTO } from "./dtos/SearchMissionDTO.js";
 import type { Mission } from "./Mission.js";
+import type { SearchMissionDTO } from "../../presentation/dto/mission/SearchMissionDTO.js";
+
 
 export interface IMissionRepository {
   findByName(

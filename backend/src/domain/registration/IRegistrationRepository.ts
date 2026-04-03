@@ -1,4 +1,4 @@
-import type { Registration } from "./RegistrationModel.js";
+import type { Registration } from "./Registration.js";
 import type { RegistrationStatus } from "./RegistrationStatusEnum.js";
 
 export interface IRegistrationRepository {

@@ -13,8 +13,8 @@ import {
   ValidateIf,
   ValidateNested,
 } from "class-validator";
-import { OrganizerParticipationDTO } from "../OrganizerParticipationDTO.js";
 import { IsAfterDate, IsFutureDate } from "../DateValidator.js";
+import { OrganizerParticipationDTO } from "./OrganizerParticipationDTO.js";
 
 export class CreateMissionDTO {
   @IsString()
