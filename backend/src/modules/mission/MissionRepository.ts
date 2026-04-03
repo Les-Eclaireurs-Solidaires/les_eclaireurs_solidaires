@@ -115,7 +115,7 @@ export class MissionRepository implements IMissionRepository {
                       mission.id_city AS cityId,
                       mission_status.mission_status_name AS status,
 
-                      GROUP_CONCAT(category.category_id SEPARATOR ',') AS categoryIds,
+                      GROUP_CONCAT(category.category_uuid SEPARATOR ',') AS categoryIds,
 
                       GROUP_CONCAT(organizer.user_uuid SEPARATOR ',') AS organizerUuid
 
@@ -182,7 +182,7 @@ export class MissionRepository implements IMissionRepository {
                       mission.id_city AS cityId,
                       mission_status.mission_status_name AS status,
 
-                      GROUP_CONCAT(category.category_id SEPARATOR ',') AS categoryIds,
+                      GROUP_CONCAT(category.category_uuid SEPARATOR ',') AS categoryIds,
 
                       GROUP_CONCAT(organizer.user_uuid SEPARATOR ',') AS organizerUuid
 
