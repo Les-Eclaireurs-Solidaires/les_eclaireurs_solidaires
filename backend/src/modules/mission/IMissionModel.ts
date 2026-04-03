@@ -1,5 +1,6 @@
 import type { MissionStatus } from "./MissionStatusEnum.js";
 import type { Registration } from "../registration/RegistrationModel.js";
+import type { IOrganizer } from "../user/IOrganizer.js";
 
 export interface IMission {
   uuid: string;
@@ -12,7 +13,8 @@ export interface IMission {
   createdAt?: Date;
   updatedAt?: Date | null;
   deletedAt?: Date | null;
-  organizerUuids: string[];
+  /* organizers: { organizerUuid: string; isMain: boolean; isParticipant: boolean }[]; */
+  organizers: IOrganizer[];
   cityId: number;
   categoryIds?: number[];
   status?: MissionStatus;

@@ -10,8 +10,8 @@ import { VolunteerRegisterAlreadyExistError } from "../../domain/exceptions/miss
 import { MissionNotActiveError } from "../../domain/exceptions/mission/MissionNotActiveError.js";
 import { RegistrationNotFoundError } from "../../domain/exceptions/registration/RegistrationNotFoundError.js";
 import { RegistrationStatusError } from "../../domain/exceptions/registration/RegistrationStatusError.js";
-import { error } from "node:console";
 import { MissionNotFoundError } from "../../domain/exceptions/mission/MissionNotFoundError.js";
+import type { IOrganizer } from "../user/IOrganizer.js";
 
 export class Mission {
   private uuid: string;
@@ -24,12 +24,11 @@ export class Mission {
   private createdAt: Date;
   private updatedAt: Date | null;
   private deletedAt: Date | null;
-  private organizerUuid: string[];
+  private organizers:IOrganizer[];
   private cityId: number;
   private categoryIds: number[];
   private status: MissionStatus;
   private registrations: Registration[];
-  private remainingPlacesFromRepo?: number | undefined;
 
   constructor(param: IMission) {
     this.uuid = param.uuid;
@@ -49,20 +48,17 @@ export class Mission {
     this.status = param.status || MissionStatus.DRAFT;
 
     this.categoryIds = param.categoryIds || [];
-    this.organizerUuid = param.organizerUuids;
+    this.organizers = param.organizers;
 
     this.registrations = param.registrations || [];
-
-    this.remainingPlacesFromRepo = param.remainingPlaces || undefined;
 
     this.validateDate();
   }
 
-  public toResponse() {
+  public toSummary() {
     return {
       uuid: this.uuid,
       name: this.name,
-      description: this.description,
       dateStart: this.dateStart,
       dateEnd: this.dateEnd,
       address: this.address,
@@ -71,11 +67,31 @@ export class Mission {
       updatedAt: this.updatedAt,
       deletedAt: this.deletedAt,
       cityId: this.cityId,
-      status: this.status,
-      organizerUuid: this.organizerUuid,
-      registrations: this.registrations.map((registration) => registration),
       categories: this.categoryIds,
       remainingPlaces: this.getAvailablePlacesCount(),
+      status: this.status,
+    };
+  }
+
+  public toDetail() {
+    return {
+      uuid: this.uuid,
+      name: this.name,
+      dateStart: this.dateStart,
+      dateEnd: this.dateEnd,
+      address: this.address,
+      nbrVolunteerNeeded: this.nbrVolunteerNeeded,
+      createdAt: this.createdAt,
+      updatedAt: this.updatedAt,
+      deletedAt: this.deletedAt,
+      cityId: this.cityId,
+      categories: this.categoryIds,
+      remainingPlaces: this.getAvailablePlacesCount(),
+      status: this.status,
+      organizers: this.organizers,
+      registrations: this.registrations.map((registration) =>
+        registration.toResponse(),
+      ),
     };
   }
 
@@ -107,7 +123,7 @@ export class Mission {
         "Impossible de publier une mission sans description.",
       );
 
-    if (this.organizerUuid.length === 0) {
+    if (this.organizers.length === 0) {
       throw new MissionStatusError(
         "Impossible de publier une mission sans organisateurs.",
       );
@@ -149,15 +165,19 @@ export class Mission {
     this.updatedAt = new Date();
   }
 
+  // MARK OF SOFT DELETE FOR BACKOFFICE
   public delete(): void {
     if (this.registrations.length > 0) {
+      // NO THROW ERROR IN PROD WE WANT TO COMMUNICATE WITH USER REGISTERED
       throw new MissionStatusError(
         "Impossible de supprimer une mission qui a des inscription en cours.",
       );
     }
     if (this.deletedAt !== null) return;
+
     this.deletedAt = new Date();
     this.status = MissionStatus.CANCELED;
+
     this.updatedAt = new Date();
   }
 
@@ -180,25 +200,29 @@ export class Mission {
     if (this.status === MissionStatus.FINISHED) {
       return;
     }
+
+    if (this.registrations.length === 0)
+      throw new MissionStatusError(
+        "Impossible de terminer une mission sans inscription.",
+      );
+
     for (const registration of this.registrations) {
-      // On ne s'occupe que de ceux qui étaient censés venir
       if (registration.getStatus() === RegistrationStatus.VALIDATED) {
         if (presentUuids.includes(registration.getVolunteerUuid())) {
           registration.setPresent();
         } else {
-          registration.setAbsent(); // Oups, tu dois créer cette méthode dans Registration !
+          registration.setAbsent();
         }
+      } else if (registration.getStatus() === RegistrationStatus.ONHOLD) {
+        registration.cancel();
       }
     }
+
     this.status = MissionStatus.FINISHED;
     this.updatedAt = new Date();
   }
 
   public addRegistration(registration: Registration): void {
-    const registrationIndex = this.registrations.findIndex(
-      (r) => r.getVolunteerUuid() === registration.getVolunteerUuid(),
-    );
-
     if (this.deletedAt !== null) {
       throw new MissionStatusError(
         "Impossible d'interagir avec une mission supprimée.",
@@ -214,9 +238,7 @@ export class Mission {
         "Impossible d'ajouter une inscription à une mission qui est pleine.",
       );
     }
-    if (!this.isRegistrationOpen()) {
-      throw new MissionNotActiveError();
-    }
+
     if (registration.getStatus() !== RegistrationStatus.ONHOLD)
       throw new RegistrationStatusError(
         "Impossible d'ajouter une inscription qui n'est pas en attente.",
@@ -225,21 +247,10 @@ export class Mission {
     if (registration.getMissionUuid() !== this.uuid) {
       throw new MissionNotFoundError();
     }
-    if (registrationIndex !== -1) {
-      throw new VolunteerRegisterAlreadyExistError(
-        registration.getVolunteerUuid(),
-      );
+    if (!this.isRegistrationOpen()) {
+      throw new MissionNotActiveError();
     }
-
-    this.registrations.push(registration);
-
-    if (this.remainingPlacesFromRepo !== undefined) {
-      this.remainingPlacesFromRepo = Math.max(
-        0,
-        this.remainingPlacesFromRepo - 1,
-      );
-    }
-
+    this.executeRegistration(registration);
     this.updatedAt = new Date();
   }
 
@@ -255,22 +266,7 @@ export class Mission {
     if (registrationIndex === -1) {
       throw new RegistrationNotFoundError();
     }
-    const targetRegistration = this.registrations[
-      registrationIndex
-    ] as Registration;
-
-    const wasConsumingPlace =
-      targetRegistration.getStatus() === RegistrationStatus.VALIDATED ||
-      targetRegistration.getStatus() === RegistrationStatus.ONHOLD;
-
     this.registrations.splice(registrationIndex, 1);
-
-    if (wasConsumingPlace && this.remainingPlacesFromRepo !== undefined) {
-      this.remainingPlacesFromRepo = Math.min(
-        this.nbrVolunteerNeeded,
-        this.remainingPlacesFromRepo + 1,
-      );
-    }
 
     this.updatedAt = new Date();
   }
@@ -297,18 +293,7 @@ export class Mission {
       registrationIndex
     ] as Registration;
 
-    const wasConsumingPlace =
-      targetRegistration.getStatus() === RegistrationStatus.VALIDATED ||
-      targetRegistration.getStatus() === RegistrationStatus.ONHOLD;
-
     targetRegistration.cancel();
-
-    if (wasConsumingPlace && this.remainingPlacesFromRepo !== undefined) {
-      this.remainingPlacesFromRepo = Math.min(
-        this.nbrVolunteerNeeded,
-        this.remainingPlacesFromRepo + 1,
-      );
-    }
 
     this.updatedAt = new Date();
   }
@@ -357,20 +342,21 @@ export class Mission {
       registrationIndex
     ] as Registration;
 
-    const wasConsumingPlace =
-      targetRegistration.getStatus() === RegistrationStatus.VALIDATED ||
-      targetRegistration.getStatus() === RegistrationStatus.ONHOLD;
-
     targetRegistration.refuse();
 
-    if (wasConsumingPlace && this.remainingPlacesFromRepo !== undefined) {
-      this.remainingPlacesFromRepo = Math.min(
-        this.nbrVolunteerNeeded,
-        this.remainingPlacesFromRepo + 1,
+    this.updatedAt = new Date();
+  }  
+
+  public executeRegistration(registration: Registration): void {
+    const registrationIndex = this.registrations.findIndex(
+      (r) => r.getVolunteerUuid() === registration.getVolunteerUuid(),
+    );
+    if (registrationIndex !== -1) {
+      throw new VolunteerRegisterAlreadyExistError(
+        registration.getVolunteerUuid(),
       );
     }
-
-    this.updatedAt = new Date();
+    this.registrations.push(registration);
   }
 
   public updateDetail(name: string, description: string) {}
@@ -394,10 +380,6 @@ export class Mission {
   }
 
   public getAvailablePlacesCount(): number {
-    if (this.remainingPlacesFromRepo !== undefined) {
-      return Math.max(0, this.remainingPlacesFromRepo);
-    }
-
     const validRegistration = this.registrations.filter(
       (registration) =>
         registration.getStatus() === RegistrationStatus.VALIDATED ||
@@ -476,7 +458,7 @@ export class Mission {
     return this.registrations;
   }
 
-  public getOrganizerUuid(): string[] {
-    return this.organizerUuid;
+  public getOrganizers(): IOrganizer[] {
+    return this.organizers;
   }
 }

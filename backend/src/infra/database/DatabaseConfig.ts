@@ -1,9 +1,9 @@
-import mysql, { type Pool, type PoolOptions } from "mysql2/promise";
+import mysql, { PoolConnection, type Pool, type PoolOptions } from "mysql2/promise";
 import { envConfig } from "../config/EnvConfig.js";
 
 export class Database {
   private static instance: Database;
-  private connection: Pool;
+  private pool: Pool;
 
   private constructor() {
     const targetDatabase =
@@ -21,7 +21,7 @@ export class Database {
       queueLimit: 0,
     };
 
-    this.connection = mysql.createPool(access);
+    this.pool = mysql.createPool(access);
   }
 
   public static getInstance(): Database {
@@ -32,10 +32,13 @@ export class Database {
   }
 
   public async disconnect(): Promise<void> {
-    await this.connection.end();
+    await this.pool.end();
+  }
+  public getPool(): Pool {
+    return this.pool;
+  }
+  public async getConnection(): Promise<PoolConnection> {
+    return await this.pool.getConnection();
   }
 
-  public getConnection(): Pool {
-    return this.connection;
-  }
 }
