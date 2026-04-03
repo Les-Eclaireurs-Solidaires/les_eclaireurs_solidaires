@@ -24,7 +24,7 @@ const registrationRepository = new RegistrationRepository(database);
 const authService = new AuthService(userRepository, hashService, tokenService);
 const authController = new AuthController(authService, tokenService);
 
-const missionService = new MissionService(missionRepository,registrationRepository,database);
+const missionService = new MissionService(missionRepository,registrationRepository,userRepository,database);
 const missionController = new MissionController(missionService, tokenService);
 
 const appConfig: AppConfig = new AppConfig(

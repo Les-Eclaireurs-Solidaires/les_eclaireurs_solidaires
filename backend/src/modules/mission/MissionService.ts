@@ -13,12 +13,14 @@ import type { Pool, PoolConnection } from "mysql2/promise";
 import { MissionNotFoundError } from "../../domain/exceptions/mission/MissionNotFoundError.js";
 import type { IRegistrationRepository } from "../registration/IRegistrationRepository.js";
 import type { IOrganizer } from "../user/IOrganizer.js";
-import { create } from "domain";
+import { UserNotFoundError } from "../../domain/exceptions/auth/UserNotFoundError.js";
+import type { IUserRepository } from "../user/IUserRepository.js";
 
 export class MissionService implements IMissionService {
   constructor(
     private missionRepository: IMissionRepository,
     private registrationRepository: IRegistrationRepository,
+    private userRepository: IUserRepository,
     private db: Pool,
   ) {}
 
@@ -41,6 +43,15 @@ export class MissionService implements IMissionService {
       }
 
       const uuid: string = crypto.randomUUID();
+      for (const organizer of missionDTO.organizers) {
+        const user = await this.userRepository.findByUuid(
+          organizer.organizerUuid,
+          connection,
+        );
+        if (!user) {
+          throw new UserNotFoundError();
+        }
+      }
       const organizerList: IOrganizer[] = missionDTO.organizers.map(
         (organizer) => {
           return {
