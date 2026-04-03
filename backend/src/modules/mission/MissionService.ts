@@ -13,6 +13,7 @@ import type { Pool, PoolConnection } from "mysql2/promise";
 import { MissionNotFoundError } from "../../domain/exceptions/mission/MissionNotFoundError.js";
 import type { IRegistrationRepository } from "../registration/IRegistrationRepository.js";
 import type { IOrganizer } from "../user/IOrganizer.js";
+import { create } from "domain";
 
 export class MissionService implements IMissionService {
   constructor(
@@ -61,7 +62,7 @@ export class MissionService implements IMissionService {
           );
         });
 
-      const mission: Mission = new Mission({
+      const mission: Mission = Mission.create({
         uuid: uuid,
         name: missionDTO.name,
         description: missionDTO.description || null,
