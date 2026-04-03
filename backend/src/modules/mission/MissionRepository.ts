@@ -112,23 +112,13 @@ export class MissionRepository implements IMissionRepository {
                       mission.mission_created_at AS createdAt,
                       mission.mission_updated_at AS updatedAt,
                       mission.mission_deleted_at AS deletedAt,
-
                       mission.id_city AS cityId,
-                      mission_status.mission_status_name AS status,
-
-                      GROUP_CONCAT(category.category_id SEPARATOR ',') AS categoryIds,
-
-                      GROUP_CONCAT(organizer.user_uuid SEPARATOR ',') AS organizerUuid
-
+                      mission_status.mission_status_name AS status
                       FROM mission
 
                       LEFT JOIN mission_status ON mission.id_mission_status = mission_status.mission_status_id
-                      LEFT JOIN mission_organizer ON mission.mission_id = mission_organizer.id_mission
-                      LEFT JOIN mission_category ON mission.mission_id = mission_category.id_mission
-                      LEFT JOIN \`user\` AS organizer ON mission_organizer.id_organizer = organizer.user_id
 
-                      WHERE mission.mission_name = ?
-                      GROUP BY mission.mission_uuid`;
+                      WHERE mission.mission_name = ?`;
 
     if (lock) query += " FOR UPDATE";
 
@@ -179,23 +169,10 @@ export class MissionRepository implements IMissionRepository {
                       mission.mission_created_at AS createdAt,
                       mission.mission_updated_at AS updatedAt,
                       mission.mission_deleted_at AS deletedAt,
-
                       mission.id_city AS cityId,
-                      mission_status.mission_status_name AS status,
-
-                      GROUP_CONCAT(category.category_id SEPARATOR ',') AS categoryIds,
-
-                      GROUP_CONCAT(organizer.user_uuid SEPARATOR ',') AS organizerUuid
-
+                      mission_status.mission_status_name AS status
                       FROM mission
-
-                      LEFT JOIN mission_status ON mission.id_mission_status = mission_status.mission_status_id
-                      LEFT JOIN mission_organizer ON mission.mission_id = mission_organizer.id_mission
-                      LEFT JOIN mission_category ON mission.mission_id = mission_category.id_mission
-                      LEFT JOIN \`user\` AS organizer ON mission_organizer.id_organizer = organizer.user_id
-
-                      WHERE mission.mission_uuid = ?
-                      GROUP BY mission.mission_uuid`;
+                      WHERE mission.mission_uuid = ?`;
 
     if (lock) query += " FOR UPDATE";
 
