@@ -1,5 +1,5 @@
 import type { NextFunction, Request, Response } from "express";
-import type { UserRole } from "../../../modules/user/UserRoleEnum.js";
+import type { UserRole } from "../../../domain/user/UserRoleEnum.js";
 import { UnauthorizedError } from "../../exceptions/UnauthorizedError.js";
 
 export const requireRole = (roles: UserRole[]) => {

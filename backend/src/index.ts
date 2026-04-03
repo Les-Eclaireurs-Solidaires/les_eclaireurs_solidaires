@@ -1,18 +1,18 @@
 import "reflect-metadata";
-import { AuthService } from "./modules/auth/AuthService.js";
-import { AuthController } from "./modules/auth/AuthController.js";
-import { UserRepository } from "./modules/user/UserRepository.js";
+import { UserRepository } from "./infra/repositories/UserRepository.js";
 import { Database } from "./infra/database/DatabaseConfig.js";
 import { AppConfig } from "./infra/web/AppConfig.js";
 import { HashService } from "./infra/security/HashService.js";
 import { TokenService } from "./infra/security/TokenService.js";
-import { MissionController } from "./modules/mission/MissionController.js";
-import { MissionService } from "./modules/mission/MissionService.js";
-import { MissionRepository } from "./modules/mission/MissionRepository.js";
-import { RegistrationRepository } from "./modules/registration/RegistrationRepository.js";
+import { MissionController } from "./presentation/MissionController.js";
+import { MissionService } from "./application/MissionService.js";
 import type { Pool } from "mysql2/promise";
+import { MissionRepository } from "./infra/repositories/MissionRepository.js";
+import { RegistrationRepository } from "./infra/repositories/RegistrationRepository.js";
+import { AuthService } from "./application/AuthService.js";
+import { AuthController } from "./presentation/AuthController.js";
 
-const database: Pool= Database.getInstance().getPool();
+const database: Pool = Database.getInstance().getPool();
 
 const hashService = new HashService();
 const tokenService = new TokenService();
@@ -24,11 +24,13 @@ const registrationRepository = new RegistrationRepository(database);
 const authService = new AuthService(userRepository, hashService, tokenService);
 const authController = new AuthController(authService, tokenService);
 
-const missionService = new MissionService(missionRepository,registrationRepository,userRepository,database);
+const missionService = new MissionService(
+  missionRepository,
+  registrationRepository,
+  userRepository,
+  database,
+);
 const missionController = new MissionController(missionService, tokenService);
 
-const appConfig: AppConfig = new AppConfig(
-  authController,
-  missionController
-);
+const appConfig: AppConfig = new AppConfig(authController, missionController);
 appConfig.listen();
