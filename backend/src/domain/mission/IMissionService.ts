@@ -1,7 +1,7 @@
 import type { CreateMissionDTO } from "./dtos/CreateMissionDTO.js";
 import type { SearchMissionDTO } from "./dtos/SearchMissionDTO.js";
 import type { UpdateMissionDTO } from "./dtos/UpdateMissionDTO.js";
-import type { Mission } from "../../domain/modules/mission/Mission.js";
+import type { Mission } from "./Mission.js";
 
 export interface IMissionService {
   createMission(missionDTO: CreateMissionDTO): Promise<Mission>;
@@ -11,5 +11,8 @@ export interface IMissionService {
   ): Promise<Mission>;
   getMissionDetail(missionUuid: string): Promise<Mission | null>;
   getMissions(filters: SearchMissionDTO): Promise<Mission[]>;
-  registerVolunteer(missionUuid: string, volunteerUuid: string): Promise<void>;
+  registerVolunteer(
+    missionUuid: string,
+    volunteerUuid: string,
+  ): Promise<void>;
 }

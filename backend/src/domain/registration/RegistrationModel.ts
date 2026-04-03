@@ -1,5 +1,5 @@
-import { MissionDateError } from "../../domain/exceptions/mission/MissionDateError.js";
-import { RegistrationStatusError } from "../../domain/exceptions/registration/RegistrationStatusError.js";
+import { MissionDateError } from "../exceptions/mission/MissionDateError.js";
+import { RegistrationStatusError } from "../exceptions/registration/RegistrationStatusError.js";
 import type { IRegistration } from "./IRegistrationModel.js";
 import { RegistrationStatus } from "./RegistrationStatusEnum.js";
 
@@ -99,8 +99,8 @@ export class Registration {
       status: this.status,
     };
   }
-  
-   getMissionUuid(): string {
+
+  getMissionUuid(): string {
     return this.missionUuid;
   }
   getDate(): Date {

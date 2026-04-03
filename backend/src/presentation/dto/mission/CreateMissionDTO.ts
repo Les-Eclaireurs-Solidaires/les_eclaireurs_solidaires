@@ -13,14 +13,14 @@ import {
   ValidateIf,
   ValidateNested,
 } from "class-validator";
-import { OrganizerParticipationDTO } from "./OrganizerParticipationDTO.js";
-import { IsAfterDate, IsFutureDate } from "./DateValidator.js";
+import { OrganizerParticipationDTO } from "../OrganizerParticipationDTO.js";
+import { IsAfterDate, IsFutureDate } from "../DateValidator.js";
 
 export class CreateMissionDTO {
   @IsString()
   @MinLength(3, { message: "Le nom doit contenir au moins 3 caractères" })
   @MaxLength(255, { message: "Le nom ne doit pas dépasser 255 caractères" })
-  @Transform(({ value }) => typeof value === 'string' ? value.trim() : value)
+  @Transform(({ value }) => (typeof value === "string" ? value.trim() : value))
   name!: string;
 
   @IsOptional()
@@ -39,13 +39,15 @@ export class CreateMissionDTO {
 
   @ValidateIf((o) => o.toPublish === true || o.dateEnd !== undefined)
   @IsDateString({}, { message: "La date de fin n'est pas au bon format." })
-  @IsAfterDate("dateStart", { message: "La date de fin doit être après le début." })
+  @IsAfterDate("dateStart", {
+    message: "La date de fin doit être après le début.",
+  })
   dateEnd?: string;
 
   @ValidateIf((o) => o.toPublish === true || o.address !== undefined)
   @IsString()
   @MaxLength(255, { message: "L'adresse ne doit pas dépasser 255 caractères." })
-  @Transform(({ value }) => typeof value === 'string' ? value.trim() : value)
+  @Transform(({ value }) => (typeof value === "string" ? value.trim() : value))
   address?: string;
 
   @ValidateIf((o) => o.toPublish === true || o.nbrVolunteerNeeded !== undefined)
@@ -62,7 +64,9 @@ export class CreateMissionDTO {
   @IsInt({ each: true })
   categoryIds?: number[];
 
-  @ArrayNotEmpty({ message: "Une mission doit avoir au moins un organisateur." })
+  @ArrayNotEmpty({
+    message: "Une mission doit avoir au moins un organisateur.",
+  })
   @ValidateNested({ each: true })
   @Type(() => OrganizerParticipationDTO)
   organizers!: OrganizerParticipationDTO[];

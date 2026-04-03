@@ -4,15 +4,15 @@ import {
   type Request,
   type Response,
 } from "express";
-import type { IMissionService } from "./IMissionService.js";
-import { requireAuth } from "../../infra/web/middlewares/AuthMiddleware.js";
-import { requireRole } from "../../infra/web/middlewares/RoleMiddleware.js";
-import { UserRole } from "../user/UserRoleEnum.js";
-import type { ITokenService } from "../auth/ITokenService.js";
+import type { IMissionService } from "../domain/mission/IMissionService.js";
+import { requireAuth } from "../infra/web/middlewares/AuthMiddleware.js";
+import { requireRole } from "../infra/web/middlewares/RoleMiddleware.js";
+import { UserRole } from "../domain/user/UserRoleEnum.js";
+import type { ITokenService } from "../domain/auth/ITokenService.js";
 import {
   validateBody,
   validateQuery,
-} from "../../infra/web/middlewares/ValidateDtoMiddleware.js";
+} from "../infra/web/middlewares/ValidateDtoMiddleware.js";
 import { UpdateMissionDTO } from "./dtos/UpdateMissionDTO.js";
 import { SearchMissionDTO } from "./dtos/SearchMissionDTO.js";
 import { CreateMissionDTO } from "./dtos/CreateMissionDTO.js";

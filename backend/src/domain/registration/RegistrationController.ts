@@ -10,6 +10,11 @@ import { BadRequestError } from "../../infra/exceptions/BadRequestError.js";
 import { requireAuth } from "../../infra/web/middlewares/AuthMiddleware.js";
 import { requireRole } from "../../infra/web/middlewares/RoleMiddleware.js";
 import type { ITokenService } from "../auth/ITokenService.js";
+import { User } from "../user/User.js";
+import type { IMissionService } from "../mission/IMissionService.js";
+import { RegistrationStatus } from "./RegistrationStatusEnum.js";
+import { Registration } from "./RegistrationModel.js";
+import type { IMissionRepository } from "../mission/IMissionRepository.js";
 
 export class RegistrationController {
   private registrationRouter: Router = Router({ mergeParams: true });
@@ -26,7 +31,7 @@ export class RegistrationController {
   }
 
   private initializeRoutes(): void {
-    /* this.registrationRouter.post(
+    this.registrationRouter.post(
       "/registration",
       requireAuth(this.tokenService),
       requireRole([
@@ -45,10 +50,40 @@ export class RegistrationController {
         UserRole.SUPER_ADMIN,
       ]),
       this.unregisterVolunteer,
-    ); */
+    );
+    this.registrationRouter.patch(
+      "/:volunteerUuid/validate",
+      requireAuth(this.tokenService),
+      requireRole([
+        UserRole.BENEVOLE,
+        UserRole.ORGANISATEUR,
+        UserRole.SUPER_ADMIN,
+      ]),
+      this.validateRegistration,
+    );
+    this.registrationRouter.patch(
+      "/:volunteerUuid/refuse",
+      requireAuth(this.tokenService),
+      requireRole([
+        UserRole.BENEVOLE,
+        UserRole.ORGANISATEUR,
+        UserRole.SUPER_ADMIN,
+      ]),
+      this.refuseRegistration,
+    );
+    this.registrationRouter.post(
+      "/finish",
+      requireAuth(this.tokenService),
+      requireRole([
+        UserRole.BENEVOLE,
+        UserRole.ORGANISATEUR,
+        UserRole.SUPER_ADMIN,
+      ]),
+      this.finishMission,
+    );
   }
 
-  /* private registerVolunteer = async (
+  private registerVolunteer = async (
     req: Request,
     res: Response,
     next: NextFunction,
@@ -60,7 +95,10 @@ export class RegistrationController {
       throw new BadRequestError("Le paramètre voulu n'a pas été trouvé.");
     }
 
-    await this.registrationService.registerVolunteer(volunteerUuid, missionUuid);
+    await this.registrationService.registerVolunteer(
+      volunteerUuid,
+      missionUuid,
+    );
 
     return res
       .status(201)
@@ -88,5 +126,27 @@ export class RegistrationController {
     return res
       .status(200)
       .json({ message: "Registration deleted successfully" });
-  }; */
+  };
+
+  private finishMission = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    throw new Error("Method not implemented.");
+  };
+  private refuseRegistration = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    throw new Error("Method not implemented.");
+  };
+  private validateRegistration = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    throw new Error("Method not implemented.");
+  };
 }

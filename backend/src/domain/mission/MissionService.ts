@@ -1,5 +1,5 @@
-import { MissionNameAlreadyExistError } from "../../domain/exceptions/mission/MissionNameAlreadyExistError.js";
-import { Mission } from "./MissionModel.js";
+import { MissionNameAlreadyExistError } from "../exceptions/mission/MissionNameAlreadyExistError.js";
+import { Mission } from "./Mission.js";
 import crypto from "crypto";
 import type { IMissionRepository } from "./IMissionRepository.js";
 import type { IMissionService } from "./IMissionService.js";
@@ -10,11 +10,12 @@ import { Registration } from "../registration/RegistrationModel.js";
 import type { SearchMissionDTO } from "./dtos/SearchMissionDTO.js";
 import type { CreateMissionDTO } from "./dtos/CreateMissionDTO.js";
 import type { Pool, PoolConnection } from "mysql2/promise";
-import { MissionNotFoundError } from "../../domain/exceptions/mission/MissionNotFoundError.js";
+import { MissionNotFoundError } from "../exceptions/mission/MissionNotFoundError.js";
 import type { IRegistrationRepository } from "../registration/IRegistrationRepository.js";
 import type { IOrganizer } from "../user/IOrganizer.js";
-import { UserNotFoundError } from "../../domain/exceptions/auth/UserNotFoundError.js";
+import { UserNotFoundError } from "../exceptions/auth/UserNotFoundError.js";
 import type { IUserRepository } from "../user/IUserRepository.js";
+import type { IMission } from "./IMissionModel.js";
 
 export class MissionService implements IMissionService {
   constructor(
@@ -114,13 +115,72 @@ export class MissionService implements IMissionService {
 
   async updateMission(
     missionDTO: UpdateMissionDTO,
-    missionUuid: string,
+    uuid: string,
   ): Promise<Mission> {
-    throw new Error("Method not implemented.");
+    const connection: PoolConnection = await this.db.getConnection();
+
+    try {
+      await connection.beginTransaction();
+
+      // --- ACTE 1 : L'HYDRATATION ---
+      const mission = await this.missionRepository.findByUuid(uuid, connection);
+      if (!mission) {
+        throw new MissionNotFoundError();
+      }
+
+      // (Optionnel mais recommandé) Si le DTO contient un nouveau nom, on vérifie qu'il n'est pas déjà pris
+      if (missionDTO.name && missionDTO.name !== mission.getName()) {
+        const existingMission = await this.missionRepository.findByName(
+          missionDTO.name,
+          connection,
+          true,
+        );
+        if (existingMission) {
+          throw new MissionNameAlreadyExistError(
+            `La mission : ${missionDTO.name} existe déjà.`,
+          );
+        }
+      }
+
+      const updateData: Partial<IMission> = {};
+
+      if (missionDTO.name !== undefined) updateData.name = missionDTO.name;
+      if (missionDTO.description !== undefined)
+        updateData.description = missionDTO.description;
+      if (missionDTO.dateStart !== undefined)
+        updateData.dateStart = new Date(missionDTO.dateStart);
+      if (missionDTO.dateEnd !== undefined)
+        updateData.dateEnd = new Date(missionDTO.dateEnd);
+      if (missionDTO.address !== undefined)
+        updateData.address = missionDTO.address;
+      if (missionDTO.nbrVolunteerNeeded !== undefined)
+        updateData.nbrVolunteerNeeded = missionDTO.nbrVolunteerNeeded;
+      if (missionDTO.cityId !== undefined)
+        updateData.cityId = missionDTO.cityId;
+      if (missionDTO.categoryIds !== undefined)
+        updateData.categoryIds = missionDTO.categoryIds;
+
+      if (missionDTO.toPublish) {
+        mission.publish();
+      }
+
+      mission.update(updateData);
+
+      const result = await this.missionRepository.update(mission, connection);
+
+      await connection.commit();
+
+      return result;
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
   }
 
-  async getMissionDetail(missionUuid: string): Promise<Mission> {
-    throw new Error("Method not implemented.");
+  async getMissionDetail(missionUuid: string): Promise<Mission | null> {
+    return this.missionRepository.findByUuid(missionUuid);
   }
 
   async getMissions(filters: SearchMissionDTO): Promise<Mission[]> {
@@ -136,8 +196,6 @@ export class MissionService implements IMissionService {
     try {
       await connection.beginTransaction();
 
-      // On charge la mission AVEC LE VERROU (FOR UPDATE)
-      // penser a mettre le missionId optionnel dans IMission et Mission
       const mission = await this.missionRepository.findByUuid(
         missionUuid,
         connection,
@@ -154,18 +212,18 @@ export class MissionService implements IMissionService {
         },
         missionUuid,
       );
+
       mission.addRegistration(registration);
 
-      // 4. On sauvegarde uniquement la nouvelle ligne
-      // Tu auras besoin d'une méthode pour récupérer le missionId interne (number) si ton Repo l'utilise
-      //const missionId = await this.missionRepository.getInternalId(missionUuid);
       await this.registrationRepository.saveRegistration(
         registration,
         missionUuid,
         connection,
       );
 
-      await connection.commit(); // 5. On valide !
+      await this.missionRepository.update(mission, connection);
+
+      await connection.commit();
     } catch (error) {
       await connection.rollback();
       throw error;

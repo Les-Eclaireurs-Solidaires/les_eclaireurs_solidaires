@@ -3,15 +3,16 @@ import type { TokenPayload } from "./TokenPayload.js";
 import crytoExt from "crypto";
 import ms from "ms";
 import { envConfig } from "../config/EnvConfig.js";
-import type { ITokenService } from "../../modules/auth/ITokenService.js";
+import type { ITokenService } from "../../domain/auth/ITokenService.js";
 import { UnauthenticatedError } from "../exceptions/UnauthenticatedError.js";
-import { UserRole } from "../../modules/user/UserRoleEnum.js";
+import { UserRole } from "../../domain/user/UserRoleEnum.js";
 import { InvalidTokenError } from "../../domain/exceptions/auth/InvalidTokenError.js";
 
 export class TokenService implements ITokenService {
   generateAccessToken(payload: TokenPayload): string {
     const accessSecret = envConfig.jwtAccessSecret;
-    if(!Object.values(UserRole).includes(payload.roleId)) throw new InvalidTokenError();
+    if (!Object.values(UserRole).includes(payload.roleId))
+      throw new InvalidTokenError();
 
     const options: SignOptions = {
       expiresIn: envConfig.jwtAccessExpiration! as ms.StringValue,
@@ -22,8 +23,9 @@ export class TokenService implements ITokenService {
 
   generateRefreshToken(payload: TokenPayload): string {
     const refreshSecret = envConfig.jwtRefreshSecret;
-    if(!Object.values(UserRole).includes(payload.roleId)) throw new InvalidTokenError();
-    
+    if (!Object.values(UserRole).includes(payload.roleId))
+      throw new InvalidTokenError();
+
     const options: SignOptions = {
       expiresIn: envConfig.jwtRefreshExpiration! as ms.StringValue,
     };
@@ -57,7 +59,7 @@ export class TokenService implements ITokenService {
     }
   }
 
-   generateRandomToken(): string {
+  generateRandomToken(): string {
     return crytoExt.randomBytes(32).toString("hex");
-  } 
+  }
 }

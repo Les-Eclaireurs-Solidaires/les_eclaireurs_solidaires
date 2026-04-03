@@ -1,8 +1,13 @@
-import type { Pool, PoolConnection, ResultSetHeader, RowDataPacket } from "mysql2/promise";
-import { User } from "./UserModel.js";
+import type {
+  Pool,
+  PoolConnection,
+  ResultSetHeader,
+  RowDataPacket,
+} from "mysql2/promise";
+import { User } from "./User.js";
 import type { IUser } from "./IUserModel.js";
 import type { IUserRepository } from "./IUserRepository.js";
-import { EmailAlreadyExistError } from "../../domain/exceptions/auth/EmailAlreadyExistError.js";
+import { EmailAlreadyExistError } from "../exceptions/auth/EmailAlreadyExistError.js";
 
 export class UserRepository implements IUserRepository {
   private readonly columnMapping: { [key: string]: string } = {
@@ -43,7 +48,10 @@ export class UserRepository implements IUserRepository {
     return new User(rows[0] as IUser);
   }
 
-  async findByUuid(uuid: string,connection?: PoolConnection): Promise<User | null> {
+  async findByUuid(
+    uuid: string,
+    connection?: PoolConnection,
+  ): Promise<User | null> {
     const db = connection || this.db;
     const query = `SELECT 
                       u.user_uuid AS uuid,
@@ -86,7 +94,7 @@ export class UserRepository implements IUserRepository {
       user.getPassword(),
       user.getRefreshToken(),
       user.getFirstName(),
-      user.getLastName(), 
+      user.getLastName(),
       user.getAvatarUrl(),
       user.getCreatedAt(),
       user.getCityId(),
@@ -131,8 +139,7 @@ export class UserRepository implements IUserRepository {
       user.getRoleId(),
       user.getUuid(),
     ];
-      const result = await this.db.execute<ResultSetHeader>(query, values);
-      return result[0].affectedRows > 0;
-  
+    const result = await this.db.execute<ResultSetHeader>(query, values);
+    return result[0].affectedRows > 0;
   }
 }

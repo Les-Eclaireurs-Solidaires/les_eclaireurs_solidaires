@@ -1,11 +1,11 @@
 import type { IUserRepository } from "../user/IUserRepository.js";
-import { UserNotFoundError } from "../../domain/exceptions/auth/UserNotFoundError.js";
-import { InvalidCredentialsError } from "../../domain/exceptions/auth/InvalidCredentialsError.js";
-import { User } from "../user/UserModel.js";
+import { UserNotFoundError } from "../exceptions/auth/UserNotFoundError.js";
+import { InvalidCredentialsError } from "../exceptions/auth/InvalidCredentialsError.js";
+import { User } from "../user/User.js";
 import type { AuthResponse } from "./IAuthResponse.js";
 import type { IHashService } from "./IHashService.js";
 import type { ITokenService } from "./ITokenService.js";
-import { InvalidTokenError } from "../../domain/exceptions/auth/InvalidTokenError.js";
+import { InvalidTokenError } from "../exceptions/auth/InvalidTokenError.js";
 
 export class AuthService {
   constructor(
@@ -36,7 +36,7 @@ export class AuthService {
     user.changePassword(hashedPassword);
 
     await this.userRepository.create(user);
-    
+
     const response: AuthResponse = {
       accessToken,
       refreshToken: refreshToken,
@@ -72,9 +72,8 @@ export class AuthService {
       await this.hashService.hashString(refreshToken);
     user.registerNewRefreshToken(hashedRefreshToken);
 
-    
     const isUpdated = await this.userRepository.update(user);
-    if(!isUpdated) throw new UserNotFoundError();
+    if (!isUpdated) throw new UserNotFoundError();
 
     const response: AuthResponse = {
       accessToken,
@@ -129,7 +128,7 @@ export class AuthService {
     user.registerNewRefreshToken(hashedRefreshToken);
 
     const isUpdated = await this.userRepository.update(user);
-    if(!isUpdated) throw new UserNotFoundError();
+    if (!isUpdated) throw new UserNotFoundError();
 
     const response: AuthResponse = {
       accessToken,
