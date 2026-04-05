@@ -64,10 +64,10 @@ CREATE TABLE IF NOT EXISTS mission (
     mission_uuid CHAR(36) NOT NULL UNIQUE,
     mission_name VARCHAR(255) NOT NULL UNIQUE,
     mission_description TEXT,
-    mission_date_start DATETIME NOT NULL,
-    mission_date_end DATETIME NOT NULL,
-    mission_address VARCHAR(255) NOT NULL,
-    mission_nbr_volunteer_needed INTEGER NOT NULL,
+    mission_date_start DATETIME,
+    mission_date_end DATETIME,
+    mission_address VARCHAR(255),
+    mission_nbr_volunteer_needed INTEGER,
     mission_created_at DATETIME NOT NULL,
     mission_updated_at DATETIME,
     mission_deleted_at DATETIME,
@@ -84,7 +84,7 @@ CREATE TABLE IF NOT EXISTS mission_comment (
     id_mission INTEGER NOT NULL,
     id_user INTEGER NOT NULL,
     PRIMARY KEY (mission_comment_id),
-    FOREIGN KEY (id_mission) REFERENCES mission(mission_id) ON DELETE RESTRICT,
+    FOREIGN KEY (id_mission) REFERENCES mission(mission_id) ON DELETE CASCADE,
     FOREIGN KEY (id_user) REFERENCES user(user_id) ON DELETE RESTRICT
 );
 CREATE TABLE IF NOT EXISTS `message` (
@@ -96,7 +96,7 @@ CREATE TABLE IF NOT EXISTS `message` (
     id_mission INTEGER NULL,
     PRIMARY KEY (message_id),
     FOREIGN KEY (id_sender) REFERENCES `user`(user_id) ON DELETE RESTRICT,
-    FOREIGN KEY  (id_mission) REFERENCES mission(mission_id) ON DELETE RESTRICT
+    FOREIGN KEY  (id_mission) REFERENCES mission(mission_id) ON DELETE CASCADE
 );
 CREATE TABLE IF NOT EXISTS message_recipient (
     message_recipient_id INTEGER NOT NULL AUTO_INCREMENT,
@@ -114,7 +114,7 @@ CREATE TABLE IF NOT EXISTS mission_organizer (
     id_mission INTEGER NOT NULL,
     id_organizer INTEGER NOT NULL,
     PRIMARY KEY (mission_organizer_id),
-    FOREIGN KEY (id_mission) REFERENCES mission(mission_id) ON DELETE RESTRICT,
+    FOREIGN KEY (id_mission) REFERENCES mission(mission_id) ON DELETE CASCADE,
     FOREIGN KEY (id_organizer) REFERENCES `user`(user_id) ON DELETE RESTRICT,
     UNIQUE KEY unique_mission_organizer (id_mission, id_organizer)
 );
@@ -123,7 +123,7 @@ CREATE TABLE IF NOT EXISTS mission_category (
     id_mission INTEGER NOT NULL,
     id_category INTEGER NOT NULL,
     PRIMARY KEY (mission_category_id),
-    FOREIGN KEY (id_mission) REFERENCES mission(mission_id) ON DELETE RESTRICT,
+    FOREIGN KEY (id_mission) REFERENCES mission(mission_id) ON DELETE CASCADE,
     FOREIGN KEY (id_category) REFERENCES category(category_id) ON DELETE RESTRICT,
     UNIQUE KEY unique_mission_category (id_mission, id_category)
 );
@@ -136,7 +136,7 @@ CREATE TABLE IF NOT EXISTS inscription (
     id_inscription_status INTEGER NOT NULL,
     PRIMARY KEY (inscription_id),
     FOREIGN KEY (id_user) REFERENCES `user`(user_id) ON DELETE RESTRICT,
-    FOREIGN KEY (id_mission) REFERENCES mission(mission_id) ON DELETE RESTRICT,
+    FOREIGN KEY (id_mission) REFERENCES mission(mission_id) ON DELETE CASCADE,
     FOREIGN KEY (id_inscription_status) REFERENCES inscription_status(inscription_status_id) ON DELETE RESTRICT,
     UNIQUE KEY unique_user_mission (id_user, id_mission)
 );
