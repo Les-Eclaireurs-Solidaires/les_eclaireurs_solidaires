@@ -11,6 +11,7 @@ import type { Organizer } from "../../domain/user/Organizer.js";
 import type { Category } from "../../domain/category/Category.js";
 import type { SearchMissionDTO } from "../../presentation/dto/mission/SearchMissionDTO.js";
 import { MissionNameAlreadyExistError } from "../../domain/mission/exceptions/MissionNameAlreadyExistError.js";
+import { MissionNotFoundError } from "../../domain/mission/exceptions/MissionNotFoundError.js";
 
 export class MissionRepository implements IMissionRepository {
   constructor(private db: Pool) {}
@@ -58,7 +59,7 @@ export class MissionRepository implements IMissionRepository {
   ): Promise<Organizer[] | []> {
     const db = connection || this.db;
 
-    const queryOrganizer = `SELECT mission_organizer_is_main, id_organizer 
+    const queryOrganizer = `SELECT mission_organizer_is_main, user.user_uuid AS organizerUuid
                             FROM mission_organizer
                             LEFT JOIN \`user\` ON mission_organizer.id_organizer = user.user_id
                             WHERE mission_organizer.id_mission = (SELECT mission_id FROM mission WHERE mission_uuid = ?)`;
@@ -71,7 +72,7 @@ export class MissionRepository implements IMissionRepository {
     if (resultOrganizer.length === 0) return [];
 
     return resultOrganizer.map((row) => ({
-      organizerUuid: row.user_uuid,
+      organizerUuid: row.organizerUuid,
       isMain: row.mission_organizer_is_main,
     }));
   }
@@ -112,7 +113,7 @@ export class MissionRepository implements IMissionRepository {
                       mission.mission_updated_at AS updatedAt,
                       mission.mission_deleted_at AS deletedAt,
                       mission.id_city AS cityId,
-                      mission_status.mission_status_name AS status
+                      mission_status.mission_status_id AS status
 
                       FROM mission
 
@@ -122,7 +123,69 @@ export class MissionRepository implements IMissionRepository {
 
     if (lock) query += " FOR UPDATE";
 
-    const [result] = await db.execute<RowDataPacket[]>(query, [name]);
+    const [result] = await (db as Pool).execute<RowDataPacket[]>(query, [name]);
+
+    const row = result[0];
+
+    if (!row) return null;
+
+    const organizerData: Organizer[] = await this.hydrateOrganizers(
+      row.uuid,
+      db,
+    );
+    const categoriesData = await this.hydrateCategories(row.uuid, db);
+    const registrationsData = await this.hydrateRegistrations(row.uuid, db);
+
+    return Mission.hydrate({
+      uuid: row.uuid,
+      name: row.name,
+      description: row.description,
+      dateStart: row.dateStart,
+      dateEnd: row.dateEnd,
+      address: row.address,
+      nbrVolunteerNeeded: row.nbrVolunteerNeeded,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+      deletedAt: row.deletedAt,
+      cityId: row.cityId,
+      status: row.status,
+      categoryIds: categoriesData.map((category) => category.id),
+      registrations: registrationsData,
+      organizers: organizerData,
+    });
+  }
+
+  public async findByUuid(
+    uuid: string,
+    connection?: Pool | PoolConnection,
+    lock?: boolean,
+  ): Promise<Mission | null> {
+    const db = connection ? connection : this.db;
+
+    let query = `SELECT 
+                      mission.mission_uuid AS uuid,
+                      mission.mission_name AS name,
+                      mission.mission_description AS description,
+                      mission.mission_date_start AS dateStart,
+                      mission.mission_date_end AS dateEnd,
+                      mission.mission_address AS address,
+                      mission.mission_nbr_volunteer_needed AS nbrVolunteerNeeded,
+                      mission.mission_created_at AS createdAt,
+                      mission.mission_updated_at AS updatedAt,
+                      mission.mission_deleted_at AS deletedAt,
+                      mission.id_city AS cityId,
+                      mission_status.mission_status_id AS status
+
+                      FROM mission
+
+                      LEFT JOIN mission_status ON mission.id_mission_status = mission_status.mission_status_id
+
+                      WHERE mission.mission_uuid = ?
+                      GROUP BY mission.mission_uuid`;
+
+    if (lock) query += " FOR UPDATE";
+
+    const [result] = await (db as Pool).execute<RowDataPacket[]>(query, [uuid]);
 
     const row = result[0];
 
@@ -151,63 +214,8 @@ export class MissionRepository implements IMissionRepository {
     });
   }
 
-  public async findByUuid(
-    uuid: string,
-    connection?: Pool | PoolConnection,
-    lock?: boolean,
-  ): Promise<Mission | null> {
-    const db = connection || this.db;
-
-    let query = `SELECT 
-                      mission.mission_uuid AS uuid,
-                      mission.mission_name AS name,
-                      mission.mission_description AS description,
-                      mission.mission_date_start AS dateStart,
-                      mission.mission_date_end AS dateEnd,
-                      mission.mission_address AS address,
-                      mission.mission_nbr_volunteer_needed AS nbrVolunteerNeeded,
-                      mission.mission_created_at AS createdAt,
-                      mission.mission_updated_at AS updatedAt,
-                      mission.mission_deleted_at AS deletedAt,
-                      mission.id_city AS cityId,
-                      mission_status.mission_status_name AS status
-
-                      FROM mission
-
-                      LEFT JOIN mission_status ON mission.id_mission_status = mission_status.mission_status_id
-
-                      WHERE mission.mission_uuid = ?
-                      GROUP BY mission.mission_uuid`;
-
-    if (lock) query += " FOR UPDATE";
-
-    const [result] = await db.execute<RowDataPacket[]>(query, [uuid]);
-
-    const row = result[0];
-
-    if (!row) return null;
-
-    const organizerData = await this.hydrateOrganizers(row.uuid, db);
-    const categoriesData = await this.hydrateCategories(row.uuid, db);
-    const registrationsData = await this.hydrateRegistrations(row.uuid, db);
-
-    return Mission.hydrate({
-      uuid: row.uuid,
-      name: row.name,
-      description: row.description,
-      dateStart: row.dateStart,
-      dateEnd: row.dateEnd,
-      address: row.address,
-      nbrVolunteerNeeded: row.nbrVolunteerNeeded,
-      createdAt: row.createdAt,
-      updatedAt: row.updatedAt,
-      deletedAt: row.deletedAt,
-      cityId: row.cityId,
-      status: row.status,
-      categoryIds: categoriesData.map((category) => category.id),
-      registrations: registrationsData,
-      organizers: organizerData,
-    });
+  public async findMany(filters: SearchMissionDTO): Promise<Mission[]> {
+    throw new Error("Method not implemented.");
   }
 
   public async create(
@@ -277,9 +285,6 @@ export class MissionRepository implements IMissionRepository {
     }
   }
 
-  public async findMany(filters: SearchMissionDTO): Promise<Mission[]> {
-    throw new Error("Method not implemented.");
-  }
   public async update(
     missionToUpdate: Mission,
     connection?: PoolConnection | Pool,
@@ -294,53 +299,82 @@ export class MissionRepository implements IMissionRepository {
                           mission_address = ?, 
                           mission_nbr_volunteer_needed = ?,
                           mission_updated_at = ?,
+                          mission_deleted_at = ?,
                           id_city = ?, 
                           id_mission_status = ? 
                           WHERE mission_uuid = ?`;
 
     const queryMissionCategory = `INSERT INTO mission_category (id_mission, id_category) VALUES (?, ?)`;
 
-    try {
-      const [resultMission] = await (db as Pool).execute<ResultSetHeader>(
-        queryMission,
-        [
-          missionToUpdate.getName(),
-          missionToUpdate.getDescription(),
-          missionToUpdate.getDateStart(),
-          missionToUpdate.getDateEnd(),
-          missionToUpdate.getAddress(),
-          missionToUpdate.getNbrVolunteerNeeded(),
-          missionToUpdate.getUpdatedAt(),
-          missionToUpdate.getCityId(),
-          missionToUpdate.getStatus(),
-          missionToUpdate.getUuid(),
-        ],
-      );
+    const queryMissionOrganizer = `INSERT INTO mission_organizer (
+                                      mission_organizer_is_main, id_mission, id_organizer
+                                    ) 
+                                    SELECT ?, ?, user.user_id FROM \`user\` WHERE user_uuid = ?`;
 
-      const missionId = resultMission.insertId;
+    try {
+      await (db as Pool).execute<ResultSetHeader>(queryMission, [
+        missionToUpdate.getName(),
+        missionToUpdate.getDescription(),
+        missionToUpdate.getDateStart(),
+        missionToUpdate.getDateEnd(),
+        missionToUpdate.getAddress(),
+        missionToUpdate.getNbrVolunteerNeeded(),
+        missionToUpdate.getUpdatedAt(),
+        missionToUpdate.getDeletedAt(),
+        missionToUpdate.getCityId(),
+        missionToUpdate.getStatus(),
+        missionToUpdate.getUuid(),
+      ]);
+
+      const queryMissionId = `SELECT mission.mission_id FROM mission WHERE mission.mission_uuid = ?`;
+      const [idRow] = await (db as Pool).execute<RowDataPacket[]>(
+        queryMissionId,
+        [missionToUpdate.getUuid()],
+      );
+      const missionRow = idRow[0];
+      if (!missionRow) throw new MissionNotFoundError();
+      const missionId = missionRow.mission_id;
 
       const deleteCategoriesMission = `DELETE FROM mission_category WHERE id_mission = ?`;
       await (db as Pool).execute<ResultSetHeader>(deleteCategoriesMission, [
         missionId,
       ]);
-
       for (const categoryId of missionToUpdate.getCategoryIds()) {
         await (db as Pool).execute(queryMissionCategory, [
           missionId,
           categoryId,
         ]);
       }
-
+      const deleteOrganizerMission = `DELETE FROM mission_organizer WHERE id_mission = ?`;
+      await (db as Pool).execute<ResultSetHeader>(deleteOrganizerMission, [
+        missionId,
+      ]);
+      for (const organizer of missionToUpdate.getOrganizers()) {
+        await (db as Pool).execute(queryMissionOrganizer, [
+          organizer.isMain ?? false,
+          missionId,
+          organizer.organizerUuid,
+        ]);
+      }
       return missionToUpdate;
     } catch (error: unknown) {
       if (typeof error === "object" && error !== null && "code" in error) {
         if ((error as { code: string }).code === "ER_DUP_ENTRY") {
-          throw new MissionNameAlreadyExistError(
-            `La mission : ${missionToUpdate.getName()} existe déjà.`,
-          );
+          throw new MissionNameAlreadyExistError(missionToUpdate.getName());
         }
       }
       throw error;
     }
+  }
+  
+  public async delete(
+    missionToDelete: Mission,
+    connection?: PoolConnection | Pool,
+  ): Promise<void> {
+    const db = connection || this.db;
+    const query = `DELETE FROM mission WHERE mission_uuid = ?`;
+    await (db as Pool).execute<ResultSetHeader>(query, [
+      missionToDelete.getUuid(),
+    ]);
   }
 }

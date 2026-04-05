@@ -2,8 +2,9 @@ import { DomainError } from "../../DomainError.js";
 
 
 export class MissionNameAlreadyExistError extends DomainError {
-  constructor(name: string) {
-    super(`La mission ${name} existe déjà.`);
+  constructor(missionName: string) {
+    super(`La mission ${missionName} existe déjà.`);
+    this.name = "MissionNameAlreadyExistError"
     Object.setPrototypeOf(this, MissionNameAlreadyExistError.prototype);
   }
 }

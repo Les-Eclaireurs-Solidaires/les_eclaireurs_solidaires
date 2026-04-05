@@ -4,18 +4,18 @@ import {
   type Request,
   type Response,
 } from "express";
-import type { IRegistrationService } from "../domain/registration/IRegistrationService.js";
 import { UserRole } from "../domain/user/UserRoleEnum.js";
 import { BadRequestError } from "../infra/exceptions/BadRequestError.js";
 import { requireAuth } from "../infra/web/middlewares/AuthMiddleware.js";
 import { requireRole } from "../infra/web/middlewares/RoleMiddleware.js";
 import type { ITokenService } from "../domain/authentication/ITokenService.js";
+import type { IMissionService } from "../domain/mission/IMissionService.js";
 
 export class RegistrationController {
   private registrationRouter: Router = Router({ mergeParams: true });
 
   constructor(
-    private registrationService: IRegistrationService,
+    private missionService: IMissionService,
     private tokenService: ITokenService,
   ) {
     this.initializeRoutes();
@@ -36,46 +36,6 @@ export class RegistrationController {
       ]),
       this.registerVolunteer,
     );
-    this.registrationRouter.delete(
-      "/registration/:targetUserUuid",
-      requireAuth(this.tokenService),
-      requireRole([
-        UserRole.BENEVOLE,
-        UserRole.ORGANISATEUR,
-        UserRole.SUPER_ADMIN,
-      ]),
-      this.unregisterVolunteer,
-    );
-    this.registrationRouter.patch(
-      "/:volunteerUuid/validate",
-      requireAuth(this.tokenService),
-      requireRole([
-        UserRole.BENEVOLE,
-        UserRole.ORGANISATEUR,
-        UserRole.SUPER_ADMIN,
-      ]),
-      this.validateRegistration,
-    );
-    this.registrationRouter.patch(
-      "/:volunteerUuid/refuse",
-      requireAuth(this.tokenService),
-      requireRole([
-        UserRole.BENEVOLE,
-        UserRole.ORGANISATEUR,
-        UserRole.SUPER_ADMIN,
-      ]),
-      this.refuseRegistration,
-    );
-    this.registrationRouter.post(
-      "/finish",
-      requireAuth(this.tokenService),
-      requireRole([
-        UserRole.BENEVOLE,
-        UserRole.ORGANISATEUR,
-        UserRole.SUPER_ADMIN,
-      ]),
-      this.finishMission,
-    );
   }
 
   private registerVolunteer = async (
@@ -90,7 +50,7 @@ export class RegistrationController {
       throw new BadRequestError("Le paramètre voulu n'a pas été trouvé.");
     }
 
-    await this.registrationService.registerVolunteer(
+    await this.missionService.registerVolunteer(
       volunteerUuid,
       missionUuid,
     );
@@ -98,50 +58,5 @@ export class RegistrationController {
     return res
       .status(201)
       .json({ message: "Registration completed successfully" });
-  };
-
-  private unregisterVolunteer = async (
-    req: Request,
-    res: Response,
-    next: NextFunction,
-  ) => {
-    const missionUuid = req.params.missionUuid as string;
-    const targetUserUuid = req.params.targetUserUuid as string;
-    const requesterUuid = req.user!.uuid;
-
-    if (!missionUuid || !targetUserUuid)
-      throw new BadRequestError("Le paramètre voulu n'a pas été trouvé.");
-
-    await this.registrationService.cancelRegistration(
-      targetUserUuid,
-      requesterUuid,
-      missionUuid,
-    );
-
-    return res
-      .status(200)
-      .json({ message: "Registration deleted successfully" });
-  };
-
-  private finishMission = async (
-    req: Request,
-    res: Response,
-    next: NextFunction,
-  ) => {
-    throw new Error("Method not implemented.");
-  };
-  private refuseRegistration = async (
-    req: Request,
-    res: Response,
-    next: NextFunction,
-  ) => {
-    throw new Error("Method not implemented.");
-  };
-  private validateRegistration = async (
-    req: Request,
-    res: Response,
-    next: NextFunction,
-  ) => {
-    throw new Error("Method not implemented.");
   };
 }

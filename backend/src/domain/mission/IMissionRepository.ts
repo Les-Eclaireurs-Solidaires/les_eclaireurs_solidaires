@@ -2,7 +2,6 @@ import type { PoolConnection } from "mysql2/promise";
 import type { Mission } from "./Mission.js";
 import type { SearchMissionDTO } from "../../presentation/dto/mission/SearchMissionDTO.js";
 
-
 export interface IMissionRepository {
   findByName(
     name: string,
@@ -23,4 +22,5 @@ export interface IMissionRepository {
     missionToUpdate: Mission,
     connection?: PoolConnection,
   ): Promise<Mission>;
+  delete(missionToDelete: Mission, connection?: PoolConnection): Promise<void>;
 }

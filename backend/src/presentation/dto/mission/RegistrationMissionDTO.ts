@@ -1,4 +1,4 @@
-import { IsDateString, IsInt, IsUUID } from "class-validator";
+/* import { IsDateString, IsInt, IsUUID } from "class-validator";
 
 export class RegistrationMissionDTO {
   @IsInt()
@@ -12,4 +12,4 @@ export class RegistrationMissionDTO {
 
   @IsInt()
   status!: number;
-}
+} */

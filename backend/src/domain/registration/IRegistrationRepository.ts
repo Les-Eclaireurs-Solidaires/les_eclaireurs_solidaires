@@ -1,15 +1,10 @@
+import type { Pool, PoolConnection } from "mysql2/promise";
 import type { Registration } from "./Registration.js";
-import type { RegistrationStatus } from "./RegistrationStatusEnum.js";
 
 export interface IRegistrationRepository {
   saveRegistration(
     registration: Registration,
     missionUuid: string,
-    connection?: any,
+    connection?: Pool | PoolConnection,
   ): Promise<void>;
-  updateRegistrationStatus(
-    targetUuid: string,
-    missionUuid: string,
-    registrationStatus: RegistrationStatus,
-  ): Promise<boolean>;
 }

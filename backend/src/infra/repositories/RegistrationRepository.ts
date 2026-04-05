@@ -1,9 +1,6 @@
-import type { Pool } from "mysql2/promise";
+import type { Pool, PoolConnection } from "mysql2/promise";
 import type { Registration } from "../../domain/registration/Registration.js";
 import type { IRegistrationRepository } from "../../domain/registration/IRegistrationRepository.js";
-import type { PoolConnection, ResultSetHeader } from "mysql2";
-import type { RegistrationStatus } from "../../domain/registration/RegistrationStatusEnum.js";
-
 
 export class RegistrationRepository implements IRegistrationRepository {
   constructor(private db: Pool) {}
@@ -13,7 +10,7 @@ export class RegistrationRepository implements IRegistrationRepository {
     missionUuid: string,
     connection?: Pool | PoolConnection,
   ): Promise<void> {
-    const dbExecutor = connection || this.db;
+    const db = connection ?? this.db;
 
     const query = `INSERT INTO inscription (
                             inscription_date,
@@ -27,35 +24,16 @@ export class RegistrationRepository implements IRegistrationRepository {
                             ?, 
                             (SELECT user_id FROM user WHERE user_uuid = ?),
                             (SELECT mission_id FROM mission WHERE mission_uuid = ?),
-                            ?)`;
+                            ?)
+                          ON DUPLICATE KEY UPDATE
+                            id_inscription_status = VALUES(id_inscription_status);`;
 
-    await (dbExecutor as Pool).execute(query, [
+    await db.execute(query, [
       registration.getDate(),
       registration.getRecallSendAt(),
       registration.getVolunteerUuid(),
       missionUuid,
       registration.getStatus(),
     ]);
-  }
-
-  async updateRegistrationStatus(
-    targetUuid: string,
-    missionUuid: string,
-    registrationStatus: RegistrationStatus,
-    connection?: Pool | PoolConnection,
-  ): Promise<boolean> {
-    const dbExecutor = connection || this.db;
-
-    const query = `UPDATE inscription 
-                   SET id_inscription_status = ? 
-                   WHERE id_user = (SELECT user_id FROM user WHERE user_uuid = ?) 
-                   AND id_mission = (SELECT mission_id FROM mission WHERE mission_uuid = ?)`;
-
-    const [result] = await (dbExecutor as Pool).execute<ResultSetHeader>(
-      query,
-      [registrationStatus, targetUuid, missionUuid],
-    );
-
-    return result.affectedRows > 0;
   }
 }

@@ -32,9 +32,9 @@ export class CreateMissionDTO {
   @MaxLength(2000, { message: "La description est trop longue." })
   description?: string;
 
+  @IsFutureDate({ message: "La date doit être dans le futur." })
   @ValidateIf((o) => o.toPublish === true || o.dateStart !== undefined)
   @IsDateString({}, { message: "La date de début n'est pas au bon format." })
-  @IsFutureDate({ message: "La date doit être dans le futur." })
   dateStart?: string;
 
   @ValidateIf((o) => o.toPublish === true || o.dateEnd !== undefined)
@@ -50,9 +50,9 @@ export class CreateMissionDTO {
   @Transform(({ value }) => (typeof value === "string" ? value.trim() : value))
   address?: string;
 
+  @Min(1)
   @ValidateIf((o) => o.toPublish === true || o.nbrVolunteerNeeded !== undefined)
   @IsInt()
-  @Min(1)
   nbrVolunteerNeeded?: number;
 
   @ValidateIf((o) => o.toPublish === true || o.cityId !== undefined)

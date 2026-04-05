@@ -14,11 +14,9 @@ export interface MissionParam {
   createdAt?: Date;
   updatedAt?: Date | null;
   deletedAt?: Date | null;
-  /* organizers: { organizerUuid: string; isMain: boolean; isParticipant: boolean }[]; */
   organizers: Organizer[];
   cityId: number;
   categoryIds?: number[];
   status?: MissionStatus;
   registrations: Registration[];
-  remainingPlaces?: number;
 }

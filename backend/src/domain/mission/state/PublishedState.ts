@@ -1,3 +1,5 @@
+import type { UpdateMissionDTO } from "../../../presentation/dto/mission/UpdateMissionDTO.js";
+import { RegistrationNotFoundError } from "../../registration/exceptions/RegistrationNotFoundError.js";
 import { RegistrationStatusError } from "../../registration/exceptions/RegistrationStatusError.js";
 import type { Registration } from "../../registration/Registration.js";
 import { RegistrationStatus } from "../../registration/RegistrationStatusEnum.js";
@@ -12,40 +14,29 @@ import { CancelledState } from "./CancelledState.js";
 import { FinishedState } from "./FinishedState.js";
 
 export class PublishedState extends MissionState {
-  cancelRegistration(mission: Mission, targetUuid: string): void {
-    throw new Error("Method not implemented.");
-  }
-  validateRegistration(mission: Mission, targetUuid: string): void {
-    throw new Error("Method not implemented.");
-  }
-  refuseRegistration(mission: Mission, targetUuid: string): void {
-    throw new Error("Method not implemented.");
-  }
   validate(mission: Mission): void {
+    this.validateRealityInvariant(mission);
+    this.validateBusinessInvariant(mission);
     this.validateBasicInfo(mission);
     this.validateLocalisation(mission);
     this.validateDateCoherence(mission);
     this.validateOrganizerValid(mission);
     this.validateCategoryValid(mission);
-
-    if (
-      !this.hasAvailablePlaces(mission) ||
-      mission.getNbrVolunteerNeeded() === 0
-    ) {
-      throw new MissionStatusError(
-        "Une mission publiée doit avoir des places disponibles.",
-      );
+    if (mission.getNbrVolunteerNeeded() <= 0) {
+      throw new MissionStatusError("Une mission publiée doit demander au moins un bénévole.");
     }
   }
-  update(mission: Mission): void {
-    this.validate(mission);
+  update(mission: Mission, dto: UpdateMissionDTO): void {
+    if (dto.organizers !== undefined) {
+      mission.synchroOrgaRegistration(dto.organizers);
+    }
   }
   publish(mission: Mission): void {
     throw new MissionStatusError(
       "Impossible de publier une mission déjà publiée.",
     );
   }
-  cancel(mission: Mission): void {    
+  cancel(mission: Mission): void {
     mission.setState(new CancelledState());
     mission.setStatus(MissionStatus.CANCELED);
   }
@@ -53,20 +44,17 @@ export class PublishedState extends MissionState {
     if (mission.getRegistrations().length === 0)
       throw new MissionStatusError(
         "Impossible de terminer une mission sans inscription.",
-      );  
+      );
 
     mission.setState(new FinishedState());
     mission.setStatus(MissionStatus.FINISHED);
   }
   delete(mission: Mission): void {
     if (mission.getRegistrations().length > 0) {
-      // NO THROW ERROR IN PROD WE WANT TO COMMUNICATE WITH USER REGISTERED
       throw new MissionStatusError(
-        "Impossible de supprimer une mission qui a des inscription en cours.",
+        "Impossible de supprimer une mission qui a des inscription en cours. Veuillez d'abord l'annulée.",
       );
     }
-    mission.setState(new CancelledState());
-    mission.setStatus(MissionStatus.CANCELED);
   }
   addRegistration(mission: Mission, registration: Registration): void {
     if (!this.hasAvailablePlaces(mission)) {
@@ -87,6 +75,20 @@ export class PublishedState extends MissionState {
     }
     mission.executeRegistration(registration);
   }
-  removeRegistration(mission: Mission): void {}
-
+  removeRegistration(mission: Mission, registration: Registration): void {
+    if (
+      mission.getRegistrations().length === 0 ||
+      !mission.getRegistrations().includes(registration)
+    )
+      throw new RegistrationNotFoundError();
+  }
+  cancelRegistration(mission: Mission, targetUuid: string): void {
+    throw new Error("Method not implemented.");
+  }
+  validateRegistration(mission: Mission, targetUuid: string): void {
+    throw new Error("Method not implemented.");
+  }
+  refuseRegistration(mission: Mission, targetUuid: string): void {
+    throw new Error("Method not implemented.");
+  }
 }

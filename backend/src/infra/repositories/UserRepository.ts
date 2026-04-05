@@ -51,9 +51,10 @@ export class UserRepository implements IUserRepository {
   async findByUuid(
     uuid: string,
     connection?: PoolConnection,
+    lock?: boolean,
   ): Promise<User | null> {
-    const db = connection || this.db;
-    const query = `SELECT 
+    const db = connection ?? this.db;
+    let query = `SELECT 
                       u.user_uuid AS uuid,
                       u.user_email AS email,
                       u.user_password AS password,
@@ -69,7 +70,11 @@ export class UserRepository implements IUserRepository {
                     FROM \`user\` AS u
                     WHERE user_uuid = ?`;
 
-    const [rows] = await db.execute<RowDataPacket[]>(query, [uuid]);
+    if (lock) {
+      query += " FOR UPDATE";
+    }
+
+    const [rows] = await (db as Pool).execute<RowDataPacket[]>(query, [uuid]);
 
     return rows.length === 0 ? null : new User(rows[0] as UserParam);
   }

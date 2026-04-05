@@ -1,7 +1,10 @@
+import type { OrganizerParticipationDTO } from "../../presentation/dto/mission/OrganizerParticipationDTO.js";
+import type { UpdateMissionDTO } from "../../presentation/dto/mission/UpdateMissionDTO.js";
 import { RegistrationNotFoundError } from "../registration/exceptions/RegistrationNotFoundError.js";
-import type { Registration } from "../registration/Registration.js";
+import { Registration } from "../registration/Registration.js";
 import { RegistrationStatus } from "../registration/RegistrationStatusEnum.js";
 import type { Organizer } from "../user/Organizer.js";
+import { MissionDateError } from "./exceptions/MissionDateError.js";
 import { MissionStatusError } from "./exceptions/MissionStatusError.js";
 import { VolunteerRegisterAlreadyExistError } from "./exceptions/VolunteerRegisterAlreadyExistError.js";
 import type { MissionParam } from "./MissionParam.js";
@@ -50,33 +53,97 @@ export class Mission {
 
     this.categoryIds = param.categoryIds || [];
     this.organizers = param.organizers;
-
     this.registrations = param.registrations || [];
-
-    this.state.validate(this);
   }
-
-  public static create(param: MissionParam): Mission {
-    return new Mission({
-      ...param,
-      status: MissionStatus.DRAFT,
-      createdAt: new Date(),
-      updatedAt: null,
-      deletedAt: null,
-      registrations: param.registrations || [],
-    });
-  }
-
   public static hydrate(param: MissionParam): Mission {
     return new Mission(param);
   }
-
   private ensureNotDeleted() {
     if (this.deletedAt !== null) {
       throw new MissionStatusError(
         "Impossible d'interagir avec une mission supprimée.",
       );
     }
+  }
+  public synchroOrgaRegistration(
+    organizers: OrganizerParticipationDTO[],
+  ) {
+    this.organizers = organizers.map((o) => ({
+      organizerUuid: o.organizerUuid,
+      isMain: o.isMain,
+    }));
+
+    const incomingOrganizerUuids = organizers.map((o) => o.organizerUuid);
+    const realVolunteersRegs = this.registrations.filter(
+      (reg) => !incomingOrganizerUuids.includes(reg.getVolunteerUuid()),
+    );
+
+    const organizerRegs: Registration[] = [];
+
+    for (const org of organizers) {
+      const existingReg = this.registrations.find(
+        (r) => r.getVolunteerUuid() === org.organizerUuid,
+      );
+
+      if (org.isParticipant) {
+        if (existingReg) {
+          organizerRegs.push(existingReg);
+        } else {
+          organizerRegs.push(
+            new Registration(
+              {
+                date: new Date(),
+                volunteerUuid: org.organizerUuid,
+                status: RegistrationStatus.VALIDATED,
+              },
+              this.uuid,
+            ),
+          );
+        }
+      } else {
+        if (
+          existingReg &&
+          existingReg.getStatus() !== RegistrationStatus.CANCELLED
+        ) {
+          existingReg.cancel();
+          organizerRegs.push(existingReg);
+        }
+      }
+    }
+    this.registrations = [...realVolunteersRegs, ...organizerRegs];
+  }
+  public static create(
+    param: MissionParam,
+    organizers: OrganizerParticipationDTO[],
+  ): Mission {
+    const mission = new Mission({
+      ...param,
+      status: MissionStatus.DRAFT,
+      createdAt: new Date(),
+      updatedAt: null,
+      deletedAt: null,
+    });
+    mission.synchroOrgaRegistration(organizers);
+    return mission;
+  }
+  public update(data: UpdateMissionDTO): void {
+    this.ensureNotDeleted();
+    this.state.update(this, data);
+
+    if (data.name !== undefined) this.name = data.name;
+    if (data.description !== undefined) this.description = data.description;
+    if (data.dateStart !== undefined) this.dateStart = new Date(data.dateStart);
+    if (data.dateEnd !== undefined) this.dateEnd = new Date(data.dateEnd);
+    if (data.address !== undefined) this.address = data.address;
+    if (data.nbrVolunteerNeeded !== undefined)
+      this.nbrVolunteerNeeded = data.nbrVolunteerNeeded;
+    if (data.cityId !== undefined) this.cityId = data.cityId;
+    if (data.categoryIds !== undefined) this.categoryIds = data.categoryIds;
+
+    this.state.validate(this);
+    if (data.toPublish) this.publish();
+
+    this.updatedAt = new Date();
   }
 
   public publish(): void {
@@ -96,23 +163,6 @@ export class Mission {
     this.updatedAt = new Date();
   }
 
-  public update(data: Partial<MissionParam>): void {
-    this.ensureNotDeleted();
-    if (data.name !== undefined) this.name = data.name;
-    if (data.description !== undefined) this.description = data.description;
-    if (data.dateStart !== undefined) this.dateStart = data.dateStart;
-    if (data.dateEnd !== undefined) this.dateEnd = data.dateEnd;
-    if (data.address !== undefined) this.address = data.address;
-    if (data.nbrVolunteerNeeded !== undefined)
-      this.nbrVolunteerNeeded = data.nbrVolunteerNeeded;
-    if (data.cityId !== undefined) this.cityId = data.cityId;
-    if (data.categoryIds !== undefined) this.categoryIds = data.categoryIds;
-
-    this.state.update(this);
-    this.updatedAt = new Date();
-  }
-
-  // MARK OF SOFT DELETE FOR BACKOFFICE
   public delete(): void {
     this.state.delete(this);
 
@@ -144,16 +194,16 @@ export class Mission {
   }
 
   public removeRegistration(targetUuid: string): void {
-    this.ensureNotDeleted();
+    /* this.ensureNotDeleted();
     const registrationIndex = this.registrations.findIndex(
       (registration) => registration.getVolunteerUuid() === targetUuid,
     );
     if (registrationIndex === -1) {
       throw new RegistrationNotFoundError();
     }
-    this.state.removeRegistration(this);
+    this.state.removeRegistration(this, this.registrations[registrationIndex]);
     this.registrations.splice(registrationIndex, 1);
-    this.updatedAt = new Date();
+    this.updatedAt = new Date(); */
   }
 
   public cancelRegistration(targetUuid: string): void {
@@ -251,6 +301,25 @@ export class Mission {
         break;
     }
   }
+
+  /* public validateRealityInvariant() {
+    if (
+      this.nbrVolunteerNeeded !== undefined &&
+      this.nbrVolunteerNeeded !== null &&
+      this.nbrVolunteerNeeded < 0
+    ) {
+      throw new Error("Le nombre de bénévoles ne peut pas être négatif.");
+    }
+    if (
+      this.dateStart &&
+      this.dateEnd &&
+      this.dateStart.getTime() >= this.dateEnd.getTime()
+    ) {
+      throw new MissionDateError(
+        "La date de fin doit être après la date de début.",
+      );
+    }
+  } */
 
   public toSummary() {
     return {

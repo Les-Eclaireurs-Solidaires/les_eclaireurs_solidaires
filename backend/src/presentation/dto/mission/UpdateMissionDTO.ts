@@ -35,10 +35,10 @@ export class UpdateMissionDTO {
   @MaxLength(2000, { message: "La description est trop longue." })
   description?: string;
 
+  @IsFutureDate({ message: "La date doit être dans le futur." })
   @ValidateIf((o) => o.toPublish === true || o.dateStart !== undefined)
   @IsOptional()
   @IsDateString({}, { message: "La date de début n'est pas au bon format." })
-  @IsFutureDate({ message: "La date doit être dans le futur." })
   dateStart?: string;
 
   @ValidateIf((o) => o.toPublish === true || o.dateEnd !== undefined)
