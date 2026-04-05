@@ -18,22 +18,26 @@ import { MissionDateError } from "../domain/mission/exceptions/MissionDateError.
 import { MissionStatus } from "../domain/mission/MissionStatusEnum.js";
 import { MissionNameAlreadyExistError } from "../domain/mission/exceptions/MissionNameAlreadyExistError.js";
 
-
 // ─── Fixtures partagées ────────────────────────────────────────────────────────
 
 let app: Express;
 let database: Pool;
 let missionService: MissionService;
 
-const orgaUuidOne = "user-uuid-1";
-const orgaUuidTwo = "user-uuid-2";
+const orgaUuidOne   = "user-uuid-1";
+const orgaUuidTwo   = "user-uuid-2";
 const orgaUuidThree = "user-uuid-3";
 
 let orgaOneId: number;
 let orgaTwoId: number;
 let orgaThreeId: number;
 
-// ─── Helpers ───────────────────────────────────────────────────────────────────
+// ─── Time helpers (cohérents avec updateMission.test.ts) ──────────────────────
+
+const inDays  = (n: number) => new Date(Date.now() + 86_400_000 * n).toISOString();
+const inPast  = (n: number) => new Date(Date.now() - 86_400_000 * n).toISOString();
+
+// ─── DB helpers ───────────────────────────────────────────────────────────────
 
 const getMissionFromDb = async (name: string): Promise<RowDataPacket[]> => {
   const [rows] = await database.execute<RowDataPacket[]>(
@@ -43,9 +47,7 @@ const getMissionFromDb = async (name: string): Promise<RowDataPacket[]> => {
   return rows;
 };
 
-const getInscriptionsForMission = async (
-  missionUuid: string,
-): Promise<RowDataPacket[]> => {
+const getInscriptionsForMission = async (missionUuid: string): Promise<RowDataPacket[]> => {
   const [rows] = await database.execute<RowDataPacket[]>(
     `SELECT i.* FROM inscription i
      JOIN mission m ON m.mission_id = i.id_mission
@@ -55,9 +57,7 @@ const getInscriptionsForMission = async (
   return rows;
 };
 
-const getOrganizersForMission = async (
-  missionUuid: string,
-): Promise<RowDataPacket[]> => {
+const getOrganizersForMission = async (missionUuid: string): Promise<RowDataPacket[]> => {
   const [rows] = await database.execute<RowDataPacket[]>(
     `SELECT mo.* FROM mission_organizer mo
      JOIN mission m ON m.mission_id = mo.id_mission
@@ -68,15 +68,15 @@ const getOrganizersForMission = async (
 };
 
 const validMissionBase = (): CreateMissionDTO => ({
-  name: `Mission Test ${Date.now()}`,
-  description: "Description valide pour les tests avancés.",
-  dateStart: new Date(Date.now() + 86_400_000).toISOString(), // +1 jour
-  dateEnd: new Date(Date.now() + 172_800_000).toISOString(), // +2 jours
-  address: "14 rue du Test",
+  name:               `Mission Test ${Date.now()}`,
+  description:        "Description valide pour les tests avancés.",
+  dateStart:          inDays(1),
+  dateEnd:            inDays(2),
+  address:            "14 rue du Test",
   nbrVolunteerNeeded: 5,
-  cityId: 1,
-  categoryIds: [1, 2],
-  toPublish: false,
+  cityId:             1,
+  categoryIds:        [1, 2],
+  toPublish:          false,
   organizers: [
     { organizerUuid: orgaUuidOne, isMain: true, isParticipant: false },
   ],
@@ -94,7 +94,7 @@ const setupDatabase = async () => {
   await database.execute("SET FOREIGN_KEY_CHECKS = 1");
 
   await database.execute(
-    "INSERT IGNORE INTO city (city_id, city_name, city_zip) VALUES (1, 'Paris', '75000')",
+    "INSERT IGNORE INTO city (city_id, city_name, city_zip) VALUES (1, 'Paris', '75000'), (2, 'Lyon', '69000'), (3, 'Marseille', '13000')",
   );
   await database.execute(`
     INSERT IGNORE INTO role (role_id, role_name)
@@ -104,14 +104,14 @@ const setupDatabase = async () => {
     VALUES (1,'DRAFT'), (2,'PUBLISHED'), (3,'FINISHED'), (4,'CANCELED')`);
   await database.execute(`
     INSERT IGNORE INTO category (category_id, category_name)
-    VALUES (1,'SPORT'), (2,'Aide et autre'), (3,'Autre catégorie'), (4,'Catégorie de test')`);
+    VALUES (1,'SPORT'), (2,'Aide et autre'), (3,'Autre catégorie'), (4,'Catégorie de test'), (5,'Culture'), (6,'Environnement')`);
   await database.execute(
     "INSERT IGNORE INTO inscription_status (inscription_status_id, inscription_status_name) VALUES (1,'PENDING'), (2,'VALIDATED'), (3,'REFUSED')",
   );
 
   const users: [string, string][] = [
-    [orgaUuidOne, "orga1@test.com"],
-    [orgaUuidTwo, "orga2@test.com"],
+    [orgaUuidOne,   "orga1@test.com"],
+    [orgaUuidTwo,   "orga2@test.com"],
     [orgaUuidThree, "orga3@test.com"],
   ];
 
@@ -130,24 +130,20 @@ const setupDatabase = async () => {
     return rows[0]!.user_id;
   };
 
-  orgaOneId = await resolve(orgaUuidOne);
-  orgaTwoId = await resolve(orgaUuidTwo);
+  orgaOneId   = await resolve(orgaUuidOne);
+  orgaTwoId   = await resolve(orgaUuidTwo);
   orgaThreeId = await resolve(orgaUuidThree);
 };
 
 beforeAll(() => {
   database = Database.getInstance().getPool();
 
-  const hashService = new HashService();
-  const tokenService = new TokenService();
-  const userRepository = new UserRepository(database);
-  const missionRepository = new MissionRepository(database);
+  const hashService          = new HashService();
+  const tokenService         = new TokenService();
+  const userRepository       = new UserRepository(database);
+  const missionRepository    = new MissionRepository(database);
   const registrationRepository = new RegistrationRepository(database);
-  const authService = new AuthService(
-    userRepository,
-    hashService,
-    tokenService,
-  );
+  const authService          = new AuthService(userRepository, hashService, tokenService);
 
   missionService = new MissionService(
     missionRepository,
@@ -156,7 +152,7 @@ beforeAll(() => {
     database,
   );
 
-  const authController = new AuthController(authService, tokenService);
+  const authController    = new AuthController(authService, tokenService);
   const missionController = new MissionController(missionService, tokenService);
   app = new AppConfig(authController, missionController).getApp();
 });
@@ -170,18 +166,20 @@ beforeEach(async () => {
 });
 
 // ══════════════════════════════════════════════════════════════════════════════
-// 1. INVARIANTS MÉTIER — VALIDATIONS DU MODÈLE
+// 1. DATE INVARIANTS — TOUJOURS APPLIQUÉES (draft ET publication)
+//    Règle : passé, start == end, end < start, date malformée → toujours rejeté.
 // ══════════════════════════════════════════════════════════════════════════════
 
-describe("Model invariants", () => {
+describe("Date invariants (always applied — draft or publish)", () => {
   it("must reject a mission whose start date equals the end date", async () => {
-    const sameDate = new Date(Date.now() + 86_400_000).toISOString();
+    const sameDate = inDays(1);
     await expect(
       missionService.createMission({
         ...validMissionBase(),
+        toPublish: false,
         name: "Same Date",
         dateStart: sameDate,
-        dateEnd: sameDate,
+        dateEnd:   sameDate,
       }),
     ).rejects.toThrow(MissionDateError);
   });
@@ -190,78 +188,176 @@ describe("Model invariants", () => {
     await expect(
       missionService.createMission({
         ...validMissionBase(),
-        name: "Past Start",
-        dateStart: "2020-01-01T00:00:00.000Z",
-        dateEnd: new Date(Date.now() + 86_400_000).toISOString(),
+        toPublish: false,
+        name:      "Past Start",
+        dateStart: inPast(3),
+        dateEnd:   inDays(1),
       }),
     ).rejects.toThrow(MissionDateError);
   });
 
-  it("must reject nbrVolunteerNeeded = 0", async () => {
+  it("must reject a mission with end strictly before start", async () => {
     await expect(
       missionService.createMission({
         ...validMissionBase(),
-        name: "Zero Volunteers",
-        nbrVolunteerNeeded: 0,
+        toPublish: false,
+        name:      "End Before Start",
+        dateStart: inDays(3),
+        dateEnd:   inDays(1),
       }),
-    ).rejects.toThrow(); // Adapte à ton exception métier si tu en as une
+    ).rejects.toThrow(MissionDateError);
   });
 
-  it("must reject a negative nbrVolunteerNeeded", async () => {
+  it("must reject a malformed date string", async () => {
     await expect(
       missionService.createMission({
         ...validMissionBase(),
-        name: "Negative Volunteers",
-        nbrVolunteerNeeded: -5,
-      }),
-    ).rejects.toThrow();
-  });
-
-  it("must reject an empty name", async () => {
-    await expect(
-      missionService.createMission({ ...validMissionBase(), name: "" }),
-    ).rejects.toThrow();
-  });
-
-  it("must reject a name that is only whitespace", async () => {
-    await expect(
-      missionService.createMission({ ...validMissionBase(), name: "   " }),
-    ).rejects.toThrow();
-  });
-
-  it("must reject an empty description", async () => {
-    await expect(
-      missionService.createMission({
-        ...validMissionBase(),
-        name: "Empty Desc",
-        description: "",
-      }),
-    ).rejects.toThrow();
-  });
-
-  it("must reject an empty category list", async () => {
-    await expect(
-      missionService.createMission({
-        ...validMissionBase(),
-        name: "No Category",
-        categoryIds: [],
-      }),
-    ).rejects.toThrow();
-  });
-
-  it("must reject an empty organizer list", async () => {
-    await expect(
-      missionService.createMission({
-        ...validMissionBase(),
-        name: "No Organizer",
-        organizers: [],
+        toPublish: false,
+        name:      "Malformed Date",
+        dateStart: "not-a-valid-date",
       }),
     ).rejects.toThrow();
   });
 });
 
 // ══════════════════════════════════════════════════════════════════════════════
-// 2. INVARIANTS MÉTIER — RÈGLES ORGANISATEURS
+// 2. MODEL INVARIANTS — TOUJOURS APPLIQUÉES (draft ET publication)
+//    Règle : ces champs sont toujours obligatoires / bornés, statut ignoré.
+// ══════════════════════════════════════════════════════════════════════════════
+
+describe("Model invariants (always applied — draft or publish)", () => {
+  it("must reject an empty name", async () => {
+    await expect(
+      missionService.createMission({ ...validMissionBase(), toPublish: false, name: "" }),
+    ).rejects.toThrow();
+  });
+
+  it("must reject a name that is only whitespace", async () => {
+    await expect(
+      missionService.createMission({ ...validMissionBase(), toPublish: false, name: "   " }),
+    ).rejects.toThrow();
+  });
+
+  it("must reject a name exceeding maximum length (255 chars)", async () => {
+    await expect(
+      missionService.createMission({ ...validMissionBase(), toPublish: false, name: "A".repeat(256) }),
+    ).rejects.toThrow();
+  });
+
+  it("must reject a negative nbrVolunteerNeeded", async () => {
+    await expect(
+      missionService.createMission({ ...validMissionBase(), toPublish: false, name: "Negative Vol", nbrVolunteerNeeded: -5 }),
+    ).rejects.toThrow();
+  });
+
+  it("must reject an empty organizer list", async () => {
+    await expect(
+      missionService.createMission({ ...validMissionBase(), toPublish: false, name: "No Organizer", organizers: [] }),
+    ).rejects.toThrow();
+  });
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+// 3. DRAFT INVARIANTS — RÈGLES PERMISSIVES
+//    Ces champs sont facultatifs sur un brouillon ; ils seront requis à la
+//    publication (voir section 4).
+// ══════════════════════════════════════════════════════════════════════════════
+
+describe("Draft invariants (Permissive rules)", () => {
+  it("must ACCEPT a draft with missing description", async () => {
+    const { description, ...baseWithoutDesc } = validMissionBase();
+    const result = await missionService.createMission({
+      ...baseWithoutDesc,
+      toPublish: false,
+      name: "Draft No Desc",
+    });
+    expect(result.getStatus()).toBe(MissionStatus.DRAFT);
+  });
+
+  it("must ACCEPT a draft with nbrVolunteerNeeded = 0", async () => {
+    const result = await missionService.createMission({
+      ...validMissionBase(),
+      toPublish:          false,
+      name:               "Draft Zero Vol",
+      nbrVolunteerNeeded: 0,
+    });
+    expect(result.getNbrVolunteerNeeded()).toBe(0);
+  });
+
+  it("must ACCEPT a draft with no categories", async () => {
+    const { categoryIds, ...baseWithoutCats } = validMissionBase();
+    const result = await missionService.createMission({
+      ...baseWithoutCats,
+      toPublish: false,
+      name:      "Draft No Categories",
+    });
+    expect(result.getCategoryIds()).toHaveLength(0);
+  });
+
+  it("must ACCEPT a draft without an address", async () => {
+    const { address, ...baseWithoutAddr } = validMissionBase();
+    const result = await missionService.createMission({
+      ...baseWithoutAddr,
+      toPublish: false,
+      name:      "Draft No Address",
+    });
+    expect(result.getStatus()).toBe(MissionStatus.DRAFT);
+  });
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+// 4. PUBLICATION INVARIANTS — RÈGLES STRICTES SUPPLÉMENTAIRES
+//    Ces règles s'ajoutent aux invariants universels lors d'une publication.
+// ══════════════════════════════════════════════════════════════════════════════
+
+describe("Publication invariants (Strict rules)", () => {
+  it("must reject nbrVolunteerNeeded = 0 on publish", async () => {
+    await expect(
+      missionService.createMission({
+        ...validMissionBase(),
+        toPublish:          true,
+        name:               "Zero Volunteers Publish",
+        nbrVolunteerNeeded: 0,
+      }),
+    ).rejects.toThrow();
+  });
+
+  it("must reject an empty description on publish", async () => {
+    await expect(
+      missionService.createMission({
+        ...validMissionBase(),
+        toPublish:   true,
+        name:        "Empty Desc Publish",
+        description: "",
+      }),
+    ).rejects.toThrow();
+  });
+
+  it("must reject a missing address on publish", async () => {
+    const { address, ...baseWithoutAddr } = validMissionBase();
+    await expect(
+      missionService.createMission({
+        ...baseWithoutAddr,
+        toPublish: true,
+        name:      "No Address Publish",
+      }),
+    ).rejects.toThrow();
+  });
+
+  it("must reject an empty category list on publish", async () => {
+    await expect(
+      missionService.createMission({
+        ...validMissionBase(),
+        toPublish:   true,
+        name:        "No Category Publish",
+        categoryIds: [],
+      }),
+    ).rejects.toThrow();
+  });
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+// 5. ORGANIZER BUSINESS RULES
 // ══════════════════════════════════════════════════════════════════════════════
 
 describe("Organizer business rules", () => {
@@ -275,7 +371,7 @@ describe("Organizer business rules", () => {
           { organizerUuid: orgaUuidTwo, isMain: false, isParticipant: false },
         ],
       }),
-    ).rejects.toThrow(); // Adapte à ton exception NoMainOrganizerError
+    ).rejects.toThrow();
   });
 
   it("must reject a list with two main organizers", async () => {
@@ -288,18 +384,28 @@ describe("Organizer business rules", () => {
           { organizerUuid: orgaUuidTwo, isMain: true, isParticipant: false },
         ],
       }),
-    ).rejects.toThrow(); // Adapte à ton exception
+    ).rejects.toThrow();
   });
 
-  it("must reject a duplicate organizer uuid in the same list", async () => {
+  it("must reject a duplicate organizer UUID in the same list", async () => {
     await expect(
       missionService.createMission({
         ...validMissionBase(),
         name: "Duplicate Orga",
         organizers: [
-          { organizerUuid: orgaUuidOne, isMain: true, isParticipant: false },
+          { organizerUuid: orgaUuidOne, isMain: true,  isParticipant: false },
           { organizerUuid: orgaUuidOne, isMain: false, isParticipant: true },
         ],
+      }),
+    ).rejects.toThrow();
+  });
+
+  it("must reject an organizer with an empty UUID", async () => {
+    await expect(
+      missionService.createMission({
+        ...validMissionBase(),
+        name: "Empty Orga UUID",
+        organizers: [{ organizerUuid: "", isMain: true, isParticipant: false }],
       }),
     ).rejects.toThrow();
   });
@@ -308,9 +414,7 @@ describe("Organizer business rules", () => {
     const result = await missionService.createMission({
       ...validMissionBase(),
       name: "Orga Non Participant",
-      organizers: [
-        { organizerUuid: orgaUuidOne, isMain: true, isParticipant: false },
-      ],
+      organizers: [{ organizerUuid: orgaUuidOne, isMain: true, isParticipant: false }],
     });
 
     expect(result.getRegistrations()).toHaveLength(0);
@@ -323,7 +427,7 @@ describe("Organizer business rules", () => {
       ...validMissionBase(),
       name: "Orga Persistence Check",
       organizers: [
-        { organizerUuid: orgaUuidOne, isMain: true, isParticipant: false },
+        { organizerUuid: orgaUuidOne, isMain: true,  isParticipant: false },
         { organizerUuid: orgaUuidTwo, isMain: false, isParticipant: false },
       ],
     });
@@ -337,33 +441,28 @@ describe("Organizer business rules", () => {
 });
 
 // ══════════════════════════════════════════════════════════════════════════════
-// 3. STATUTS & PUBLICATION
+// 6. STATUTS & PUBLICATION
 // ══════════════════════════════════════════════════════════════════════════════
 
 describe("Mission status rules", () => {
-  it("must create with DRAFT status when toPublish is false, even with participant", async () => {
+  it("must create with DRAFT status when toPublish is false, even with a participant", async () => {
     const result = await missionService.createMission({
       ...validMissionBase(),
-      name: "Draft With Participant",
+      name:      "Draft With Participant",
       toPublish: false,
-      organizers: [
-        { organizerUuid: orgaUuidOne, isMain: true, isParticipant: true },
-      ],
+      organizers: [{ organizerUuid: orgaUuidOne, isMain: true, isParticipant: true }],
     });
 
-    // L'inscription en mémoire doit exister, mais le statut est DRAFT
     expect(result.getStatus()).toBe(MissionStatus.DRAFT);
     expect(result.getRegistrations()).toHaveLength(1);
   });
 
   it("must store PUBLISHED status in DB when toPublish is true", async () => {
-    const result = await missionService.createMission({
+    await missionService.createMission({
       ...validMissionBase(),
-      name: "Published In DB",
+      name:      "Published In DB",
       toPublish: true,
-      organizers: [
-        { organizerUuid: orgaUuidOne, isMain: true, isParticipant: false },
-      ],
+      organizers: [{ organizerUuid: orgaUuidOne, isMain: true, isParticipant: false }],
     });
 
     const rows = await getMissionFromDb("Published In DB");
@@ -374,7 +473,7 @@ describe("Mission status rules", () => {
   it("must store DRAFT status in DB when toPublish is false", async () => {
     await missionService.createMission({
       ...validMissionBase(),
-      name: "Draft In DB",
+      name:      "Draft In DB",
       toPublish: false,
     });
 
@@ -385,14 +484,14 @@ describe("Mission status rules", () => {
 });
 
 // ══════════════════════════════════════════════════════════════════════════════
-// 4. CATÉGORIES
+// 7. CATÉGORIES
 // ══════════════════════════════════════════════════════════════════════════════
 
 describe("Mission categories", () => {
   it("must persist all categories in mission_category table", async () => {
     const result = await missionService.createMission({
       ...validMissionBase(),
-      name: "All Categories",
+      name:        "All Categories",
       categoryIds: [1, 2, 3],
     });
 
@@ -405,16 +504,15 @@ describe("Mission categories", () => {
     expect(rows[0]!.count).toBe(3);
   });
 
-  it("must reject a non-existent category (FK constraint)", async () => {
+  it("must reject a non-existent category (FK constraint) and rollback", async () => {
     await expect(
       missionService.createMission({
         ...validMissionBase(),
-        name: "Bad Category",
+        name:        "Bad Category",
         categoryIds: [9999],
       }),
     ).rejects.toThrow();
 
-    // Rollback vérifié : aucune mission créée
     const rows = await getMissionFromDb("Bad Category");
     expect(rows).toHaveLength(0);
   });
@@ -423,7 +521,7 @@ describe("Mission categories", () => {
     await expect(
       missionService.createMission({
         ...validMissionBase(),
-        name: "Duplicate Cat",
+        name:        "Duplicate Cat",
         categoryIds: [1, 1, 2],
       }),
     ).rejects.toThrow();
@@ -431,21 +529,19 @@ describe("Mission categories", () => {
 });
 
 // ══════════════════════════════════════════════════════════════════════════════
-// 5. TRANSACTIONS & ROLLBACKS
+// 8. TRANSACTIONS & ROLLBACKS
 // ══════════════════════════════════════════════════════════════════════════════
 
 describe("Transaction integrity (rollbacks)", () => {
-  it("ROLLBACK : must not persist the mission if category saving fails mid-transaction", async () => {
+  it("ROLLBACK: must not persist the mission if category saving fails mid-transaction", async () => {
     const name = "Mission Category Rollback";
 
     await expect(
       missionService.createMission({
         ...validMissionBase(),
         name,
-        categoryIds: [1, 9999], // La 2e FK va échouer
-        organizers: [
-          { organizerUuid: orgaUuidOne, isMain: true, isParticipant: false },
-        ],
+        categoryIds: [1, 9999],
+        organizers:  [{ organizerUuid: orgaUuidOne, isMain: true, isParticipant: false }],
       }),
     ).rejects.toThrow();
 
@@ -453,17 +549,14 @@ describe("Transaction integrity (rollbacks)", () => {
     expect(rows).toHaveLength(0);
   });
 
-  it("ROLLBACK : must not persist the mission if organizer saving fails mid-transaction", async () => {
+  it("ROLLBACK: must not persist the mission if organizer saving fails mid-transaction", async () => {
     const name = "Mission Organizer Rollback";
 
     await expect(
       missionService.createMission({
         ...validMissionBase(),
         name,
-        // UUID inexistant → la FK user_id sur mission_organizer va échouer
-        organizers: [
-          { organizerUuid: "uuid-fantome", isMain: true, isParticipant: false },
-        ],
+        organizers: [{ organizerUuid: "uuid-fantome", isMain: true, isParticipant: false }],
       }),
     ).rejects.toThrow();
 
@@ -471,7 +564,7 @@ describe("Transaction integrity (rollbacks)", () => {
     expect(rows).toHaveLength(0);
   });
 
-  it("ROLLBACK : partial organizers — second organizer fails, first should not be saved", async () => {
+  it("ROLLBACK: partial organizers — second organizer fails, first should not be saved", async () => {
     const name = "Mission Partial Orga Rollback";
 
     await expect(
@@ -479,12 +572,8 @@ describe("Transaction integrity (rollbacks)", () => {
         ...validMissionBase(),
         name,
         organizers: [
-          { organizerUuid: orgaUuidOne, isMain: true, isParticipant: false }, // ✅ valide
-          {
-            organizerUuid: "uuid-fantome",
-            isMain: false,
-            isParticipant: false,
-          }, // ❌ FK échouera
+          { organizerUuid: orgaUuidOne,   isMain: true,  isParticipant: false },
+          { organizerUuid: "uuid-fantome", isMain: false, isParticipant: false },
         ],
       }),
     ).rejects.toThrow();
@@ -492,7 +581,6 @@ describe("Transaction integrity (rollbacks)", () => {
     const rows = await getMissionFromDb(name);
     expect(rows).toHaveLength(0);
 
-    // Aucun organizer ne doit traîner non plus
     const [orgas] = await database.execute<RowDataPacket[]>(
       "SELECT * FROM mission_organizer WHERE id_mission = (SELECT mission_id FROM mission WHERE mission_name = ? LIMIT 1)",
       [name],
@@ -500,7 +588,7 @@ describe("Transaction integrity (rollbacks)", () => {
     expect(orgas).toHaveLength(0);
   });
 
-  it("ROLLBACK : second inscription fails → mission AND first inscription rolled back", async () => {
+  it("ROLLBACK: second inscription fails → mission AND first inscription rolled back", async () => {
     const name = "Mission Double Inscription Rollback";
 
     await expect(
@@ -509,8 +597,8 @@ describe("Transaction integrity (rollbacks)", () => {
         name,
         toPublish: true,
         organizers: [
-          { organizerUuid: orgaUuidOne, isMain: true, isParticipant: true }, // ✅
-          { organizerUuid: "uuid-fantome", isMain: false, isParticipant: true }, // ❌
+          { organizerUuid: orgaUuidOne,   isMain: true,  isParticipant: true },
+          { organizerUuid: "uuid-fantome", isMain: false, isParticipant: true },
         ],
       }),
     ).rejects.toThrow();
@@ -522,33 +610,20 @@ describe("Transaction integrity (rollbacks)", () => {
       "SELECT * FROM inscription WHERE id_user = ?",
       [orgaOneId],
     );
-    expect(inscriptions).toHaveLength(0); // La 1re inscription doit aussi être rollbackée
+    expect(inscriptions).toHaveLength(0);
   });
 
-  it("must not leave orphan data after any failed creation", async () => {
+  it("must not leave orphan data after any failed creation (invalid cityId)", async () => {
     const name = "Orphan Check";
 
     await expect(
-      missionService.createMission({
-        ...validMissionBase(),
-        name,
-        cityId: 9999, // FK City va échouer immédiatement
-      }),
+      missionService.createMission({ ...validMissionBase(), name, cityId: 9999 }),
     ).rejects.toThrow();
 
-    const [missions] = await database.execute<RowDataPacket[]>(
-      "SELECT COUNT(*) as c FROM mission WHERE mission_name = ?",
-      [name],
-    );
-    const [categories] = await database.execute<RowDataPacket[]>(
-      "SELECT COUNT(*) as c FROM mission_category",
-    );
-    const [organizers] = await database.execute<RowDataPacket[]>(
-      "SELECT COUNT(*) as c FROM mission_organizer",
-    );
-    const [inscriptions] = await database.execute<RowDataPacket[]>(
-      "SELECT COUNT(*) as c FROM inscription",
-    );
+    const [missions]     = await database.execute<RowDataPacket[]>("SELECT COUNT(*) as c FROM mission WHERE mission_name = ?", [name]);
+    const [categories]   = await database.execute<RowDataPacket[]>("SELECT COUNT(*) as c FROM mission_category");
+    const [organizers]   = await database.execute<RowDataPacket[]>("SELECT COUNT(*) as c FROM mission_organizer");
+    const [inscriptions] = await database.execute<RowDataPacket[]>("SELECT COUNT(*) as c FROM inscription");
 
     expect(missions[0]!.c).toBe(0);
     expect(categories[0]!.c).toBe(0);
@@ -558,51 +633,34 @@ describe("Transaction integrity (rollbacks)", () => {
 });
 
 // ══════════════════════════════════════════════════════════════════════════════
-// 6. IDEMPOTENCE & CONCURRENCE
+// 9. IDEMPOTENCE & CONCURRENCE
 // ══════════════════════════════════════════════════════════════════════════════
 
 describe("Idempotency and concurrency", () => {
   it("must reject the second call when two missions with the same name are created sequentially", async () => {
-    const payload: CreateMissionDTO = {
-      ...validMissionBase(),
-      name: "Mission Sequential Duplicate",
-    };
+    const payload: CreateMissionDTO = { ...validMissionBase(), name: "Mission Sequential Duplicate" };
 
     await missionService.createMission(payload);
 
-    await expect(missionService.createMission(payload)).rejects.toThrow(
-      MissionNameAlreadyExistError,
-    );
+    await expect(missionService.createMission(payload)).rejects.toThrow(MissionNameAlreadyExistError);
 
-    // Une seule mission en base
     const rows = await getMissionFromDb(payload.name);
     expect(rows).toHaveLength(1);
   });
 
-  it("must handle concurrent creation of two missions with different names without interference", async () => {
-    const r1 = await missionService.createMission({
-      ...validMissionBase(),
-      name: "Sequential A",
-    });
-    const r2 = await missionService.createMission({
-      ...validMissionBase(),
-      name: "Sequential B",
-    });
+  it("must handle creation of two missions with different names without interference", async () => {
+    const r1 = await missionService.createMission({ ...validMissionBase(), name: "Sequential A" });
+    const r2 = await missionService.createMission({ ...validMissionBase(), name: "Sequential B" });
 
     expect(r1.getName()).toBe("Sequential A");
     expect(r2.getName()).toBe("Sequential B");
 
-    const rowsA = await getMissionFromDb("Sequential A");
-    const rowsB = await getMissionFromDb("Sequential B");
-    expect(rowsA).toHaveLength(1);
-    expect(rowsB).toHaveLength(1);
+    expect(await getMissionFromDb("Sequential A")).toHaveLength(1);
+    expect(await getMissionFromDb("Sequential B")).toHaveLength(1);
   });
 
   it("concurrent creation with the same name — exactly one must succeed", async () => {
-    const payload: CreateMissionDTO = {
-      ...validMissionBase(),
-      name: "Race Condition Mission",
-    };
+    const payload: CreateMissionDTO = { ...validMissionBase(), name: "Race Condition Mission" };
 
     const results = await Promise.allSettled([
       missionService.createMission({ ...payload }),
@@ -610,28 +668,21 @@ describe("Idempotency and concurrency", () => {
       missionService.createMission({ ...payload }),
     ]);
 
-    const fulfilled = results.filter((r) => r.status === "fulfilled");
-    const rejected = results.filter((r) => r.status === "rejected");
+    expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(1);
+    expect(results.filter((r) => r.status === "rejected")).toHaveLength(2);
 
-    expect(fulfilled).toHaveLength(1);
-    expect(rejected).toHaveLength(2);
-
-    // Une seule ligne en base
     const rows = await getMissionFromDb(payload.name);
     expect(rows).toHaveLength(1);
   });
 });
 
 // ══════════════════════════════════════════════════════════════════════════════
-// 7. VALEURS RETOURNÉES PAR LE SERVICE (mapping domain → DTO)
+// 10. VALEURS RETOURNÉES PAR LE SERVICE (mapping domain → objet)
 // ══════════════════════════════════════════════════════════════════════════════
 
 describe("Service return value integrity", () => {
   it("must return a mission with a valid UUID (non-null, non-empty)", async () => {
-    const result = await missionService.createMission({
-      ...validMissionBase(),
-      name: "UUID Check",
-    });
+    const result = await missionService.createMission({ ...validMissionBase(), name: "UUID Check" });
     expect(result.getUuid()).toBeTruthy();
     expect(result.getUuid()).toMatch(
       /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
@@ -639,8 +690,8 @@ describe("Service return value integrity", () => {
   });
 
   it("must return dates that match what was submitted", async () => {
-    const dateStart = new Date(Date.now() + 86_400_000).toISOString();
-    const dateEnd = new Date(Date.now() + 172_800_000).toISOString();
+    const dateStart = inDays(1);
+    const dateEnd   = inDays(2);
 
     const result = await missionService.createMission({
       ...validMissionBase(),
@@ -656,22 +707,17 @@ describe("Service return value integrity", () => {
   it("must return inscriptions with VALIDATED status for participant organizers", async () => {
     const result = await missionService.createMission({
       ...validMissionBase(),
-      name: "Inscription Status Check",
+      name:      "Inscription Status Check",
       toPublish: true,
-      organizers: [
-        { organizerUuid: orgaUuidOne, isMain: true, isParticipant: true },
-      ],
+      organizers: [{ organizerUuid: orgaUuidOne, isMain: true, isParticipant: true }],
     });
 
     const registration = result.getRegistrations()[0]!;
-    expect(registration.getStatus()).toBe(2); // Adapte si tu utilises une enum
+    expect(registration.getStatus()).toBe(2); // 2 = VALIDATED
   });
 
   it("must match the UUID returned by the service with what is stored in DB", async () => {
-    const result = await missionService.createMission({
-      ...validMissionBase(),
-      name: "UUID DB Match",
-    });
+    const result = await missionService.createMission({ ...validMissionBase(), name: "UUID DB Match" });
 
     const [rows] = await database.execute<RowDataPacket[]>(
       "SELECT mission_uuid FROM mission WHERE mission_name = ?",
@@ -683,43 +729,64 @@ describe("Service return value integrity", () => {
   it("must return correct number of categories on the result object", async () => {
     const result = await missionService.createMission({
       ...validMissionBase(),
-      name: "Category Count Return",
+      name:        "Category Count Return",
       categoryIds: [1, 2, 3],
     });
-
     expect(result.getCategoryIds()).toHaveLength(3);
   });
 });
 
 // ══════════════════════════════════════════════════════════════════════════════
-// 8. EDGE CASES — LIMITES & VOLUMÉTRIE
+// 11. EDGE CASES — LIMITES & VOLUMÉTRIE
 // ══════════════════════════════════════════════════════════════════════════════
 
 describe("Edge cases and boundary values", () => {
-  it("must handle nbrVolunteerNeeded = 1 (minimum valid)", async () => {
+  it("must handle nbrVolunteerNeeded = 1 (minimum valid on publish)", async () => {
     const result = await missionService.createMission({
       ...validMissionBase(),
-      name: "Min Volunteers",
+      name:               "Min Volunteers",
       nbrVolunteerNeeded: 1,
     });
     expect(result.getName()).toBe("Min Volunteers");
   });
 
-  it("must handle a very long but valid description (1000 chars)", async () => {
-    const longDesc = "A".repeat(1000);
+  it("must handle a large but valid nbrVolunteerNeeded (99 999)", async () => {
     const result = await missionService.createMission({
       ...validMissionBase(),
-      name: "Long Description",
-      description: longDesc,
+      name:               "Max Volunteers",
+      nbrVolunteerNeeded: 99_999,
+    });
+    expect(result.getNbrVolunteerNeeded()).toBe(99_999);
+  });
+
+  it("must handle a very long but valid description (1000 chars)", async () => {
+    const result = await missionService.createMission({
+      ...validMissionBase(),
+      name:        "Long Description",
+      description: "A".repeat(1000),
     });
     expect(result.getName()).toBe("Long Description");
   });
 
-  it("must handle all 4 categories simultaneously", async () => {
+  it("must securely handle SQL injection attempts in text fields", async () => {
+    const sneakyString = "Robert'; DROP TABLE mission;--";
     const result = await missionService.createMission({
       ...validMissionBase(),
-      name: "All Four Categories",
-      categoryIds: [1, 2, 3, 4],
+      name:        sneakyString,
+      description: sneakyString,
+    });
+    expect(result.getName()).toBe(sneakyString);
+
+    const rows = await getMissionFromDb(sneakyString);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.mission_description).toBe(sneakyString);
+  });
+
+  it("must handle all available categories simultaneously", async () => {
+    const result = await missionService.createMission({
+      ...validMissionBase(),
+      name:        "All Six Categories",
+      categoryIds: [1, 2, 3, 4, 5, 6],
     });
 
     const [rows] = await database.execute<RowDataPacket[]>(
@@ -728,26 +795,24 @@ describe("Edge cases and boundary values", () => {
        WHERE m.mission_uuid = ?`,
       [result.getUuid()],
     );
-    expect(rows[0]!.count).toBe(4);
+    expect(rows[0]!.count).toBe(6);
   });
 
   it("must handle 3 organizers with 3 participant registrations", async () => {
     const result = await missionService.createMission({
       ...validMissionBase(),
-      name: "Three Participants",
-      toPublish: true,
+      name:               "Three Participants",
+      toPublish:          true,
       nbrVolunteerNeeded: 10,
       organizers: [
-        { organizerUuid: orgaUuidOne, isMain: true, isParticipant: true },
-        { organizerUuid: orgaUuidTwo, isMain: false, isParticipant: true },
+        { organizerUuid: orgaUuidOne,   isMain: true,  isParticipant: true },
+        { organizerUuid: orgaUuidTwo,   isMain: false, isParticipant: true },
         { organizerUuid: orgaUuidThree, isMain: false, isParticipant: true },
       ],
     });
 
     expect(result.getRegistrations()).toHaveLength(3);
-
-    const inscriptions = await getInscriptionsForMission(result.getUuid());
-    expect(inscriptions).toHaveLength(3);
+    expect(await getInscriptionsForMission(result.getUuid())).toHaveLength(3);
   });
 
   it("must handle a mission starting exactly tomorrow at midnight", async () => {
@@ -760,11 +825,10 @@ describe("Edge cases and boundary values", () => {
 
     const result = await missionService.createMission({
       ...validMissionBase(),
-      name: "Midnight Mission",
+      name:      "Midnight Mission",
       dateStart: tomorrow.toISOString(),
-      dateEnd: dayAfter.toISOString(),
+      dateEnd:   dayAfter.toISOString(),
     });
-
     expect(result.getName()).toBe("Midnight Mission");
   });
 });
