@@ -23,16 +23,22 @@ services:
       target: production
     container_name: eclaireurs-backend
     env_file:
-      - .env
       - ./backend/.env
-    environment:
-      - DB_HOST=mysql
-      - DB_USER=root
-      - DB_PASSWORD=${DB_PASSWORD}
-      - DB_NAME=${DB_NAME}
     depends_on:
       mysql:
         condition: service_healthy
+    networks:
+      - eclaireurs-network
+
+  frontend:
+    build:
+      context: ./frontend
+      target: production
+    container_name: eclaireurs-frontend
+    env_file:
+      - ./frontend/.env
+    depends_on:
+      - backend
     networks:
       - eclaireurs-network
 

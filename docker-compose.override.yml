@@ -1,17 +1,31 @@
 services:
   mysql:
     ports:
-      - "3306:3306"                         # ← exposé seulement en dev
+      - "3306:3306"      
 
   backend:
     build:
-      target: development                   # ← surcharge la cible
+      target: development
     ports:
       - "${HOST_BACKEND_PORT}:3000"
     volumes:
-      - ./backend:/app                      # ← hot-reload
+      - ./backend:/app   
       - /app/node_modules
     command: npm run dev
+
+  frontend:
+    build:
+      target: development
+    ports:
+      - "${HOST_FRONTEND_PORT}:4200"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      #- API_URL_CLIENT=http://localhost:${HOST_BACKEND_PORT}
+      #- API_URL_SERVER=http://backend:3000
+      - NG_ALLOWED_HOSTS=localhost,frontend,172.19.0.5,127.0.0.1
+    command: npm start -- --host 0.0.0.0 
 
   phpmyadmin:
     image: phpmyadmin:latest

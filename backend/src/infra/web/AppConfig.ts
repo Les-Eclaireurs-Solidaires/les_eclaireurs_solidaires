@@ -11,14 +11,13 @@ export class AppConfig {
   private host: string;
   private server?: Server;
 
-
-  constructor(
-  ) {
+  constructor() {
     this.app = express();
     this.port = envConfig.port;
     this.host = envConfig.host;
     this.initializeMiddlewares();
     this.initializeRoutes();
+    /* this.initializeErrorHandling(); */
   }
 
   private initializeMiddlewares() {
@@ -26,22 +25,49 @@ export class AppConfig {
     this.app.use(express.urlencoded({ extended: true }));
     this.app.use(helmet());
     this.app.use(
-      cors(),
+      cors({
+        origin: "http://localhost:4200",
+        credentials: true,
+        methods: ["GET", "POST", "PUT", "DELETE"],
+        allowedHeaders: ["Content-Type", "Authorization", "X-XSRF-TOKEN"],
+        exposedHeaders: ["X-XSRF-TOKEN"],
+      }),
     );
     this.app.use(cookieParser());
+    /* this.app.use(csrfProtection); */
   }
 
   private initializeRoutes() {
-    this.app.get("/", (req, res) => {
-      res.send("Hello World!");
+    this.app.get("/api/mission", (req, res) => {
+      res.json({ message: "Hello les Eclaireurs !" });
     });
   }
+
+  /* private initializeErrorHandling() {
+    this.app.use(errorHandler);
+  } */
 
   public listen() {
     this.server = this.app.listen(this.port, this.host, () => {
       console.log(`Server started on http://${this.host}:${this.port}`);
     });
   }
+
+  /* public async stop(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      if (this.server) {
+        this.server.close(async (err) => {
+          if (err) return reject(err);
+          // Quand le serveur Express est coupé, on coupe la base de données !
+          await Database.getInstance().disconnect();
+          resolve();
+        });
+      } else {
+        // Si le serveur n'a jamais démarré (ex: pendant certains tests)
+        Database.getInstance().disconnect().then(resolve).catch(reject);
+      }
+    });
+  } */
 
   public getApp(): Express {
     return this.app;
