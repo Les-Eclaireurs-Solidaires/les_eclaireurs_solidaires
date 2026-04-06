@@ -13,6 +13,7 @@ import type { UpdateMissionDTO } from "../presentation/dto/mission/UpdateMission
 import { MissionNotFoundError } from "../domain/mission/exceptions/MissionNotFoundError.js";
 import { MissionStatus } from "../domain/mission/MissionStatusEnum.js";
 import { MissionStatusError } from "../domain/mission/exceptions/MissionStatusError.js";
+import type { SearchMissionDTO } from "../presentation/dto/mission/SearchMissionDTO.js";
 
 export class MissionService implements IMissionService {
   constructor(
@@ -21,6 +22,17 @@ export class MissionService implements IMissionService {
     private userRepository: IUserRepository,
     private db: Pool,
   ) {}
+  async getMissionDetail(missionUuid: string): Promise<Mission> {
+    const mission = await this.missionRepository.findByUuid(missionUuid);
+    if (!mission) {
+      throw new MissionNotFoundError();
+    }
+    return mission;
+  }
+
+  async getMissions(filters: SearchMissionDTO): Promise<Mission[]> {
+    return this.missionRepository.findMany(filters);
+  }
 
   async createMission(missionDTO: CreateMissionDTO): Promise<Mission> {
     const connection: PoolConnection = await this.db.getConnection();

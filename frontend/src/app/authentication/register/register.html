@@ -1,0 +1,62 @@
+<mat-card class="card-register">
+  <mat-card-header class="card-register-header">
+    <mat-card-title>Créer un compte bénévole</mat-card-title>
+    <mat-card-subtitle>Tous les champs sont obligatoires</mat-card-subtitle>
+  </mat-card-header>
+
+  <mat-card-content class="card-register-content">
+    <form [formGroup]="registerForm" (ngSubmit)="onSubmit()" class="register-form">
+      <div class="form-inputs">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label>Prénom</mat-label>
+          <input matInput formControlName="firstName" type="text" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label>Nom</mat-label>
+          <input matInput formControlName="lastName" type="text" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label>Email</mat-label>
+          <input matInput formControlName="email" type="email" required />
+          @if (registerForm.get('email')?.hasError('required') && registerForm.get('email')?.touched) {
+            <mat-error>L'adresse email est obligatoire.</mat-error>
+          }
+          @if (registerForm.get('email')?.hasError('email') && registerForm.get('email')?.touched) {
+            <mat-error>Le format de l'email est invalide.</mat-error>
+          }
+          <mat-error></mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label>Password</mat-label>
+          <input matInput formControlName="password" type="password" required />
+          @if (
+            registerForm.get('password')?.hasError('required') && registerForm.get('password')?.touched
+          ) {
+            <mat-error>Le mot de passe est obligatoire.</mat-error>
+          }
+          @if (
+            registerForm.get('password')?.hasError('password') && registerForm.get('password')?.touched
+          ) {
+            <mat-error>Le format du mot de passe est invalide.</mat-error>
+          }
+        </mat-form-field>
+      </div>
+
+      <mat-card-actions class="card-register-actions">
+        <button mat-raised-button color="primary" type="submit">M'inscrire</button>
+      </mat-card-actions>
+    </form>
+  </mat-card-content>
+
+  <mat-divider></mat-divider>
+
+  <mat-card-footer class="card-register-footer">
+    <mat-card-title>Vous avez déjà un compte ?</mat-card-title>
+    <mat-card-actions class="card-register-footer-actions">
+      <button mat-button color="primary" routerLink="/login">Se connecter</button>
+    </mat-card-actions>
+  </mat-card-footer>
+</mat-card>

@@ -3,9 +3,8 @@ import { mergeApplicationConfig, ApplicationConfig } from '@angular/core';
 import { provideServerRendering, withRoutes } from '@angular/ssr';
 import { appConfig } from './app.config';
 import { serverRoutes } from './app.routes.server';
-import { HTTP_TRANSFER_CACHE_ORIGIN_MAP } from '@angular/common/http';
+import { HTTP_TRANSFER_CACHE_ORIGIN_MAP, provideHttpClient, withFetch } from '@angular/common/http';
 import { provideClientHydration, withEventReplay, withHttpTransferCacheOptions } from '@angular/platform-browser';
-import { environment } from '../environment/environment';
 
 const serverConfig: ApplicationConfig = {
   providers: [
@@ -13,10 +12,9 @@ const serverConfig: ApplicationConfig = {
     {
       provide: HTTP_TRANSFER_CACHE_ORIGIN_MAP,
       useValue: {
-        [environment.apiUrlServer] : environment.apiUrlClient,
+        'http://backend:3000': 'http://localhost:3000',
       },
     },
-
     provideClientHydration(
       withEventReplay(),
       withHttpTransferCacheOptions({

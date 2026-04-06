@@ -50,7 +50,7 @@ export class AppConfig {
       res.json({ message: "Hello les Eclaireurs !" });
     });
     this.app.use("/auth", this.authController.getRouter());
-    this.app.use("/mission", this.missionController.getRouter());
+    this.app.use("/api/mission", this.missionController.getRouter());
   }
 
   private initializeErrorHandling() {

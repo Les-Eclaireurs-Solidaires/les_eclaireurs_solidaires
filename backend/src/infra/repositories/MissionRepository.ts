@@ -83,7 +83,8 @@ export class MissionRepository implements IMissionRepository {
   ): Promise<Category[] | []> {
     const db = connection || this.db;
     const query = `SELECT * FROM mission_category
-                    LEFT JOIN category ON mission_category.id_category = category.category_id`;
+                    LEFT JOIN category ON mission_category.id_category = category.category_id
+                    WHERE mission_category.id_mission = (SELECT mission_id FROM mission WHERE mission_uuid = ?)`;
     const [result] = await db.execute<RowDataPacket[]>(query, [missionUuid]);
 
     if (result.length === 0) return [];
@@ -215,7 +216,83 @@ export class MissionRepository implements IMissionRepository {
   }
 
   public async findMany(filters: SearchMissionDTO): Promise<Mission[]> {
-    throw new Error("Method not implemented.");
+    let query = `SELECT 
+                      mission.mission_uuid AS uuid,
+                      mission.mission_name AS name,
+                      mission.mission_description AS description,
+                      mission.mission_date_start AS dateStart,
+                      mission.mission_date_end AS dateEnd,
+                      mission.mission_address AS address,
+                      mission.mission_nbr_volunteer_needed AS nbrVolunteerNeeded,
+                      mission.mission_created_at AS createdAt,
+                      mission.mission_updated_at AS updatedAt,
+                      mission.mission_deleted_at AS deletedAt,
+                      mission.id_city AS cityId,
+                      mission_status.mission_status_id AS status
+
+
+                      FROM mission
+
+                      LEFT JOIN mission_status ON mission.id_mission_status = mission_status.mission_status_id`;
+
+    const conditions: string[] = ["mission.mission_deleted_at IS NULL"];
+    const params: any[] = [];
+
+    if (filters.status) {
+      conditions.push("mission.id_mission_status = ?");
+      params.push(filters.status);
+    }
+
+    if (filters.cityId) {
+      conditions.push("mission.id_city = ?");
+      params.push(filters.cityId);
+    }
+    if (filters.name) {
+      conditions.push("mission.mission_name = ?");
+      params.push(filters.name);
+    }
+
+    /* if (filters.dateStart) {
+      conditions.push(
+        "mission.mission_date_start >= ? AND mission.mission_date_start < ?",
+      );
+      params.push(filters.dateStart);
+    } */
+
+    if (conditions.length > 0) {
+      query += " WHERE " + conditions.join(" AND ");
+    }
+    query += " GROUP BY mission.mission_uuid";
+
+    const [rows] = await this.db.execute<RowDataPacket[]>(query, params);
+
+    const missions: Mission[] = [];
+
+    for (const row of rows) {
+      const organizerData = await this.hydrateOrganizers(row.uuid);
+      const categoriesData = await this.hydrateCategories(row.uuid);
+
+      const mission = Mission.hydrate({
+          uuid: row.uuid,
+          name: row.name,
+          description: row.description,
+          dateStart: row.dateStart,
+          dateEnd: row.dateEnd,
+          address: row.address,
+          nbrVolunteerNeeded:row.nbrVolunteerNeeded,
+          createdAt: row.createdAt,
+          updatedAt: row.updatedAt,
+          deletedAt: row.deletedAt,
+          cityId: row.cityId,
+          status: row.status,
+          organizers: organizerData,
+          categoryIds: categoriesData.map((category) => category.id),
+          registrations: await this.hydrateRegistrations(row.uuid),
+        })
+        missions.push(mission);
+    }
+
+    return missions;
   }
 
   public async create(
@@ -366,7 +443,7 @@ export class MissionRepository implements IMissionRepository {
       throw error;
     }
   }
-  
+
   public async delete(
     missionToDelete: Mission,
     connection?: PoolConnection | Pool,

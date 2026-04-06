@@ -323,7 +323,7 @@ export class Mission {
 
   public toSummary() {
     return {
-      /* uuid: this.uuid,
+      uuid: this.uuid,
       name: this.name,
       dateStart: this.dateStart,
       dateEnd: this.dateEnd,
@@ -334,14 +334,14 @@ export class Mission {
       deletedAt: this.deletedAt,
       cityId: this.cityId,
       categories: this.categoryIds,
-      remainingPlaces: this.getAvailablePlacesCount(),
-      status: this.status, */
+      status: this.status,
+      organizers: this.organizers,
     };
   }
 
   public toDetail() {
     return {
-      /* uuid: this.uuid,
+      uuid: this.uuid,
       name: this.name,
       dateStart: this.dateStart,
       dateEnd: this.dateEnd,
@@ -352,12 +352,11 @@ export class Mission {
       deletedAt: this.deletedAt,
       cityId: this.cityId,
       categories: this.categoryIds,
-      remainingPlaces: this.getAvailablePlacesCount(),
       status: this.status,
       organizers: this.organizers,
       registrations: this.registrations.map((registration) =>
         registration.toResponse(),
-      ), */
+      ),
     };
   }
 
