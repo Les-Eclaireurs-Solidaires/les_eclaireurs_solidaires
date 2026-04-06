@@ -2,6 +2,7 @@ import {
   ApplicationConfig,
   ErrorHandler,
   inject,
+  PLATFORM_ID,
   provideAppInitializer,
   provideBrowserGlobalErrorListeners,
 } from '@angular/core';
@@ -19,12 +20,13 @@ import {
   withInterceptors,
   withXsrfConfiguration,
 } from '@angular/common/http';
-import { baseUrlInterceptor } from './interceptors/baseUrl.interceptor';
 import { GlobalErrorHandler } from './exceptions/global-error-handler';
 import { httpErrorInterceptor } from './interceptors/http-error-interceptor';
 import { UserService } from './services/user.service';
 import { AuthService } from './services/auth-service';
-import { catchError, of, tap } from 'rxjs';
+import { catchError, firstValueFrom, of, tap } from 'rxjs';
+import { baseUrlInterceptor } from './interceptors/base-url-interceptor';
+import { isPlatformBrowser } from '@angular/common';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -35,11 +37,15 @@ export const appConfig: ApplicationConfig = {
     provideAppInitializer(() => {
       const authService = inject(AuthService);
       const userService = inject(UserService);
+      const platformId = inject(PLATFORM_ID);
 
-      return authService.refreshUser().pipe(
-        tap((user) => userService.loginUser(user)),
-        catchError(() => of(null)),
-      );
+      if (isPlatformBrowser(platformId)) {
+        const auth$ = authService.refreshUser().pipe(
+          tap((user) => userService.loginUser(user))
+        );
+        return firstValueFrom(auth$).catch(() => null); 
+      }
+      return Promise.resolve();
     }),
     provideBrowserGlobalErrorListeners(),
     provideRouter(routes),

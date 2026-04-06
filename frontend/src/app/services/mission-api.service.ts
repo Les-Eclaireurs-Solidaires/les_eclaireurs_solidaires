@@ -9,7 +9,7 @@ import { formatDate } from '@angular/common';
   providedIn: 'root',
 })
 export class MissionAPIService {
-  private readonly API_URL = '/mission';
+  private readonly API_URL = '/api/mission';
   private http = inject(HttpClient);
 
   public getAllMissions(filters: SearchMission): Observable<IMissionResponse[]> {
@@ -30,13 +30,13 @@ export class MissionAPIService {
       .get<{
         message: string;
         missions: IMissionResponse[];
-      }>(`${this.API_URL}/missions`, { params })
+      }>(`${this.API_URL}/`, { params })
       .pipe(map((response) => response.missions));
   }
 
   public getMissionByUuid(uuid: string): Observable<IMissionResponse> {
     return this.http
-      .get<{ message: string; mission: IMissionResponse }>(`${this.API_URL}/mission/${uuid}`)
+      .get<{ message: string; mission: IMissionResponse }>(`${this.API_URL}/${uuid}`)
       .pipe(map((response) => response.mission));
   }
 
