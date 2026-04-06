@@ -3,7 +3,12 @@ import express, { type Express } from "express";
 import cors from "cors";
 import helmet from "helmet";
 import { envConfig } from "../config/EnvConfig.js";
+import { csrfProtection } from "./middlewares/CSRFMiddleware.js";
+import { errorHandler } from "./middlewares/ErrorMiddleware.js";
 import type { Server } from "node:http";
+import { Database } from "../database/DatabaseConfig.js";
+import type { MissionController } from "../../presentation/MissionController.js";
+import type { AuthController } from "../../presentation/AuthController.js";
 
 export class AppConfig {
   private app: Express;
@@ -11,13 +16,16 @@ export class AppConfig {
   private host: string;
   private server?: Server;
 
-  constructor() {
+  constructor(
+    private authController: AuthController,
+    private missionController: MissionController,
+  ) {
     this.app = express();
     this.port = envConfig.port;
     this.host = envConfig.host;
     this.initializeMiddlewares();
     this.initializeRoutes();
-    /* this.initializeErrorHandling(); */
+    this.initializeErrorHandling();
   }
 
   private initializeMiddlewares() {
@@ -34,18 +42,20 @@ export class AppConfig {
       }),
     );
     this.app.use(cookieParser());
-    /* this.app.use(csrfProtection); */
+    this.app.use(csrfProtection);
   }
 
   private initializeRoutes() {
-    this.app.get("/api/mission", (req, res) => {
+    this.app.get("/api", (req, res) => {
       res.json({ message: "Hello les Eclaireurs !" });
     });
+    this.app.use("/auth", this.authController.getRouter());
+    this.app.use("/mission", this.missionController.getRouter());
   }
 
-  /* private initializeErrorHandling() {
+  private initializeErrorHandling() {
     this.app.use(errorHandler);
-  } */
+  }
 
   public listen() {
     this.server = this.app.listen(this.port, this.host, () => {
@@ -53,7 +63,7 @@ export class AppConfig {
     });
   }
 
-  /* public async stop(): Promise<void> {
+  public async stop(): Promise<void> {
     return new Promise((resolve, reject) => {
       if (this.server) {
         this.server.close(async (err) => {
@@ -67,7 +77,7 @@ export class AppConfig {
         Database.getInstance().disconnect().then(resolve).catch(reject);
       }
     });
-  } */
+  }
 
   public getApp(): Express {
     return this.app;
