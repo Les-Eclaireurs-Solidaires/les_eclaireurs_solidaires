@@ -3,7 +3,6 @@ import { RegistrationStatusError } from "./exceptions/RegistrationStatusError.js
 import type { RegistrationParams } from "./RegistrationParams.js";
 import { RegistrationStatus } from "./RegistrationStatusEnum.js";
 
-
 export class Registration {
   private date: Date;
   private recallSendAt: Date | null;
@@ -19,21 +18,21 @@ export class Registration {
     this.status = param.status || RegistrationStatus.ONHOLD;
   }
   public cancel() {
-    if (this.status === RegistrationStatus.CANCELLED) {
+    if (this.status === RegistrationStatus.CANCELED) {
       return;
     }
     if (this.status === RegistrationStatus.PRESENT) {
       throw new RegistrationStatusError(
-        "Impossible d'annuler une inscription déja participée.",
+        "Cannot cancel a registration that has already been attended.",
       );
     }
-    this.status = RegistrationStatus.CANCELLED;
+    this.status = RegistrationStatus.CANCELED;
   }
 
   public validate() {
     if (this.status !== RegistrationStatus.ONHOLD) {
       throw new RegistrationStatusError(
-        "Impossible de valider une inscription qui n'est pas en attente.",
+        "Cannot validate a registration that is not on hold.",
       );
     }
 
@@ -46,7 +45,7 @@ export class Registration {
     }
     if (this.status !== RegistrationStatus.ONHOLD) {
       throw new RegistrationStatusError(
-        "Impossible de refuser une inscription qui n'est pas en attente.",
+        "Cannot refuse a registration that is not on hold.",
       );
     }
     this.status = RegistrationStatus.REFUSED;
@@ -58,7 +57,7 @@ export class Registration {
     }
     if (this.status !== RegistrationStatus.VALIDATED) {
       throw new RegistrationStatusError(
-        "Impossible de régler la présence d'une inscription qui n'est pas validée.",
+        "Cannot mark as present a registration that is not validated.",
       );
     }
     this.status = RegistrationStatus.PRESENT;
@@ -70,7 +69,7 @@ export class Registration {
     }
     if (this.status !== RegistrationStatus.VALIDATED) {
       throw new RegistrationStatusError(
-        "Impossible de régler l'absence d'une inscription qui n'est pas validée.",
+        "Cannot mark as absent a registration that is not validated.",
       );
     }
     this.status = RegistrationStatus.ABSENT;
@@ -79,13 +78,13 @@ export class Registration {
   public recallMe(dateToRecall: Date) {
     if (this.status !== RegistrationStatus.VALIDATED) {
       throw new RegistrationStatusError(
-        "Impossible de rappeler une inscription qui n'est pas validée.",
+        "Cannot trigger a recall for a registration that is not validated.",
       );
     }
     const now = new Date();
     if (!dateToRecall || now > dateToRecall) {
       throw new MissionDateError(
-        "La date de rappel doit exister et être dans le futur.",
+        "The recall date must exist and be in the future.",
       );
     }
     this.recallSendAt = dateToRecall;

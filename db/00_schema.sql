@@ -31,10 +31,10 @@ CREATE TABLE IF NOT EXISTS mission_status (
     mission_status_name VARCHAR(255) NOT NULL,
     PRIMARY KEY (mission_status_id)
 );
-CREATE TABLE IF NOT EXISTS inscription_status (
-    inscription_status_id INTEGER NOT NULL AUTO_INCREMENT,
-    inscription_status_name VARCHAR(255) NOT NULL,
-    PRIMARY KEY (inscription_status_id)
+CREATE TABLE IF NOT EXISTS registration_status (
+    registration_status_id INTEGER NOT NULL AUTO_INCREMENT,
+    registration_status_name VARCHAR(255) NOT NULL,
+    PRIMARY KEY (registration_status_id)
 );
 CREATE TABLE IF NOT EXISTS request_organizer_status (
     request_organizer_status_id INTEGER NOT NULL AUTO_INCREMENT,
@@ -96,7 +96,7 @@ CREATE TABLE IF NOT EXISTS `message` (
     id_mission INTEGER NULL,
     PRIMARY KEY (message_id),
     FOREIGN KEY (id_sender) REFERENCES `user`(user_id) ON DELETE RESTRICT,
-    FOREIGN KEY  (id_mission) REFERENCES mission(mission_id) ON DELETE CASCADE
+    FOREIGN KEY (id_mission) REFERENCES mission(mission_id) ON DELETE CASCADE
 );
 CREATE TABLE IF NOT EXISTS message_recipient (
     message_recipient_id INTEGER NOT NULL AUTO_INCREMENT,
@@ -127,17 +127,17 @@ CREATE TABLE IF NOT EXISTS mission_category (
     FOREIGN KEY (id_category) REFERENCES category(category_id) ON DELETE RESTRICT,
     UNIQUE KEY unique_mission_category (id_mission, id_category)
 );
-CREATE TABLE IF NOT EXISTS inscription (
-    inscription_id INTEGER NOT NULL AUTO_INCREMENT,
-    inscription_date DATETIME NOT NULL,
-    inscription_recall_send_at DATETIME,
+CREATE TABLE IF NOT EXISTS registration (
+    registration_id INTEGER NOT NULL AUTO_INCREMENT,
+    registration_date DATETIME NOT NULL,
+    registration_recall_send_at DATETIME,
     id_user INTEGER NOT NULL,
     id_mission INTEGER NOT NULL,
-    id_inscription_status INTEGER NOT NULL,
-    PRIMARY KEY (inscription_id),
+    id_registration_status INTEGER NOT NULL,
+    PRIMARY KEY (registration_id),
     FOREIGN KEY (id_user) REFERENCES `user`(user_id) ON DELETE RESTRICT,
     FOREIGN KEY (id_mission) REFERENCES mission(mission_id) ON DELETE CASCADE,
-    FOREIGN KEY (id_inscription_status) REFERENCES inscription_status(inscription_status_id) ON DELETE RESTRICT,
+    FOREIGN KEY (id_registration_status) REFERENCES registration_status(registration_status_id) ON DELETE RESTRICT,
     UNIQUE KEY unique_user_mission (id_user, id_mission)
 );
 CREATE TABLE IF NOT EXISTS request_organizer (
