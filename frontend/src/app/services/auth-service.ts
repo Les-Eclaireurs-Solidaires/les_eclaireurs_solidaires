@@ -60,8 +60,8 @@ export class AuthService {
   }
 
   logout(): Observable<any> {
-    return this.httpService.post(`${this.API_URL}/logout`, {}, { withCredentials: true }).pipe(
-      tap((response) => console.log(response)),
-    );
+    return this.httpService
+      .post(`${this.API_URL}/logout`, {}, { withCredentials: true })
+      .pipe(tap((response) => console.log(response)));
   }
 }

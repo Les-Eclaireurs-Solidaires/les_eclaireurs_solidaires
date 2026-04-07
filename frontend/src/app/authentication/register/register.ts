@@ -6,15 +6,12 @@ import { MatDividerModule } from '@angular/material/divider';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { RouterLink } from '@angular/router';
-import { UserModel } from '../../models/user.model';
-import { AuthService } from '../../services/auth-service';
-import { UserService } from '../../services/user.service';
+import {  UserStateService } from '../../services/user-state.service';
 import { Router } from '@angular/router';
-
+import { NotificationService } from '../../services/notification.service';
 
 @Component({
   selector: 'app-register',
-  standalone: true,
   imports: [
     ReactiveFormsModule,
     MatCardModule,
@@ -28,10 +25,9 @@ import { Router } from '@angular/router';
   styleUrl: './register.css',
 })
 export class Register {
-private authService = inject(AuthService);
-  private userService = inject(UserService);
+  private userStateService = inject(UserStateService);
   private router = inject(Router);
-
+  private notificationService = inject(NotificationService);
 
   registerForm: FormGroup = new FormGroup({
     firstName: new FormControl(''),
@@ -46,14 +42,12 @@ private authService = inject(AuthService);
       this.registerForm.markAllAsTouched();
       return;
     }
-    this.authService.register(this.registerForm.value).subscribe({
-      next: (user: UserModel) => {
-        this.userService.loginUser(user);
+    this.userStateService.register(this.registerForm.value).subscribe({
+      next: () => {
         this.router.navigate(['/']);
-        console.log(user);
       },
       error: (error) => {
-        console.log(error);
+        this.notificationService.showError(error.error?.message);
       },
     });
   }

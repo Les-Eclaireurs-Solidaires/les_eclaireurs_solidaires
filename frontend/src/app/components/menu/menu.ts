@@ -2,7 +2,7 @@ import { Component, inject } from '@angular/core';
 import { MatToolbarRow } from '@angular/material/toolbar';
 import { MatIcon } from '@angular/material/icon';
 import { RouterLink } from '@angular/router';
-import { UserService } from '../../services/user.service';
+import { UserStateService } from '../../services/user-state.service';
 import { MatLabel } from '@angular/material/form-field';
 
 @Component({
@@ -13,5 +13,5 @@ import { MatLabel } from '@angular/material/form-field';
   styleUrl: './menu.css',
 })
 export class Menu {
-  public userService = inject(UserService);
+  public userStateService = inject(UserStateService);
 }
