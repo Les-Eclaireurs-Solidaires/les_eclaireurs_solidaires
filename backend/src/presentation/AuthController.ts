@@ -6,14 +6,14 @@ import {
   type CookieOptions,
 } from "express";
 import type { AuthService } from "../application/AuthService.js";
-import type { ITokenService } from "../domain/authentication/ITokenService.js";
+import type { ITokenService } from "../domain/authentication/interfaces/ITokenService.js";
 import { validateBody } from "../infra/web/middlewares/ValidateDtoMiddleware.js";
 import { LoginDTO } from "./dto/auth/LoginDTO.js";
 import { RegisterDTO } from "./dto/auth/RegisterDTO.js";
 import { requireAuth } from "../infra/web/middlewares/AuthMiddleware.js";
 import { envConfig } from "../infra/config/EnvConfig.js";
 import { UnauthenticatedError } from "../infra/exceptions/UnauthenticatedError.js";
-import type { AuthResponse } from "../domain/authentication/AuthResponse.js";
+import type { AuthResponse } from "../domain/authentication/interfaces/AuthResponse.js";
 
 export class AuthController {
   private authRouter: Router = Router();
@@ -82,14 +82,14 @@ export class AuthController {
   public logout = async (req: Request, res: Response) => {
     await this.authService.logout(req.user!.uuid);
 
-    const jwtCookieOptions: CookieOptions= {
+    const jwtCookieOptions: CookieOptions = {
       httpOnly: true,
       secure: envConfig.nodeEnv === "production",
       sameSite: "strict",
       path: "/",
     };
 
-    const csrfCookieOptions: CookieOptions= {
+    const csrfCookieOptions: CookieOptions = {
       httpOnly: false,
       secure: envConfig.nodeEnv === "production",
       sameSite: "strict",

@@ -1,4 +1,5 @@
-import type { UpdateMissionDTO } from "../../presentation/dto/mission/UpdateMissionDTO.js";
+import type { UpdateMissionDetailsDTO } from "../../presentation/dto/mission/UpdateMissionDetailsDTO.js";
+import type { UpdateMissionOrganizersDTO } from "../../presentation/dto/mission/UpdateMissionOrganizersDTO.js";
 import type { Registration } from "../registration/Registration.js";
 import { RegistrationStatus } from "../registration/RegistrationStatusEnum.js";
 import { GeolocalizationError } from "./exceptions/GeolocalizationError.js";
@@ -9,26 +10,38 @@ import { MissionStatus } from "./MissionStatusEnum.js";
 
 export abstract class MissionState {
   abstract validate(mission: Mission): void;
-  abstract update(mission: Mission, dto: UpdateMissionDTO): void;
-
+  abstract updateDetails(mission: Mission, dto: UpdateMissionDetailsDTO): void;
+  abstract updateOrganizers(
+    mission: Mission,
+    dto: UpdateMissionOrganizersDTO,
+  ): void;
+  abstract revertToDraft(mission: Mission): void;
   abstract publish(mission: Mission): void;
   abstract cancel(mission: Mission): void;
   abstract finished(mission: Mission): void;
   abstract delete(mission: Mission): void;
 
-  abstract addRegistration(mission: Mission, registration: Registration): void;
-  abstract removeRegistration(mission: Mission, registration: Registration): void;
+  abstract subscribe(mission: Mission, registration: Registration): void;
+  abstract removeRegistration(
+    mission: Mission,
+    registration: Registration,
+  ): void;
   abstract cancelRegistration(mission: Mission, targetUuid: string): void;
   abstract validateRegistration(mission: Mission, targetUuid: string): void;
   abstract refuseRegistration(mission: Mission, targetUuid: string): void;
 
-  protected validateRealityInvariant(mission: Mission):void {
+  protected validateRealityInvariant(mission: Mission): void {
     if (
       mission.getNbrVolunteerNeeded() !== undefined &&
       mission.getNbrVolunteerNeeded() !== null &&
       mission.getNbrVolunteerNeeded() < 0
     ) {
       throw new Error("Le nombre de bénévoles ne peut pas être négatif.");
+    }
+    if (mission.getAddress() && mission.getAddress().length > 255) {
+      throw new GeolocalizationError(
+        "L'adresse ne peut pas dépasser 255 caractères.",
+      );
     }
     if (
       mission.getDateStart() &&
@@ -39,7 +52,6 @@ export abstract class MissionState {
         "La date de fin doit être après la date de début.",
       );
     }
-    
   }
   protected validateBusinessInvariant(mission: Mission): void {
     if (!mission.getName() || mission.getName().trim() === "") {
@@ -60,10 +72,14 @@ export abstract class MissionState {
       throw new MissionStatusError("Description de la mission obligatoire.");
   }
   protected validateLocalisation(mission: Mission): void {
-    if (!mission.getAddress() || mission.getAddress()?.trim() === "")
-      throw new GeolocalizationError("Adresse obligatoire.");
     if (!mission.getCityId())
-      throw new GeolocalizationError("Ville obligatoire.");
+      throw new GeolocalizationError("Ville obligatoire pour publier.");
+
+    if (!mission.getAddress() || mission.getAddress().trim() === "") {
+      throw new GeolocalizationError(
+        "L'adresse de la mission est obligatoire pour publier.",
+      );
+    }
   }
   protected validateDateCoherence(mission: Mission): void {
     const now = new Date();

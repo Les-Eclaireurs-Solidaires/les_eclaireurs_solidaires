@@ -1,4 +1,5 @@
 import type { UserParam } from "./UserParam.js";
+import type { UserRole } from "./UserRoleEnum.js";
 
 export class User {
   private uuid: string;
@@ -95,6 +96,10 @@ export class User {
   getRoleId(): number {
     return this.roleId!;
   }
+  getRole(): UserRole {
+    return this.roleId as UserRole;
+  }
+
 
   getRefreshToken(): string | null {
     return this.refreshToken;

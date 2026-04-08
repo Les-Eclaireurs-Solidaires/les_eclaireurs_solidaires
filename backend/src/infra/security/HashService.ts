@@ -1,5 +1,5 @@
 import * as argon2 from "argon2";
-import type { IHashService } from "../../domain/authentication/IHashService.js";
+import type { IHashService } from "../../domain/authentication/interfaces/IHashService.js";
 
 export class HashService implements IHashService {
   public constructor() {}

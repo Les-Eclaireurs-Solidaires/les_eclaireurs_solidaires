@@ -1,8 +1,8 @@
-import type { AuthResponse } from "../domain/authentication/AuthResponse.js";
+import type { AuthResponse } from "../domain/authentication/interfaces/AuthResponse.js";
 import { InvalidCredentialsError } from "../domain/authentication/exceptions/InvalidCredentialsError.js";
 import { InvalidTokenError } from "../domain/authentication/exceptions/InvalidTokenError.js";
-import type { IHashService } from "../domain/authentication/IHashService.js";
-import type { ITokenService } from "../domain/authentication/ITokenService.js";
+import type { IHashService } from "../domain/authentication/interfaces/IHashService.js";
+import type { ITokenService } from "../domain/authentication/interfaces/ITokenService.js";
 import { UserNotFoundError } from "../domain/user/exceptions/UserNotFoundError.js";
 import type { IUserRepository } from "../domain/user/IUserRepository.js";
 import { User } from "../domain/user/User.js";

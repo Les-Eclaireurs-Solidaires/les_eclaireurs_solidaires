@@ -1,9 +1,9 @@
 import jwt, { type SignOptions } from "jsonwebtoken";
-import type { TokenPayload } from "../../domain/authentication/TokenPayload.js";
+import type { TokenPayload } from "../../domain/authentication/interfaces/TokenPayload.js";
 import crytoExt from "crypto";
 import ms from "ms";
 import { envConfig } from "../config/EnvConfig.js";
-import type { ITokenService } from "../../domain/authentication/ITokenService.js";
+import type { ITokenService } from "../../domain/authentication/interfaces/ITokenService.js";
 import { UnauthenticatedError } from "../exceptions/UnauthenticatedError.js";
 import { UserRole } from "../../domain/user/UserRoleEnum.js";
 import { InvalidTokenError } from "../../domain/authentication/exceptions/InvalidTokenError.js";

@@ -1,7 +1,6 @@
-import type { Registration } from "../registration/Registration.js";
-import type { Organizer } from "../user/Organizer.js";
-import type { MissionStatus } from "./MissionStatusEnum.js";
-
+import type { Registration } from "../../registration/Registration.js";
+import type { Organizer } from "../../user/Organizer.js";
+import type { MissionStatus } from "../MissionStatusEnum.js";
 
 export interface MissionParam {
   uuid: string;

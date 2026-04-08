@@ -10,7 +10,8 @@
     "dev": "cross-env CHOKIDAR_USEPOLLING=true tsx watch --clearScreen=false src/index.ts",
     "test": "vitest run --mode test",
     "test:watch": "vitest --watch --mode test",
-    "test:docker": "vitest run --mode test.docker"
+    "test:docker": "vitest run --mode test.docker",
+    "test:creation": "vitest run --mode test src/tests/MissionCreation.integration.test.ts"
   },
   "keywords": [
     "les",

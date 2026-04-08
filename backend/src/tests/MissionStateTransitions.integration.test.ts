@@ -15,6 +15,8 @@ import { RegistrationRepository } from "../infra/repositories/RegistrationReposi
 import { MissionService } from "../application/MissionService.js";
 import { MissionStatus } from "../domain/mission/MissionStatusEnum.js";
 import { MissionStatusError } from "../domain/mission/exceptions/MissionStatusError.js";
+import { UserRole } from "../domain/user/UserRoleEnum.js"; // NOUVEAU: Import des rôles
+import { HashService } from "../infra/security/HashService.js"; // NOUVEAU: Import HashService
 
 // ─── Shared Fixtures ──────────────────────────────────────────────────────────
 
@@ -22,6 +24,17 @@ let database: Pool;
 let missionService: MissionService;
 
 const orgaUuidOne = "user-uuid-1";
+
+// NOUVEAU : Création de notre Faux Acteur (Mock Actor)
+const mockActor = {
+  getUuid: () => orgaUuidOne,
+  getRole: () => UserRole.ORGANIZER,
+};
+
+// NOUVEAU : Création d'un faux Bus d'Événements silencieux
+const mockEventBus = {
+  emit: () => {}, // Ne fait rien pendant les tests unitaires
+};
 
 // ─── Time helpers ─────────────────────────────────────────────────────────────
 
@@ -59,20 +72,23 @@ const getInscriptionsStatusFromDb = async (missionUuid: string): Promise<number[
 // ─── Factory helpers ──────────────────────────────────────────────────────────
 
 const createDraftMission = async (withParticipant = false): Promise<string> => {
-  const result = await missionService.createMission({
-    name: `State-Test-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-    description: "Description valide pour les transitions.",
-    dateStart: inDays(1),
-    dateEnd: inDays(2),
-    address: "10 rue des États",
-    nbrVolunteerNeeded: 5,
-    cityId: 1,
-    categoryIds: [1],
-    toPublish: false,
-    organizers: [
-      { organizerUuid: orgaUuidOne, isMain: true, isParticipant: withParticipant },
-    ],
-  });
+  const result = await missionService.createMission(
+    { // NOUVEAU : Payload DTO
+      name: `State-Test-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      description: "Description valide pour les transitions.",
+      dateStart: inDays(1),
+      dateEnd: inDays(2),
+      address: "10 rue des États",
+      nbrVolunteerNeeded: 5,
+      cityId: 1,
+      categoryIds: [1],
+      toPublish: false,
+      organizers: [
+        { organizerUuid: orgaUuidOne, isMain: true, isParticipant: withParticipant },
+      ],
+    },
+    mockActor // NOUVEAU : On passe l'acteur au service !
+  );
   return result.getUuid();
 };
 
@@ -116,11 +132,16 @@ beforeAll(() => {
   const userRepository = new UserRepository(database);
   const missionRepository = new MissionRepository(database);
   const registrationRepository = new RegistrationRepository(database);
+  const hashService = new HashService(); // NOUVEAU : Requis par ton service
+
+  // NOUVEAU : Ajout de tous les dépendances dans l'ordre attendu par ton constructeur
   missionService = new MissionService(
     missionRepository,
     registrationRepository,
     userRepository,
     database,
+    hashService,
+    mockEventBus as any // Cast pour éviter les erreurs de typage strict
   );
 });
 
@@ -140,7 +161,8 @@ describe("Transitions to PUBLISHED", () => {
   it("allows DRAFT -> PUBLISHED and updates DB status", async () => {
     const uuid = await createDraftMission();
     
-    await missionService.publishMission(uuid);
+    // NOUVEAU : On passe l'acteur
+    await missionService.publishMission(uuid, mockActor);
     
     const dbStatus = await getMissionStatusFromDb(uuid);
     expect(dbStatus).toBe(2); // 2 = PUBLISHED
@@ -148,10 +170,10 @@ describe("Transitions to PUBLISHED", () => {
 
   it("rejects PUBLISHED -> PUBLISHED (Already published)", async () => {
     const uuid = await createDraftMission();
-    await missionService.publishMission(uuid); // Première publication OK
+    await missionService.publishMission(uuid, mockActor); // Première publication OK
     
-    // Deuxième publication doit jeter une erreur gérée par le PublishedState
-    await expect(missionService.publishMission(uuid))
+    // Deuxième publication doit jeter une erreur
+    await expect(missionService.publishMission(uuid, mockActor))
       .rejects.toThrow(MissionStatusError);
   });
 });
@@ -164,35 +186,32 @@ describe("Transitions to CANCELED", () => {
   it("rejects DRAFT -> CANCELED (A draft should be deleted, not canceled)", async () => {
     const uuid = await createDraftMission();
     
-    // Le DraftState doit bloquer l'annulation
-    await expect(missionService.cancelMission(uuid))
+    await expect(missionService.cancelMission(uuid, mockActor)) // NOUVEAU: Acteur
       .rejects.toThrow(MissionStatusError);
   });
 
   it("allows PUBLISHED -> CANCELED and updates DB status", async () => {
     const uuid = await createDraftMission();
-    await missionService.publishMission(uuid);
+    await missionService.publishMission(uuid, mockActor);
     
-    await missionService.cancelMission(uuid);
+    await missionService.cancelMission(uuid, mockActor); // NOUVEAU: Acteur
     
     const dbStatus = await getMissionStatusFromDb(uuid);
     expect(dbStatus).toBe(4); // 4 = CANCELED
   });
 
   it("PUBLISHED -> CANCELED must also cancel all active registrations", async () => {
-    // On crée un brouillon AVEC un participant (l'organisateur)
     const uuid = await createDraftMission(true);
-    await missionService.publishMission(uuid);
+    await missionService.publishMission(uuid, mockActor);
     
-    // On annule la mission
-    await missionService.cancelMission(uuid);
+    await missionService.cancelMission(uuid, mockActor); // NOUVEAU: Acteur
     
     // On vérifie que l'inscription a bien basculé en statut annulé
     const inscriptionStatuses = await getInscriptionsStatusFromDb(uuid);
     expect(inscriptionStatuses.length).toBeGreaterThan(0);
-    // Vérifie que tous les statuts sont à l'ID qui correspond à CANCELED (ex: 4)
+    
+    // NOUVEAU : Ajuste le chiffre '4' selon ton DB si RegistrationStatus.CANCELED vaut autre chose.
     inscriptionStatuses.forEach(status => {
-       // Remplace 4 par l'ID réel de ton RegistrationStatus.CANCELED en DB
       expect(status).toBe(4); 
     });
   });
@@ -206,35 +225,29 @@ describe("Transitions to DELETED", () => {
   it("allows DRAFT -> DELETED and HARD DELETES from DB", async () => {
     const uuid = await createDraftMission();
     
-    await missionService.deleteMission(uuid);
+    await missionService.deleteMission(uuid, mockActor); // NOUVEAU: Acteur
     
     const count = await getMissionCountFromDb(uuid);
     expect(count).toBe(0); // Suppression physique réussie
   });
 
   it("rejects PUBLISHED -> DELETED if there are active registrations", async () => {
-    // Brouillon AVEC participant
     const uuid = await createDraftMission(true);
-    await missionService.publishMission(uuid);
+    await missionService.publishMission(uuid, mockActor);
     
-    // Le PublishedState doit interdire la suppression car `registrations.length > 0`
-    await expect(missionService.deleteMission(uuid))
+    await expect(missionService.deleteMission(uuid, mockActor)) // NOUVEAU: Acteur
       .rejects.toThrow(MissionStatusError);
       
-    // Vérification de sécurité : la mission est toujours en DB
     const count = await getMissionCountFromDb(uuid);
     expect(count).toBe(1);
   });
 
   it("allows PUBLISHED -> DELETED (Soft delete) if there are NO registrations", async () => {
-    // Brouillon SANS participant
     const uuid = await createDraftMission(false);
-    await missionService.publishMission(uuid);
+    await missionService.publishMission(uuid, mockActor);
     
-    await missionService.deleteMission(uuid);
+    await missionService.deleteMission(uuid, mockActor); // NOUVEAU: Acteur
     
-    // Attention : selon ton implémentation, le delete() d'une mission
-    // set deletedAt = new Date(). Il faut vérifier que ça a bien marché.
     const [rows] = await database.execute<RowDataPacket[]>(
       "SELECT mission_deleted_at FROM mission WHERE mission_uuid = ?",
       [uuid],

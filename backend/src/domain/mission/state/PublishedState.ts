@@ -1,8 +1,10 @@
-import type { UpdateMissionDTO } from "../../../presentation/dto/mission/UpdateMissionDTO.js";
+import type { UpdateMissionDetailsDTO } from "../../../presentation/dto/mission/UpdateMissionDetailsDTO.js";
+import type { UpdateMissionOrganizersDTO } from "../../../presentation/dto/mission/UpdateMissionOrganizersDTO.js";
 import { RegistrationNotFoundError } from "../../registration/exceptions/RegistrationNotFoundError.js";
 import { RegistrationStatusError } from "../../registration/exceptions/RegistrationStatusError.js";
 import type { Registration } from "../../registration/Registration.js";
 import { RegistrationStatus } from "../../registration/RegistrationStatusEnum.js";
+import { MissionDateError } from "../exceptions/MissionDateError.js";
 import { MissionFullError } from "../exceptions/MissionFullError.js";
 import { MissionNotActiveError } from "../exceptions/MissionNotActiveError.js";
 import { MissionNotFoundError } from "../exceptions/MissionNotFoundError.js";
@@ -14,23 +16,37 @@ import { CancelledState } from "./CancelledState.js";
 import { FinishedState } from "./FinishedState.js";
 
 export class PublishedState extends MissionState {
+  revertToDraft(mission: Mission): void {
+    throw new MissionStatusError(
+      "Impossible de revenir en brouillon une mission publiée.",
+    );
+  }
   validate(mission: Mission): void {
     this.validateRealityInvariant(mission);
     this.validateBusinessInvariant(mission);
+    const limitDate = new Date();
+    limitDate.setDate(limitDate.getDate() + 1);
+    if (
+      mission.getDateStart() &&
+      mission.getDateStart().getTime() < limitDate.getTime()
+    ) {
+      throw new MissionDateError(
+        "La date de début doit commencer au moins dans 1 jour.",
+      );
+    }
     this.validateBasicInfo(mission);
     this.validateLocalisation(mission);
     this.validateDateCoherence(mission);
     this.validateOrganizerValid(mission);
     this.validateCategoryValid(mission);
     if (mission.getNbrVolunteerNeeded() <= 0) {
-      throw new MissionStatusError("Une mission publiée doit demander au moins un bénévole.");
+      throw new MissionStatusError(
+        "Une mission publiée doit demander au moins un bénévole.",
+      );
     }
   }
-  update(mission: Mission, dto: UpdateMissionDTO): void {
-    if (dto.organizers !== undefined) {
-      mission.synchroOrgaRegistration(dto.organizers);
-    }
-  }
+  updateDetails(mission: Mission, dto: UpdateMissionDetailsDTO): void {}
+  updateOrganizers(mission: Mission, dto: UpdateMissionOrganizersDTO): void {}
   publish(mission: Mission): void {
     throw new MissionStatusError(
       "Impossible de publier une mission déjà publiée.",
@@ -50,13 +66,9 @@ export class PublishedState extends MissionState {
     mission.setStatus(MissionStatus.FINISHED);
   }
   delete(mission: Mission): void {
-    if (mission.getRegistrations().length > 0) {
-      throw new MissionStatusError(
-        "Impossible de supprimer une mission qui a des inscription en cours. Veuillez d'abord l'annulée.",
-      );
-    }
+    mission.cancel();
   }
-  addRegistration(mission: Mission, registration: Registration): void {
+  subscribe(mission: Mission, registration: Registration): void {
     if (!this.hasAvailablePlaces(mission)) {
       throw new MissionFullError(
         "Impossible d'ajouter une inscription à une mission qui est pleine.",

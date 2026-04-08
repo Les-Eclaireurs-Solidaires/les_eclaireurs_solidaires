@@ -56,7 +56,7 @@ export class AppConfig {
   private initializeErrorHandling() {
     this.app.use(errorHandler);
   }
-
+  
   public listen() {
     this.server = this.app.listen(this.port, this.host, () => {
       console.log(`Server started on http://${this.host}:${this.port}`);

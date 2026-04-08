@@ -1,3 +1,5 @@
+import type { UpdateMissionDetailsDTO } from "../../../presentation/dto/mission/UpdateMissionDetailsDTO.js";
+import type { UpdateMissionOrganizersDTO } from "../../../presentation/dto/mission/UpdateMissionOrganizersDTO.js";
 import type { Registration } from "../../registration/Registration.js";
 import { RegistrationStatus } from "../../registration/RegistrationStatusEnum.js";
 import { MissionDateError } from "../exceptions/MissionDateError.js";
@@ -13,17 +15,14 @@ export class FinishedState extends MissionState {
         "Impossible de terminer une mission qui n'est pas encore arrivée à sa date de fin.",
       );
     }
-    if (now.getTime() < mission.getDateEnd().getTime()) {
-      throw new MissionDateError(
-        "Impossible de terminer une mission qui n'est pas terminée.",
+    const hasValidParticipants = mission
+      .getRegistrations()
+      .some(
+        (registration) =>
+          registration.getStatus() === RegistrationStatus.VALIDATED ||
+          registration.getStatus() === RegistrationStatus.PRESENT ||
+          registration.getStatus() === RegistrationStatus.ABSENT,
       );
-    }
-    const hasValidParticipants = mission.getRegistrations().some(
-      (registration) => 
-        registration.getStatus() === RegistrationStatus.VALIDATED ||
-        registration.getStatus() === RegistrationStatus.PRESENT ||
-        registration.getStatus() === RegistrationStatus.ABSENT
-    );
 
     if (!hasValidParticipants) {
       throw new MissionStatusError(
@@ -31,8 +30,20 @@ export class FinishedState extends MissionState {
       );
     }
   }
-  update(mission: Mission): void {
-    throw new MissionStatusError("Une mission finie ne peut pas être modifié.");
+  updateDetails(mission: Mission, dto: UpdateMissionDetailsDTO): void {
+    throw new MissionStatusError(
+      "Une mission finie ne peut pas être modifiée.",
+    );
+  }
+  updateOrganizers(mission: Mission, dto: UpdateMissionOrganizersDTO): void {
+    throw new MissionStatusError(
+      "Une mission finie ne peut pas être modifiée.",
+    );
+  }
+  revertToDraft(mission: Mission): void {
+    throw new MissionStatusError(
+      "Une mission finie ne peut pas redevenir un brouillon.",
+    );
   }
   publish(mission: Mission): void {
     throw new MissionStatusError("Une mission finie ne peut pas être publiée.");
@@ -40,9 +51,7 @@ export class FinishedState extends MissionState {
   cancel(mission: Mission): void {
     throw new MissionStatusError("Une mission finie ne peut pas être annulée.");
   }
-  finished(mission: Mission): void {}
-  delete(mission: Mission): void {}
-  addRegistration(mission: Mission, registration: Registration): void {
+  subscribe(mission: Mission, registration: Registration): void {
     throw new MissionStatusError(
       "Une mission finie ne peut pas avoir d'inscription.",
     );
@@ -67,4 +76,6 @@ export class FinishedState extends MissionState {
       "Une mission finie ne peut pas avoir d'inscription.",
     );
   }
+  finished(mission: Mission): void {}
+  delete(mission: Mission): void {}
 }

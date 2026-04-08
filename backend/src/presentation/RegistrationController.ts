@@ -8,8 +8,8 @@ import { UserRole } from "../domain/user/UserRoleEnum.js";
 import { BadRequestError } from "../infra/exceptions/BadRequestError.js";
 import { requireAuth } from "../infra/web/middlewares/AuthMiddleware.js";
 import { requireRole } from "../infra/web/middlewares/RoleMiddleware.js";
-import type { ITokenService } from "../domain/authentication/ITokenService.js";
-import type { IMissionService } from "../domain/mission/IMissionService.js";
+import type { ITokenService } from "../domain/authentication/interfaces/ITokenService.js";
+import type { IMissionService } from "../domain/mission/interfaces/IMissionService.js";
 
 export class RegistrationController {
   private registrationRouter: Router = Router({ mergeParams: true });
@@ -30,8 +30,8 @@ export class RegistrationController {
       "/registration",
       requireAuth(this.tokenService),
       requireRole([
-        UserRole.BENEVOLE,
-        UserRole.ORGANISATEUR,
+        UserRole.VOLUNTEER,
+        UserRole.ORGANIZER,
         UserRole.SUPER_ADMIN,
       ]),
       this.registerVolunteer,
@@ -50,10 +50,7 @@ export class RegistrationController {
       throw new BadRequestError("Le paramètre voulu n'a pas été trouvé.");
     }
 
-    await this.missionService.registerVolunteer(
-      volunteerUuid,
-      missionUuid,
-    );
+    await this.missionService.registerVolunteer(volunteerUuid, missionUuid);
 
     return res
       .status(201)

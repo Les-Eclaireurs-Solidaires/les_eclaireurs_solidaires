@@ -1,6 +1,6 @@
 import dotenv from "dotenv";
 
-const environment = process.env.NODE_ENV;
+const environment = process.env.BACK_NODE_ENV;
 const envFile = environment === "test" ? ".env.test" : ".env";
 
 dotenv.config({ path: envFile });

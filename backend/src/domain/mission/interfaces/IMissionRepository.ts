@@ -1,6 +1,6 @@
 import type { PoolConnection } from "mysql2/promise";
-import type { Mission } from "./Mission.js";
-import type { SearchMissionDTO } from "../../presentation/dto/mission/SearchMissionDTO.js";
+import type { Mission } from "../Mission.js";
+import type { SearchMissionDTO } from "../../../presentation/dto/mission/SearchMissionDTO.js";
 
 export interface IMissionRepository {
   findByName(
@@ -18,9 +18,18 @@ export interface IMissionRepository {
     missionToCreate: Mission,
     connection?: PoolConnection,
   ): Promise<Mission>;
-  update(
+  updateDetails(
     missionToUpdate: Mission,
     connection?: PoolConnection,
   ): Promise<Mission>;
-  delete(missionToDelete: Mission, connection?: PoolConnection): Promise<void>;
+  updateOrganizers(
+    missionToUpdate: Mission,
+    connection?: PoolConnection,
+  ): Promise<Mission>;
+  updateCategories(
+    missionToUpdate: Mission,
+    connection?: PoolConnection,
+  ): Promise<Mission>;
+
+  delete(missionUuid: string, connection?: PoolConnection): Promise<void>;
 }

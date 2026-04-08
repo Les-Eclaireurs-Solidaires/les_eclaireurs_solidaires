@@ -41,5 +41,5 @@
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
   },
-  "include": ["src/**/*"]
+  "include": ["src/**/*", "src/domain/mission/exceptions/.ts"]
 }

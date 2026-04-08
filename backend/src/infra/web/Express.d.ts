@@ -1,4 +1,4 @@
-import type { TokenPayload } from "../../domain/authentication/TokenPayload.ts";
+import type { TokenPayload } from "../../domain/authentication/interfaces/TokenPayload.ts";
 
 declare global {
   namespace Express {

@@ -1,13 +1,20 @@
-import type { UpdateMissionDTO } from "../../../presentation/dto/mission/UpdateMissionDTO.js";
+import type { UpdateMissionDetailsDTO } from "../../../presentation/dto/mission/UpdateMissionDetailsDTO.js";
+import type { UpdateMissionOrganizersDTO } from "../../../presentation/dto/mission/UpdateMissionOrganizersDTO.js";
 import type { Registration } from "../../registration/Registration.js";
+import { MissionHardDeleteEvent } from "../event/MissionHardDeleteEvent.js";
 import { MissionDateError } from "../exceptions/MissionDateError.js";
 import { MissionStatusError } from "../exceptions/MissionStatusError.js";
-import type { Mission } from "../Mission.js";
+import { Mission } from "../Mission.js";
 import { MissionState } from "../MissionState.js";
 import { MissionStatus } from "../MissionStatusEnum.js";
 import { PublishedState } from "./PublishedState.js";
 
 export class DraftState extends MissionState {
+  revertToDraft(mission: Mission): void {
+    throw new MissionStatusError(
+      "Impossible de faire d'un brouillon une mission déjà en brouillon.",
+    );
+  }
   validate(mission: Mission): void {
     this.validateRealityInvariant(mission);
     this.validateBusinessInvariant(mission);
@@ -18,11 +25,8 @@ export class DraftState extends MissionState {
       throw new MissionDateError("Date de début doit être dans le futur.");
     }
   }
-  update(mission: Mission, dto: UpdateMissionDTO): void {
-    if (dto.organizers !== undefined) {
-      mission.synchroOrgaRegistration(dto.organizers);
-    }
-  }
+  updateDetails(mission: Mission, dto: UpdateMissionDetailsDTO): void {}
+  updateOrganizers(mission: Mission, dto: UpdateMissionOrganizersDTO): void {}
   publish(mission: Mission): void {
     mission.setState(new PublishedState());
     mission.setStatus(MissionStatus.PUBLISHED);
@@ -36,16 +40,32 @@ export class DraftState extends MissionState {
   finished(mission: Mission): void {
     throw new MissionStatusError("Un brouillon ne peut pas être terminé.");
   }
-  delete(mission: Mission): void {}
-  addRegistration(mission: Mission, registration: Registration): void {}
-  removeRegistration(mission: Mission): void {}
+  delete(mission: Mission): void {
+    mission.addEvent(new MissionHardDeleteEvent(mission.getUuid()));
+  }
+  subscribe(mission: Mission, registration: Registration): void {
+    throw new MissionStatusError(
+      "Impossible d'ajouter une inscription à un brouillon",
+    );
+  }
+  removeRegistration(mission: Mission): void {
+    throw new MissionStatusError(
+      "Impossible d'enlever une inscription à un brouillon",
+    );
+  }
   cancelRegistration(mission: Mission, targetUuid: string): void {
-    throw new Error("Method not implemented.");
+    throw new MissionStatusError(
+      "Impossible d'annuler une inscription à un brouillon",
+    );
   }
   validateRegistration(mission: Mission, targetUuid: string): void {
-    throw new Error("Method not implemented.");
+    throw new MissionStatusError(
+      "Impossible de valider une inscription à un brouillon",
+    );
   }
   refuseRegistration(mission: Mission, targetUuid: string): void {
-    throw new Error("Method not implemented.");
+    throw new MissionStatusError(
+      "Impossible de refuser une inscription à un brouillon",
+    );
   }
 }

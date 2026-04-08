@@ -1,6 +1,4 @@
 import type { Pool, PoolConnection } from "mysql2/promise";
-import type { IMissionRepository } from "../domain/mission/IMissionRepository.js";
-import type { IMissionService } from "../domain/mission/IMissionService.js";
 import type { IRegistrationRepository } from "../domain/registration/IRegistrationRepository.js";
 import type { IUserRepository } from "../domain/user/IUserRepository.js";
 import { Mission } from "../domain/mission/Mission.js";
@@ -9,32 +7,28 @@ import { MissionNameAlreadyExistError } from "../domain/mission/exceptions/Missi
 import { UserNotFoundError } from "../domain/user/exceptions/UserNotFoundError.js";
 import { Registration } from "../domain/registration/Registration.js";
 import { RegistrationStatus } from "../domain/registration/RegistrationStatusEnum.js";
-import type { UpdateMissionDTO } from "../presentation/dto/mission/UpdateMissionDTO.js";
 import { MissionNotFoundError } from "../domain/mission/exceptions/MissionNotFoundError.js";
-import { MissionStatus } from "../domain/mission/MissionStatusEnum.js";
 import { MissionStatusError } from "../domain/mission/exceptions/MissionStatusError.js";
 import type { SearchMissionDTO } from "../presentation/dto/mission/SearchMissionDTO.js";
+import type { EventEmitter } from "node:stream";
+import type { IMissionService } from "../domain/mission/interfaces/IMissionService.js";
+import type { IMissionRepository } from "../domain/mission/interfaces/IMissionRepository.js";
+import type { IActor } from "../domain/user/IActor.js";
+import type { UpdateMissionDetailsDTO } from "../presentation/dto/mission/UpdateMissionDetailsDTO.js";
+import type { UpdateMissionOrganizersDTO } from "../presentation/dto/mission/UpdateMissionOrganizersDTO.js";
 
 export class MissionService implements IMissionService {
   constructor(
     private missionRepository: IMissionRepository,
-    private registrationRepository: IRegistrationRepository,
     private userRepository: IUserRepository,
     private db: Pool,
+    private eventBus: EventEmitter,
   ) {}
-  async getMissionDetail(missionUuid: string): Promise<Mission> {
-    const mission = await this.missionRepository.findByUuid(missionUuid);
-    if (!mission) {
-      throw new MissionNotFoundError();
-    }
-    return mission;
-  }
 
-  async getMissions(filters: SearchMissionDTO): Promise<Mission[]> {
-    return this.missionRepository.findMany(filters);
-  }
-
-  async createMission(missionDTO: CreateMissionDTO): Promise<Mission> {
+  async createMission(
+    missionDTO: CreateMissionDTO,
+    actor: IActor,
+  ): Promise<Mission> {
     const connection: PoolConnection = await this.db.getConnection();
 
     try {
@@ -65,8 +59,7 @@ export class MissionService implements IMissionService {
           throw new UserNotFoundError();
         }
       }
-
-      const mission: Mission = Mission.create(
+      const newMission: Mission = Mission.create(
         {
           uuid: uuid,
           name: missionDTO.name,
@@ -81,35 +74,114 @@ export class MissionService implements IMissionService {
           registrations: [],
         },
         missionDTO.organizers,
+        actor,
       );
 
-      mission.getState().validate(mission);
+      newMission.getState().validate(newMission);
 
       if (missionDTO.toPublish) {
-        mission.publish();
+        newMission.publish();
       }
-
-      const missionCreate: Mission = await this.missionRepository.create(
-        mission,
+      const missionToCreate: Mission = await this.missionRepository.create(
+        newMission,
         connection,
       );
-
-      if (
-        missionCreate.getRegistrations() &&
-        missionCreate.getRegistrations().length > 0
-      ) {
-        for (const registration of mission.getRegistrations()) {
-          await this.registrationRepository.saveRegistration(
-            registration,
-            uuid,
-            connection,
-          );
-        }
-      }
+      missionToCreate.getEvents().forEach((event) => {
+        this.eventBus.emit(event.eventName, event, connection);
+      });
 
       await connection.commit();
 
-      return missionCreate;
+      return missionToCreate;
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
+  }
+  async updateMissionDetails(
+    dto: UpdateMissionDetailsDTO,
+    missionUuid: string,
+    actor: IActor,
+  ): Promise<Mission> {
+    const connection: PoolConnection = await this.db.getConnection();
+
+    try {
+      await connection.beginTransaction();
+
+      const missionToUpdate = await this.missionRepository.findByUuid(
+        missionUuid,
+        connection,
+        true,
+      );
+      if (!missionToUpdate) {
+        throw new MissionNotFoundError();
+      }
+
+      missionToUpdate.updateDetails(dto, actor);
+
+      await this.missionRepository.updateDetails(missionToUpdate, connection);
+
+      missionToUpdate.getEvents().forEach((event) => {
+        this.eventBus.emit(event.eventName, event, connection);
+      });
+
+      await connection.commit();
+
+      return missionToUpdate;
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
+  }
+  async updateMissionOrganizers(
+    dto: UpdateMissionOrganizersDTO,
+    missionUuid: string,
+    actor: IActor,
+  ): Promise<Mission> {
+    const connection: PoolConnection = await this.db.getConnection();
+
+    try {
+      await connection.beginTransaction();
+
+      const missionToUpdate = await this.missionRepository.findByUuid(
+        missionUuid,
+        connection,
+        true,
+      );
+      if (!missionToUpdate) {
+        throw new MissionNotFoundError();
+      }
+      if (dto.organizers !== undefined && dto.organizers.length !== 0) {
+        for (const organizer of dto.organizers) {
+          const user = await this.userRepository.findByUuid(
+            organizer.organizerUuid,
+            connection,
+            true,
+          );
+          if (!user) {
+            throw new UserNotFoundError();
+          }
+        }
+      }
+
+      missionToUpdate.updateOrganizers(dto, actor);
+
+      await this.missionRepository.updateOrganizers(
+        missionToUpdate,
+        connection,
+      );
+
+      missionToUpdate.getEvents().forEach((event) => {
+        this.eventBus.emit(event.eventName, event, connection);
+      });
+
+      await connection.commit();
+
+      return missionToUpdate;
     } catch (error) {
       await connection.rollback();
       throw error;
@@ -131,42 +203,11 @@ export class MissionService implements IMissionService {
       if (!mission) {
         throw new MissionNotFoundError();
       }
-
-      mission.publish();
-
-      await this.saveMissionWithRegistration(mission, connection);
-
-      await connection.commit();
-    } catch (error) {
-      await connection.rollback();
-      throw error;
-    } finally {
-      connection.release();
-    }
-  }
-  async updateMission(
-    missionDTO: UpdateMissionDTO,
-    missionUuid: string,
-  ): Promise<Mission> {
-    const connection: PoolConnection = await this.db.getConnection();
-
-    try {
-      await connection.beginTransaction();
-
-      const mission = await this.missionRepository.findByUuid(
-        missionUuid,
-        connection,
-        true,
-      );
-      if (!mission) {
-        throw new MissionNotFoundError();
-      }
-
       if (
-        missionDTO.organizers !== undefined &&
-        missionDTO.organizers.length !== 0
+        mission.getOrganizers() !== undefined &&
+        mission.getOrganizers().length !== 0
       ) {
-        for (const organizer of missionDTO.organizers) {
+        for (const organizer of mission.getOrganizers()) {
           const user = await this.userRepository.findByUuid(
             organizer.organizerUuid,
             connection,
@@ -177,14 +218,15 @@ export class MissionService implements IMissionService {
           }
         }
       }
+      mission.publish();
 
-      mission.update(missionDTO);
-
-      await this.saveMissionWithRegistration(mission, connection);
+      mission
+        .getEvents()
+        .forEach((event) =>
+          this.eventBus.emit(event.eventName, event, connection),
+        );
 
       await connection.commit();
-
-      return mission;
     } catch (error) {
       await connection.rollback();
       throw error;
@@ -192,7 +234,16 @@ export class MissionService implements IMissionService {
       connection.release();
     }
   }
-
+  async getMissionDetail(missionUuid: string): Promise<Mission> {
+    const mission = await this.missionRepository.findByUuid(missionUuid);
+    if (!mission) {
+      throw new MissionNotFoundError();
+    }
+    return mission;
+  }
+  async getMissions(filters: SearchMissionDTO): Promise<Mission[]> {
+    return this.missionRepository.findMany(filters);
+  }
   async finishMission(
     missionUuid: string,
     presentUuids: string[],
@@ -216,7 +267,13 @@ export class MissionService implements IMissionService {
 
       mission.cancel();
 
-      await this.saveMissionWithRegistration(mission, connection);
+      await this.missionRepository.updateDetails(mission, connection);
+
+      mission
+        .getEvents()
+        .forEach((event) =>
+          this.eventBus.emit(event.eventName, event, connection),
+        );
 
       await connection.commit();
     } catch (error) {
@@ -243,11 +300,11 @@ export class MissionService implements IMissionService {
 
       mission.delete();
 
-      if (mission.getStatus() === MissionStatus.DRAFT) {
-        await this.missionRepository.delete(mission, connection);
-      } else {
-        await this.saveMissionWithRegistration(mission, connection);
-      }
+      mission
+        .getEvents()
+        .forEach((event) =>
+          this.eventBus.emit(event.eventName, event, connection),
+        );
 
       await connection.commit();
     } catch (error) {
@@ -283,15 +340,9 @@ export class MissionService implements IMissionService {
         missionUuid,
       );
 
-      mission.addRegistration(registration);
+      /* mission.addRegistration(registration); */
 
-      await this.registrationRepository.saveRegistration(
-        registration,
-        missionUuid,
-        connection,
-      );
-
-      await this.missionRepository.update(mission, connection);
+      
 
       await connection.commit();
     } catch (error) {
@@ -299,21 +350,6 @@ export class MissionService implements IMissionService {
       throw error;
     } finally {
       connection.release();
-    }
-  }
-  private async saveMissionWithRegistration(
-    mission: Mission,
-    connection: PoolConnection,
-  ) {
-    await this.missionRepository.update(mission, connection);
-    if (mission.getRegistrations() && mission.getRegistrations().length > 0) {
-      for (const registration of mission.getRegistrations()) {
-        await this.registrationRepository.saveRegistration(
-          registration,
-          mission.getUuid(),
-          connection,
-        );
-      }
     }
   }
 }

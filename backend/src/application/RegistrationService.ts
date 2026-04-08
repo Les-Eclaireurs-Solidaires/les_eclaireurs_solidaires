@@ -1,5 +1,5 @@
 import { MissionNotFoundError } from "../domain/mission/exceptions/MissionNotFoundError.js";
-import type { IMissionRepository } from "../domain/mission/IMissionRepository.js";
+import type { IMissionRepository } from "../domain/mission/interfaces/IMissionRepository.js";
 import type { IRegistrationRepository } from "../domain/registration/IRegistrationRepository.js";
 import type { IRegistrationService } from "../domain/registration/IRegistrationService.js";
 import { Registration } from "../domain/registration/Registration.js";
@@ -42,7 +42,7 @@ export class RegistrationService implements IRegistrationService {
     if (!mission) {
       throw new MissionNotFoundError();
     }
-    const newRegistration = new Registration(
+    /* const newRegistration = new Registration(
       {
         date: new Date(),
         status: RegistrationStatus.ONHOLD,
@@ -55,8 +55,8 @@ export class RegistrationService implements IRegistrationService {
     await this.registrationRepository.saveRegistration(
       newRegistration,
       missionUuid,
-    );
+    ); */
 
-    this.missionRepository.update(mission);
+    /* this.missionRepository.update(mission); */
   }
 }
