@@ -25,7 +25,7 @@ services:
       #- API_URL_CLIENT=http://localhost:${HOST_BACKEND_PORT}
       #- API_URL_SERVER=http://backend:3000
       - NG_ALLOWED_HOSTS=localhost,frontend,172.19.0.5,127.0.0.1
-    command: npm start -- --host 0.0.0.0 
+    command: npm start -- --host 0.0.0.0 --poll 2000
 
   phpmyadmin:
     image: phpmyadmin:latest
