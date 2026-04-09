@@ -25,7 +25,7 @@ const userRepository = new UserRepository(database);
 const missionRepository = new MissionRepository(database);
 const registrationRepository = new RegistrationRepository(database);
 
-const eventHandler = new EventHandler(registrationRepository);
+const eventHandler = new EventHandler(registrationRepository,missionRepository);
 eventBus.on("MissionSynchroOrgaRegistEvent", (event, connection) => {
   eventHandler.handleRegistrationsUpdateEvent(event, connection);
 });
@@ -35,7 +35,6 @@ const authController = new AuthController(authService, tokenService);
 
 const missionService = new MissionService(
   missionRepository,
-  registrationRepository,
   userRepository,
   database,
   eventBus,

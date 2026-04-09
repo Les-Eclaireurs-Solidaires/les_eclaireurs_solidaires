@@ -98,7 +98,7 @@ export class AuthService {
     if (!user) {
       throw new UserNotFoundError();
     }
-    return user.toAuthResponse();
+    return user;
   }
 
   async refresh(refreshToken: string) {

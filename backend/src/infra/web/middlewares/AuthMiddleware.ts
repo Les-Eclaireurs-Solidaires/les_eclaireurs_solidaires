@@ -14,7 +14,7 @@ return (
     const token = req.cookies.accessToken;
 
     if (!token) {
-      throw new UnauthorizedError();
+      throw new UnauthenticatedError();
     }
 
     const payload = tokenService.verifyAccessToken(token);

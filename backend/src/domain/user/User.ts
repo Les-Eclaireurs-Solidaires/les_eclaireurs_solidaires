@@ -39,6 +39,21 @@ export class User {
     };
   }
 
+  toDashboard() {
+    return {
+      uuid: this.uuid,
+      email: this.email,
+      roleId: this.roleId,
+      firstName: this.firstName,
+      lastName: this.lastName,
+      avatarUrl: this.avatarUrl,
+      createdAt: this.createdAt,
+      cityId: this.cityId,
+    };
+  }
+
+
+
   public changePassword(newHashedPassword: string): void {
     this.password = newHashedPassword;
     this.updatedAt = new Date();
