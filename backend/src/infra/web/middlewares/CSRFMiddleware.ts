@@ -14,7 +14,7 @@ export const csrfProtection = (
     ) {
       return next();
     }
-    const excludedRoutes = ["/auth/login", "/auth/register"];
+    const excludedRoutes = ["/auth/login", "/auth/register","/auth/refresh"];
     if (excludedRoutes.includes(req.path)) {
       return next();
     }

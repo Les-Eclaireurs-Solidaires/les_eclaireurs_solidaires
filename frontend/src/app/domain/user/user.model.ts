@@ -43,7 +43,11 @@ export class UserModel {
     this.roleId = data.roleId;
   }
 
-  public static reconstitute(data: UserParam): UserModel {
+  public static reconstitute(data: UserParam | null): UserModel | null{
+    if(!data || !data.uuid)
+    {
+      return null;
+    }
     return new UserModel(data);
   }
   public toJSON(): UserParam {

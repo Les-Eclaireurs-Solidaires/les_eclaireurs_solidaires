@@ -1,75 +1,50 @@
 import { computed, inject, Injectable, makeStateKey, signal, TransferState } from '@angular/core';
-import { UserModel, UserParam } from '../domain/user/user.model';
+import { UserModel } from '../domain/user/user.model';
 import { AuthApiService } from './auth-api.service';
-import { catchError, Observable, of, tap } from 'rxjs';
+import { catchError, Observable, of, tap, throwError } from 'rxjs';
 export interface IAuthResponse {
   uuid: string;
   email: string;
   roleId: number;
 }
-const USER_KEY = makeStateKey<UserParam | null>('currentUser');
+
+const AUTH_KEY = makeStateKey<IAuthResponse | null>('auth');
+
 @Injectable({
   providedIn: 'root',
 })
 export class AuthStateService {
   private transferState = inject(TransferState);
   private authApiService = inject(AuthApiService);
-  private _currentUser = signal<UserModel | null>(null);
+  private _currentUser = signal<IAuthResponse | null>(null);
   public currentUser = this._currentUser.asReadonly();
 
   public isAuthenticated = computed(() => this.currentUser() !== null);
-  public isEmail = computed(() => this.currentUser()?.getEmail() ?? '');
+  public isEmail = computed(() => this.currentUser()?.email ?? '');
 
-  private _userFromTransferState(): UserModel | null {
-    const raw = this.transferState.get(USER_KEY, null);
-    return raw ? UserModel.reconstitute(raw) : null;
+  private _authFromTransferState(): IAuthResponse | null {
+    const raw = this.transferState.get(AUTH_KEY, null);
+    return raw ? raw : null;
   }
-  public updateState(user: UserModel | null) {
-    if (user) {
-      this._currentUser.set(user);
-      this.transferState.set(USER_KEY, user.toJSON());
+  public updateState(authResponse: IAuthResponse | null) {
+    this._currentUser.set(authResponse);
+    if (authResponse) {
+      this.transferState.set(AUTH_KEY, authResponse);
     } else {
-      this.transferState.remove(USER_KEY);
+      this.transferState.remove(AUTH_KEY);
     }
   }
-  public initializeApp(): Observable<UserModel | null> {
-    const cachedUser = this._userFromTransferState();
-    console.log('🟢 [SSR] Utilisateur trouvé dans le TransferState :', cachedUser);
-    if (cachedUser) {
-      this.updateState(cachedUser);
-      return of(cachedUser);
+  public initializeApp(): Observable<IAuthResponse | null> {
+    const authCached = this._authFromTransferState();
+    if (authCached) {
+      this.updateState(authCached);
+      return of(authCached);
     }
-    console.log('🟡 [API] Aucun utilisateur en cache, appel de /auth/me...');
-    return this.authApiService.refreshUser().pipe(
-      tap((user) => {
-        console.log('✅ [API] Réponse reçue avec succès :', user);
-        this.updateState(user);
-      }),
-      catchError((err) => {
-        console.error('🔴 [API] Échec de la récupération :', err);
-        this.updateState(null);
-        return of(null);
-      }),
-    );
-  }
-  public login(credentials: { email: string; password: string }): Observable<UserModel> {
-    return this.authApiService.login(credentials).pipe(
-      tap((user) => {
-        this.updateState(user);
-      }),
-    );
-  }
-  public register(credentials: { email: string; password: string }): Observable<UserModel> {
-    return this.authApiService.register(credentials).pipe(
-      tap((user) => {
-        this.updateState(user);
-      }),
-    );
-  }
-  public logout(): Observable<any> {
-    return this.authApiService.logout().pipe(
-      tap(() => {
-        this.clear();
+    return this.authApiService.refreshToken().pipe(
+      tap((authData) => {
+        if (authData) {
+          this.updateState(authData);
+        }
       }),
       catchError(() => {
         this.clear();
@@ -77,8 +52,44 @@ export class AuthStateService {
       }),
     );
   }
+  public login(credentials: { email: string; password: string }): Observable<IAuthResponse> {
+    return this.authApiService.login(credentials).pipe(
+      tap((authData) => {
+        this.updateState(authData);
+      }),
+      catchError((err) => {
+        this.updateState(null);
+        return throwError(() => err);
+      }),
+    );
+  }
+  public register(credentials: {
+    email: string;
+    password: string;
+  }): Observable<IAuthResponse | null> {
+    return this.authApiService.register(credentials).pipe(
+      tap((authData) => {
+        this.updateState(authData);
+      }),
+      catchError((err) => {
+        this.updateState(null);
+        return throwError(() => err);
+      }),
+    );
+  }
+  public logout(): Observable<void> {
+    return this.authApiService.logout().pipe(
+      tap(() => {
+        this.clear();
+      }),
+      catchError((err) => {
+        this.updateState(null);
+        return throwError(() => err);
+      }),
+    );
+  }
   public clear() {
     this._currentUser.set(null);
-    this.transferState.remove(USER_KEY);
+    this.transferState.remove(AUTH_KEY);
   }
 }

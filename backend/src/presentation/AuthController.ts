@@ -70,8 +70,8 @@ export class AuthController {
     this.generateSecurityCookie(res, result);
 
     return res
-      .status(201)
-      .json({ message: "User registered successfully", user: result.user });
+      .status(200)
+      .json(result.user);
   };
 
   public login = async (req: Request, res: Response, next: NextFunction) => {
@@ -86,7 +86,7 @@ export class AuthController {
 
     return res
       .status(200)
-      .json({ message: "User logged in successfully", user: result.user });
+      .json(result.user);
   };
 
   public logout = async (req: Request, res: Response) => {
@@ -131,7 +131,7 @@ export class AuthController {
 
     return res
       .status(200)
-      .json({ message: "Token refreshed successfully", user: result.user });
+      .json(result.user);
   };
 
   private generateSecurityCookie(res: Response, result: AuthResponse) {
