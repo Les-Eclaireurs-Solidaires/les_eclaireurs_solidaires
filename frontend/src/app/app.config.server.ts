@@ -1,10 +1,8 @@
-// app.config.server.ts
 import { mergeApplicationConfig, ApplicationConfig } from '@angular/core';
 import { provideServerRendering, withRoutes } from '@angular/ssr';
 import { appConfig } from './app.config';
 import { serverRoutes } from './app.routes.server';
-import { HTTP_TRANSFER_CACHE_ORIGIN_MAP, provideHttpClient, withFetch } from '@angular/common/http';
-import { provideClientHydration, withEventReplay, withHttpTransferCacheOptions } from '@angular/platform-browser';
+import { HTTP_TRANSFER_CACHE_ORIGIN_MAP } from '@angular/common/http';
 import { environment } from '../environment/environment';
 
 const serverConfig: ApplicationConfig = {
@@ -16,13 +14,6 @@ const serverConfig: ApplicationConfig = {
         [environment.apiUrlServer]: environment.apiUrlClient,
       },
     },
-    provideClientHydration(
-      withEventReplay(),
-      withHttpTransferCacheOptions({
-        includeRequestsWithAuthHeaders: true,
-        includePostRequests: false,
-      }),
-    )
   ],
 };
 

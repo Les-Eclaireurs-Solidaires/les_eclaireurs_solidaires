@@ -1,0 +1,57 @@
+<mat-toolbar color="primary" class="navBar">
+  <div class="logo-container" routerLink="/">
+    <img src="logo.png" alt="Logo" class="logo" />
+    <span>Les Éclaireurs Solidaires</span>
+  </div>
+
+  <span class="spacer"></span>
+
+  <div class="desktop-actions">
+    <button mat-flat-button color="accent" (click)="findMissionRequest.emit()">
+      Trouver une mission
+    </button>
+
+    @if (isAuthenticated()) {
+      <p>{{ isEmail() }}</p>
+      <button mat-flat-button (click)="goToDashboard.emit()">
+        <mat-icon>dashboard</mat-icon>
+        <span>Tableau de bord</span>
+      </button>
+      <button mat-icon-button (click)="logoutRequest.emit()">
+        <mat-icon>logout</mat-icon>
+      </button>
+    } @else {
+      <button mat-flat-button color="accent" (click)="loginRequest.emit()">Connexion</button>
+    }
+  </div>
+
+  <div class="mobile-actions">
+    <button mat-icon-button [matMenuTriggerFor]="mobileMenu">
+      <mat-icon>menu</mat-icon>
+    </button>
+
+    <mat-menu #mobileMenu="matMenu">
+      <button mat-menu-item (click)="findMissionRequest.emit()">
+        <mat-icon>search</mat-icon>
+        <span>Trouver une mission</span>
+      </button>
+
+      @if (isAuthenticated()) {
+        <p>{{ isEmail() }}</p>
+        <button mat-menu-item (click)="goToDashboard.emit()">
+          <mat-icon>dashboard</mat-icon>
+          <span>Tableau de bord</span>
+        </button>
+        <button mat-menu-item (click)="logoutRequest.emit()">
+          <mat-icon>logout</mat-icon>
+          <span>Déconnexion</span>
+        </button>
+      } @else {
+        <button mat-menu-item (click)="loginRequest.emit()">
+          <mat-icon>login</mat-icon>
+          <span>Connexion</span>
+        </button>
+      }
+    </mat-menu>
+  </div>
+</mat-toolbar>

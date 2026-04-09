@@ -1,10 +1,12 @@
 import { Routes } from '@angular/router';
-import { Home } from './components/pages/home/home';
-import { Login } from './authentication/login/login';
-import { Register } from './authentication/register/register';
-import { Authentication } from './authentication/authentication';
-import { MissionsPage } from './components/pages/missions.page/missions.page';
-import { MissionDetailPage } from './components/pages/mission-detail-page/mission-detail-page';
+import { Home } from './pages/home/home';
+import { MissionsPage } from './pages/missions.page/missions.page';
+import { MissionDetailPage } from './pages/mission-detail-page/mission-detail-page';
+import { Authentication } from './domain/authentication/authentication';
+import { Login } from './domain/authentication/login/login';
+import { Register } from './domain/authentication/register/register';
+import { DashboardPage } from './pages/dashboard.page/dashboard.page';
+import { authGuard } from './core/guards/auth.guard';
 
 export const routes: Routes = [
     {
@@ -14,10 +16,6 @@ export const routes: Routes = [
     {
         path: 'missions',
         component: MissionsPage
-    },
-    {
-        path: 'mission/:uuid',
-        component: MissionDetailPage
     },
     {
         path: 'login',
@@ -32,5 +30,19 @@ export const routes: Routes = [
                     component: Register
                 }
             ]
+    },
+    {
+        path: 'dashboard',
+        component: DashboardPage,
+        canActivate: [authGuard]
     },    
+    {
+        path: 'edit-mission/:uuid',
+        component: MissionDetailPage
+    },
+    {
+        path: 'mission/:uuid',
+        component: MissionDetailPage
+    },
+    
 ];
