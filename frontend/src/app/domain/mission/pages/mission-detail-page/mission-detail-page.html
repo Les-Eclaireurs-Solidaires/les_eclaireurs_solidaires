@@ -1,0 +1,9 @@
+@if (missionState.selectedMission()) {
+  <app-mission-detail
+    [mission]="missionState.selectedMission()!"
+    (backClick)="goBack()"
+    [canEdit]="canEdit()"
+  ></app-mission-detail>
+} @else {
+  <p>Chargement de la mission...</p>
+}

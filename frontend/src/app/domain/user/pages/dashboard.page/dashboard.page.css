@@ -1,0 +1,99 @@
+/* =========================================
+   1. VARIABLES & RESET
+   ========================================= */
+:host {
+  display: block;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden; /* Empêche le scroll global, seul le main va scroller */
+  --sidebar-width: 260px;
+}
+
+.dashboard-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  position: relative;
+}
+
+/* =========================================
+   2. DESIGN MOBILE (Par défaut)
+   ========================================= */
+
+/* Le Header avec le bouton Burger */
+.mobile-header {
+  display: flex;
+  align-items: center;
+  height: 60px;
+  padding: 0 16px;
+  background-color: white;
+  border-bottom: 1px solid #e0e0e0;
+  z-index: 10; /* Reste au-dessus du contenu */
+}
+
+.burger-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  /* margin-right: 16px; */
+}
+
+/* La Sidebar (Cachée sur le côté par défaut sur mobile) */
+.sidebar-wrapper {
+  position: fixed;
+  top: 0;
+  left: -100%; /* Totalement sortie de l'écran à gauche */
+  width: var(--sidebar-width);
+  height: 100%;
+  background-color: white;
+  box-shadow: 2px 0 8px rgba(0,0,0,0.1);
+  z-index: 100; /* Par-dessus tout le reste */
+  transition: left 0.3s ease-in-out; /* Animation d'ouverture fluide */
+}
+
+/* Quand le Signal passe à true, cette classe s'active */
+.sidebar-wrapper.is-open {
+  left: 0; /* Revient dans l'écran */
+}
+
+/* Le fond sombre (cliquable pour fermer) */
+.mobile-overlay {
+  position: fixed;
+  inset: 0; /* Remplace top:0, left:0, right:0, bottom:0 */
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 90; /* Juste en dessous de la sidebar */
+}
+
+/* Le contenu */
+.main-content {
+  flex-grow: 1;
+  padding: 20px;
+  overflow-y: auto; /* Permet au contenu de scroller si c'est trop long */
+  background-color: #f8f9fa;
+}
+
+
+/* =========================================
+   3. DESIGN ORDINATEUR (Tablettes & PC)
+   ========================================= */
+@media (min-width: 768px) {
+  
+  .dashboard-layout {
+    flex-direction: row; /* On passe en disposition gauche/droite */
+  }
+
+  /* On cache les éléments spécifiques au mobile */
+  .mobile-header,
+  .mobile-overlay {
+    display: none;
+  }
+
+  /* La Sidebar devient fixe, visible, et repousse le contenu */
+  .sidebar-wrapper {
+    position: static; /* Annule le fixed */
+    left: 0;
+    transition: none; /* Plus besoin d'animation sur PC */
+    border-right: 1px solid #e0e0e0;
+    box-shadow: none;
+  }
+}

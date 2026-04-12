@@ -1,30 +1,30 @@
 import type { NextFunction, Request, Response } from "express";
 import { CSRFError } from "../../exceptions/CSRFError.js";
 
+const EXCLUDED_METHODS = ["GET", "HEAD", "OPTIONS"];
+
+// Liste des routes à exclure de la protection CSRF
+const EXCLUDED_ROUTES = ["/auth/login", "/auth/register", "/auth/refresh"];
+
 export const csrfProtection = (
   req: Request,
   res: Response,
   next: NextFunction,
 ) => {
-  try {
-    if (
-      req.method === "GET" ||
-      req.method === "HEAD" ||
-      req.method === "OPTIONS"
-    ) {
-      return next();
-    }
-    const excludedRoutes = ["/auth/login", "/auth/register","/auth/refresh"];
-    if (excludedRoutes.includes(req.path)) {
-      return next();
-    }
-    const csrfToken = req.cookies["XSRF-TOKEN"];
-    const frontCsrfToken = req.headers["x-xsrf-token"];
-    if (!csrfToken || !frontCsrfToken || csrfToken !== frontCsrfToken) {
-      throw new CSRFError();
-    }
-    next();
-  } catch (error) {
-    next(error);
+  if (EXCLUDED_METHODS.includes(req.method) || EXCLUDED_ROUTES.includes(req.path)) {
+    return next();
   }
+
+  const csrfTokenFromCookie = req.cookies["XSRF-TOKEN"];
+  const csrfTokenFromHeader = req.headers["x-xsrf-token"];
+
+  if (!csrfTokenFromCookie || !csrfTokenFromHeader) {
+    return next(new CSRFError("Jeton CSRF manquant (cookie ou header)."));
+  }
+
+  if (csrfTokenFromCookie !== csrfTokenFromHeader) {
+    return next(new CSRFError("Les jetons CSRF ne correspondent pas."));
+  }
+
+  next();
 };

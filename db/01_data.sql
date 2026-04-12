@@ -1,845 +1,106 @@
-INSERT INTO `role` (`role_name`)
-VALUES ('SuperAdmin'),
-    ('Organizer'),
-    ('Volunteer');
-INSERT INTO `registration_status` (`registration_status_name`)
-VALUES ('ONHOLD'),
-    ('VALIDATED'),
-    ('REFUSED'),
-    ('CANCELED'),
-    ('PRESENT'),
-    ('ABSENT');
-INSERT INTO `mission_status` (`mission_status_name`)
-VALUES ('DRAFT'),
-    ('PUBLISHED'),
-    ('FINISHED'),
-    ('CANCELED');
-INSERT INTO `request_organizer_status` (`request_organizer_status_name`)
-VALUES ('PENDING'),
-    ('VALIDATED'),
-    ('REFUSED'),
-    ('CANCELED');
 -- ============================================================================
--- 1. VILLES & CATÉGORIES (Les référentiels)
+-- 1. RÉFÉRENTIELS (Rôles & Statuts)
 -- ============================================================================
-INSERT INTO `city` (`city_name`, `city_zip`)
-VALUES ('Grenoble', '38000'),
-    ('Lyon', '69000'),
-    ('Paris', '75000'),
-    ('Marseille', '13000'),
-    ('Lille', '59000');
-INSERT INTO `category` (`category_name`)
-VALUES ('Écologie & Environnement'),
-    ('Solidarité & Social'),
-    ('Éducation & Soutien'),
-    ('Santé & Prévention'),
-    ('Sport & Inclusion');
+INSERT INTO `role` (`role_name`) VALUES 
+('SUPERADMIN'), -- ID 1
+('ORGANIZER'),  -- ID 2
+('VOLUNTEER');  -- ID 3
+
+INSERT INTO `registration_status` (`registration_status_name`) VALUES 
+('ONHOLD'),    -- ID 1
+('VALIDATED'), -- ID 2
+('REFUSED'),   -- ID 3
+('CANCELED'),  -- ID 4
+('PRESENT'),   -- ID 5
+('ABSENT');    -- ID 6
+
+INSERT INTO `mission_status` (`mission_status_name`) VALUES 
+('DRAFT'),     -- ID 1
+('PUBLISHED'), -- ID 2
+('FINISHED'),  -- ID 3
+('CANCELED');  -- ID 4
+
+INSERT INTO `request_organizer_status` (`request_organizer_status_name`) VALUES 
+('PENDING'),   -- ID 1
+('VALIDATED'), -- ID 2
+('REFUSED'),   -- ID 3
+('CANCELED');  -- ID 4
+
 -- ============================================================================
--- 2. UTILISATEURS (51 comptes au total)
+-- 2. RÉFÉRENTIELS (Villes & Catégories)
 -- ============================================================================
--- Le mot de passe est un hash BCrypt générique pour tous (ex: "password123")
-SET @hash = '$2b$10$Ep3z3.uE6U7iJ/Dq9nI/1.1z/Z9b7/K/3Z/4Z/5Z/6Z/7Z/8Z/9Z/';
--- 1 SUPER ADMIN (Role 1)
-INSERT INTO `user` (
-        `user_uuid`,
-        `user_email`,
-        `user_password`,
-        `user_firstname`,
-        `user_lastname`,
-        `user_created_at`,
-        `id_city`,
-        `id_role`
-    )
-VALUES (
-        UUID(),
-        'admin@eclaireurs.fr',
-        @hash,
-        'Super',
-        'Admin',
-        '2026-01-01 10:00:00',
-        1,
-        1
-    );
--- 10 ORGANISATEURS (Role 2) - IDs 2 à 11
-INSERT INTO `user` (
-        `user_uuid`,
-        `user_email`,
-        `user_password`,
-        `user_firstname`,
-        `user_lastname`,
-        `user_created_at`,
-        `id_city`,
-        `id_role`
-    )
-VALUES (
-        UUID(),
-        'orga1@test.com',
-        @hash,
-        'Alice',
-        'Martin',
-        '2026-01-15 09:00:00',
-        1,
-        2
-    ),
-    (
-        UUID(),
-        'orga2@test.com',
-        @hash,
-        'Marc',
-        'Dubois',
-        '2026-01-16 14:30:00',
-        2,
-        2
-    ),
-    (
-        UUID(),
-        'orga3@test.com',
-        @hash,
-        'Sophie',
-        'Leroux',
-        '2026-01-20 11:15:00',
-        3,
-        2
-    ),
-    (
-        UUID(),
-        'orga4@test.com',
-        @hash,
-        'Julien',
-        'Moreau',
-        '2026-02-05 16:45:00',
-        4,
-        2
-    ),
-    (
-        UUID(),
-        'orga5@test.com',
-        @hash,
-        'Claire',
-        'Fontaine',
-        '2026-02-10 10:20:00',
-        5,
-        2
-    ),
-    (
-        UUID(),
-        'orga6@test.com',
-        @hash,
-        'Thomas',
-        'Blanc',
-        '2026-02-15 09:10:00',
-        1,
-        2
-    ),
-    (
-        UUID(),
-        'orga7@test.com',
-        @hash,
-        'Emma',
-        'Garnier',
-        '2026-02-28 15:00:00',
-        2,
-        2
-    ),
-    (
-        UUID(),
-        'orga8@test.com',
-        @hash,
-        'Lucas',
-        'Rousseau',
-        '2026-03-01 18:30:00',
-        3,
-        2
-    ),
-    (
-        UUID(),
-        'orga9@test.com',
-        @hash,
-        'Léa',
-        'Perrin',
-        '2026-03-10 08:45:00',
-        4,
-        2
-    ),
-    (
-        UUID(),
-        'orga10@test.com',
-        @hash,
-        'Hugo',
-        'Lefebvre',
-        '2026-03-15 13:20:00',
-        5,
-        2
-    );
--- 40 BÉNÉVOLES (Role 3) - IDs 12 à 51
--- Génération en bloc pour simuler une base active
-INSERT INTO `user` (
-        `user_uuid`,
-        `user_email`,
-        `user_password`,
-        `user_firstname`,
-        `user_lastname`,
-        `user_created_at`,
-        `id_city`,
-        `id_role`
-    )
-VALUES (
-        UUID(),
-        'ben1@test.com',
-        @hash,
-        'Camille',
-        'Ben1',
-        '2026-02-01 10:00:00',
-        1,
-        3
-    ),
-    (
-        UUID(),
-        'ben2@test.com',
-        @hash,
-        'Arthur',
-        'Ben2',
-        '2026-02-02 10:00:00',
-        2,
-        3
-    ),
-    (
-        UUID(),
-        'ben3@test.com',
-        @hash,
-        'Louis',
-        'Ben3',
-        '2026-02-03 10:00:00',
-        3,
-        3
-    ),
-    (
-        UUID(),
-        'ben4@test.com',
-        @hash,
-        'Mila',
-        'Ben4',
-        '2026-02-04 10:00:00',
-        4,
-        3
-    ),
-    (
-        UUID(),
-        'ben5@test.com',
-        @hash,
-        'Jules',
-        'Ben5',
-        '2026-02-05 10:00:00',
-        5,
-        3
-    ),
-    (
-        UUID(),
-        'ben6@test.com',
-        @hash,
-        'Ambre',
-        'Ben6',
-        '2026-02-06 10:00:00',
-        1,
-        3
-    ),
-    (
-        UUID(),
-        'ben7@test.com',
-        @hash,
-        'Paul',
-        'Ben7',
-        '2026-02-07 10:00:00',
-        2,
-        3
-    ),
-    (
-        UUID(),
-        'ben8@test.com',
-        @hash,
-        'Jade',
-        'Ben8',
-        '2026-02-08 10:00:00',
-        3,
-        3
-    ),
-    (
-        UUID(),
-        'ben9@test.com',
-        @hash,
-        'Gabin',
-        'Ben9',
-        '2026-02-09 10:00:00',
-        4,
-        3
-    ),
-    (
-        UUID(),
-        'ben10@test.com',
-        @hash,
-        'Mia',
-        'Ben10',
-        '2026-02-10 10:00:00',
-        5,
-        3
-    ),
-    (
-        UUID(),
-        'ben11@test.com',
-        @hash,
-        'Raphaël',
-        'Ben11',
-        '2026-02-11 10:00:00',
-        1,
-        3
-    ),
-    (
-        UUID(),
-        'ben12@test.com',
-        @hash,
-        'Rose',
-        'Ben12',
-        '2026-02-12 10:00:00',
-        2,
-        3
-    ),
-    (
-        UUID(),
-        'ben13@test.com',
-        @hash,
-        'Maël',
-        'Ben13',
-        '2026-02-13 10:00:00',
-        3,
-        3
-    ),
-    (
-        UUID(),
-        'ben14@test.com',
-        @hash,
-        'Alice',
-        'Ben14',
-        '2026-02-14 10:00:00',
-        4,
-        3
-    ),
-    (
-        UUID(),
-        'ben15@test.com',
-        @hash,
-        'Noah',
-        'Ben15',
-        '2026-02-15 10:00:00',
-        5,
-        3
-    ),
-    (
-        UUID(),
-        'ben16@test.com',
-        @hash,
-        'Anna',
-        'Ben16',
-        '2026-02-16 10:00:00',
-        1,
-        3
-    ),
-    (
-        UUID(),
-        'ben17@test.com',
-        @hash,
-        'Eden',
-        'Ben17',
-        '2026-02-17 10:00:00',
-        2,
-        3
-    ),
-    (
-        UUID(),
-        'ben18@test.com',
-        @hash,
-        'Lina',
-        'Ben18',
-        '2026-02-18 10:00:00',
-        3,
-        3
-    ),
-    (
-        UUID(),
-        'ben19@test.com',
-        @hash,
-        'Léon',
-        'Ben19',
-        '2026-02-19 10:00:00',
-        4,
-        3
-    ),
-    (
-        UUID(),
-        'ben20@test.com',
-        @hash,
-        'Chloé',
-        'Ben20',
-        '2026-02-20 10:00:00',
-        5,
-        3
-    ),
-    (
-        UUID(),
-        'ben21@test.com',
-        @hash,
-        'Sacha',
-        'Ben21',
-        '2026-02-21 10:00:00',
-        1,
-        3
-    ),
-    (
-        UUID(),
-        'ben22@test.com',
-        @hash,
-        'Julia',
-        'Ben22',
-        '2026-02-22 10:00:00',
-        2,
-        3
-    ),
-    (
-        UUID(),
-        'ben23@test.com',
-        @hash,
-        'Aaron',
-        'Ben23',
-        '2026-02-23 10:00:00',
-        3,
-        3
-    ),
-    (
-        UUID(),
-        'ben24@test.com',
-        @hash,
-        'Iris',
-        'Ben24',
-        '2026-02-24 10:00:00',
-        4,
-        3
-    ),
-    (
-        UUID(),
-        'ben25@test.com',
-        @hash,
-        'Victor',
-        'Ben25',
-        '2026-02-25 10:00:00',
-        5,
-        3
-    ),
-    (
-        UUID(),
-        'ben26@test.com',
-        @hash,
-        'Zoé',
-        'Ben26',
-        '2026-02-26 10:00:00',
-        1,
-        3
-    ),
-    (
-        UUID(),
-        'ben27@test.com',
-        @hash,
-        'Marius',
-        'Ben27',
-        '2026-02-27 10:00:00',
-        2,
-        3
-    ),
-    (
-        UUID(),
-        'ben28@test.com',
-        @hash,
-        'Léna',
-        'Ben28',
-        '2026-02-28 10:00:00',
-        3,
-        3
-    ),
-    (
-        UUID(),
-        'ben29@test.com',
-        @hash,
-        'Marin',
-        'Ben29',
-        '2026-03-01 10:00:00',
-        4,
-        3
-    ),
-    (
-        UUID(),
-        'ben30@test.com',
-        @hash,
-        'Inès',
-        'Ben30',
-        '2026-03-02 10:00:00',
-        5,
-        3
-    ),
-    (
-        UUID(),
-        'ben31@test.com',
-        @hash,
-        'Côme',
-        'Ben31',
-        '2026-03-03 10:00:00',
-        1,
-        3
-    ),
-    (
-        UUID(),
-        'ben32@test.com',
-        @hash,
-        'Agathe',
-        'Ben32',
-        '2026-03-04 10:00:00',
-        2,
-        3
-    ),
-    (
-        UUID(),
-        'ben33@test.com',
-        @hash,
-        'Gaspard',
-        'Ben33',
-        '2026-03-05 10:00:00',
-        3,
-        3
-    ),
-    (
-        UUID(),
-        'ben34@test.com',
-        @hash,
-        'Juliette',
-        'Ben34',
-        '2026-03-06 10:00:00',
-        4,
-        3
-    ),
-    (
-        UUID(),
-        'ben35@test.com',
-        @hash,
-        'Axel',
-        'Ben35',
-        '2026-03-07 10:00:00',
-        5,
-        3
-    ),
-    (
-        UUID(),
-        'ben36@test.com',
-        @hash,
-        'Jeanne',
-        'Ben36',
-        '2026-03-08 10:00:00',
-        1,
-        3
-    ),
-    (
-        UUID(),
-        'ben37@test.com',
-        @hash,
-        'Evan',
-        'Ben37',
-        '2026-03-09 10:00:00',
-        2,
-        3
-    ),
-    (
-        UUID(),
-        'ben38@test.com',
-        @hash,
-        'Nina',
-        'Ben38',
-        '2026-03-10 10:00:00',
-        3,
-        3
-    ),
-    (
-        UUID(),
-        'ben39@test.com',
-        @hash,
-        'Milo',
-        'Ben39',
-        '2026-03-11 10:00:00',
-        4,
-        3
-    ),
-    (
-        UUID(),
-        'ben40@test.com',
-        @hash,
-        'Eva',
-        'Ben40',
-        '2026-03-12 10:00:00',
-        5,
-        3
-    );
+INSERT INTO `city` (`city_name`, `city_zip`) VALUES 
+('Grenoble', '38000'), -- ID 1
+('Lyon', '69000'),     -- ID 2
+('Paris', '75000'),    -- ID 3
+('Marseille', '13000'),-- ID 4
+('Lille', '59000');    -- ID 5
+
+INSERT INTO `category` (`category_name`) VALUES 
+('Écologie & Environnement'), -- ID 1
+('Solidarité & Social'),      -- ID 2
+('Éducation & Soutien'),      -- ID 3
+('Santé & Prévention'),       -- ID 4
+('Sport & Inclusion');        -- ID 5
+
 -- ============================================================================
--- 3. MISSIONS (10 Missions - Période du 15 Avril au 30 Mai 2026)
--- Status : 2=Publiée, 4=Annulée
+-- 3. UTILISATEURS (Mot de passe : password)
 -- ============================================================================
-INSERT INTO `mission` (
-        `mission_uuid`,
-        `mission_name`,
-        `mission_description`,
-        `mission_date_start`,
-        `mission_date_end`,
-        `mission_address`,
-        `mission_nbr_volunteer_needed`,
-        `mission_created_at`,
-        `id_city`,
-        `id_mission_status`
-    )
-VALUES -- Les missions cibles pour les tests de rappel (15 Avril)
-    (
-        UUID(),
-        'Collecte alimentaire de Printemps',
-        'Aidez-nous à trier et distribuer les denrées récoltées pour les familles.',
-        '2026-04-15 08:00:00',
-        '2026-04-15 18:00:00',
-        'Banque Alimentaire centrale',
-        15,
-        '2026-03-01 10:00:00',
-        1,
-        2
-    ),
-    -- M1 (Publiée)
-    (
-        UUID(),
-        'Soutien scolaire intensif (Brevet)',
-        'Accompagnement des élèves de 3ème pour les révisions de Pâques.',
-        '2026-04-15 14:00:00',
-        '2026-04-15 17:00:00',
-        'Médiathèque Municipale',
-        5,
-        '2026-03-05 11:00:00',
-        2,
-        2
-    ),
-    -- M2 (Publiée)
-    -- Le reste des missions étalées jusqu'au 30 Mai
-    (
-        UUID(),
-        'Nettoyage des Berges du Rhône',
-        'Action citoyenne de ramassage des déchets le long des berges.',
-        '2026-04-20 09:00:00',
-        '2026-04-20 12:30:00',
-        'Quai Claude Bernard',
-        25,
-        '2026-03-10 09:00:00',
-        2,
-        2
-    ),
-    -- M3 (Publiée)
-    (
-        UUID(),
-        'Maraude de printemps annulée',
-        'Distribution de repas chauds et vêtements.',
-        '2026-04-25 19:00:00',
-        '2026-04-25 23:00:00',
-        'Place de la République',
-        8,
-        '2026-03-12 14:00:00',
-        3,
-        4
-    ),
-    -- M4 (ANNULEE)
-    (
-        UUID(),
-        'Tournoi de foot inclusif',
-        'Arbitrage et encadrement logistique du tournoi inter-quartiers.',
-        '2026-05-02 08:30:00',
-        '2026-05-02 18:00:00',
-        'Stade Vélodrome (Annexe)',
-        20,
-        '2026-03-15 16:00:00',
-        4,
-        2
-    ),
-    -- M5 (Publiée)
-    (
-        UUID(),
-        'Atelier prévention santé',
-        'Sensibilisation aux gestes de premiers secours pour le grand public.',
-        '2026-05-10 10:00:00',
-        '2026-05-10 16:00:00',
-        'Salle des fêtes de Fives',
-        6,
-        '2026-03-18 08:00:00',
-        5,
-        2
-    ),
-    -- M6 (Publiée)
-    (
-        UUID(),
-        'Rénovation local associatif',
-        'Peinture et petit bricolage pour rafraîchir nos locaux d accueil.',
-        '2026-05-15 09:00:00',
-        '2026-05-16 18:00:00',
-        '14 Rue de la Solidarité',
-        10,
-        '2026-03-20 10:30:00',
-        1,
-        2
-    ),
-    -- M7 (Publiée)
-    (
-        UUID(),
-        'Festival Écolo',
-        'Organisation logistique du festival Zéro Déchet de la ville.',
-        '2026-05-22 08:00:00',
-        '2026-05-24 20:00:00',
-        'Parc de la Tête d Or',
-        40,
-        '2026-03-25 11:00:00',
-        2,
-        2
-    ),
-    -- M8 (Publiée)
-    (
-        UUID(),
-        'Accompagnement lecture EHPAD',
-        'Moment de partage et de lecture avec les résidents.',
-        '2026-05-25 15:00:00',
-        '2026-05-25 17:00:00',
-        'Résidence Les Tilleuls',
-        4,
-        '2026-03-26 14:00:00',
-        3,
-        2
-    ),
-    -- M9 (Publiée)
-    (
-        UUID(),
-        'Gala de Charité Annuel',
-        'Accueil, vestiaire et service pour la grande soirée de levée de fonds.',
-        '2026-05-30 18:00:00',
-        '2026-05-31 01:00:00',
-        'Palais de la Bourse',
-        12,
-        '2026-03-28 09:00:00',
-        2,
-        2
-    );
--- M10 (Publiée)
+INSERT INTO `user` (`user_id`, `user_uuid`, `user_refresh_token`, `user_email`, `user_password`, `user_firstname`, `user_lastname`, `user_avatar`, `user_created_at`, `user_updated_at`, `user_deleted_at`, `id_city`, `id_role`) VALUES
+(1, '028fc93c-db5b-4a26-b8dc-21309b2c1f25', '$argon2id$v=19$m=65536,t=3,p=4$TFn8MQ1nRGtHNWyhnipOvA$q0BQFAHeJWttLbEmekOcblZ6QtIn4EHYckimqEVScEc', 'admin@test.com', '$argon2id$v=19$m=65536,t=3,p=4$ypablnU1bXIIuDUcfaPBiA$AoAafDmsMdJ1NN67yW2sADrLJbkv6mLsjggzce2J/DY', NULL, NULL, '/avatar/default.png', '2026-04-11 16:05:08', NULL, NULL, NULL, 1),
+(2, 'fdccdf50-cf49-4a41-a774-6a6e33a811ed', '$argon2id$v=19$m=65536,t=3,p=4$0es7+3mRycJujfesOllC7Q$JQU5C0tdv/ercBkamajRvPHulY3JHcY1ufWs02+Qbic', 'orga1@test.com', '$argon2id$v=19$m=65536,t=3,p=4$xoAQzQBGiOoWavJtaMSy2g$MRfA8Fw6DN3OCRWYfPYf6fHGMvZlwmjxCdXnsa+2EM0', NULL, NULL, '/avatar/default.png', '2026-04-11 16:08:07', NULL, NULL, NULL, 2),
+(3, '17d03ccf-d40e-4b50-9e1b-9d686c1e53e6', '$argon2id$v=19$m=65536,t=3,p=4$ci4GN0XHLECXoVTn+Q2o9Q$eGGcjimb/nfUXOOsiuzNGKUvCrF/Z+GiJQCr/I4lWLg', 'orga2@test.com', '$argon2id$v=19$m=65536,t=3,p=4$1pbX7HSWhK2NFAyzrH6Rbg$7yoECbXx3hmdvwlHB4y40V7WAiTIlWPj3FonES2l9BM', NULL, NULL, '/avatar/default.png', '2026-04-11 16:08:34', NULL, NULL, NULL, 2),
+(4, 'daea5057-2cbf-482a-904d-4ad34158fd3d', '$argon2id$v=19$m=65536,t=3,p=4$3FLEwsMxMwCXyFVFzI5peg$EdklwaOWl2+aobmx1/18hhUTzhImzqTQMqeAynrEI3g', 'volunt@test.com', '$argon2id$v=19$m=65536,t=3,p=4$uPk7fSiqP8vDRtrhYPgu2w$Me/wPKkTil6als5qouYeHoBxJFbH1jJo7M5g9x9HqaE', NULL, NULL, '/avatar/default.png', '2026-04-11 16:09:00', NULL, NULL, NULL, 3),
+(5, '82d8c91b-9cf9-47cf-ac8d-de3dccf95c41', '$argon2id$v=19$m=65536,t=3,p=4$syt8vlHyIUWUWUwDcapimw$ttngI45M44j1IumjqmaB28m/ci74y0cGeKHiSsj/F08', 'volunt1@test.com', '$argon2id$v=19$m=65536,t=3,p=4$FN4MB3d5jBY0cj8QTaFhzQ$H5TNqiVtmR+LleqXg8zVmLUKtMqDdw4a/cMfidiQMWQ', NULL, NULL, '/avatar/default.png', '2026-04-11 16:09:24', NULL, NULL, NULL, 3),
+(6, '08405f18-94c6-4b73-8225-a3611e6e68ab', '$argon2id$v=19$m=65536,t=3,p=4$vVppFuDM5k0M+JoDnbROjQ$ftP8mSJi1xUz+B8f2ue7w89ZUudDAExvrdEuUPnlEFo', 'volunt2@test.com', '$argon2id$v=19$m=65536,t=3,p=4$AV6W/j7eGcy2bggQs9yLlw$COTinht5+rgiSd/kRaY4pA1lXiZMm014VkD1H9FL/PM', NULL, NULL, '/avatar/default.png', '2026-04-11 16:09:39', NULL, NULL, NULL, 3),
+(7, 'a3d68254-d49f-4378-9089-cebd1479db28', '$argon2id$v=19$m=65536,t=3,p=4$BVrYAUVofdlluA1txJdJWw$r2dfZerCH1B2y5Lh3b0wM9rtkkMa+TuRuF3PkjTAoIE', 'volunt3@test.com', '$argon2id$v=19$m=65536,t=3,p=4$pf8KkywD9t0vnMlJ7HU+pA$LZ1NzL/z9Z7ZeERfMMbrenY2J73aUWKekCwSooAvJ0k', NULL, NULL, '/avatar/default.png', '2026-04-11 16:09:54', NULL, NULL, NULL, 3);
+
 -- ============================================================================
--- 4. AFFECTATION DES ORGANISATEURS (Gestion Multi-Orga)
+-- 4. MISSIONS
 -- ============================================================================
-INSERT INTO `mission_organizer` (`id_mission`, `id_organizer`)
-VALUES (1, 2),
-    -- M1 gérée par Orga1
-    (2, 3),
-    (2, 4),
-    -- M2 gérée par Orga2 et Orga3 (Multi)
-    (3, 5),
-    -- M3 gérée par Orga4
-    (4, 6),
-    -- M4 gérée par Orga5 (Celle qui est annulée)
-    (5, 7),
-    (5, 8),
-    -- M5 gérée par Orga6 et Orga7 (Multi)
-    (6, 9),
-    -- M6 gérée par Orga8
-    (7, 10),
-    (7, 2),
-    -- M7 gérée par Orga9 et Orga1 (Multi)
-    (8, 3),
-    -- M8 gérée par Orga2
-    (9, 4),
-    -- M9 gérée par Orga3
-    (10, 5),
-    (10, 6),
-    (10, 7);
--- M10 gérée par 3 orgas pour le gros event
+INSERT INTO `mission` (`mission_id`, `mission_uuid`, `mission_name`, `mission_description`, `mission_date_start`, `mission_date_end`, `mission_address`, `mission_nbr_volunteer_needed`, `mission_created_at`, `id_city`, `id_mission_status`) VALUES
+(1, UUID(), 'Distribution Alimentaire Paris', 'Distribution repas.', '2026-10-01 19:00:00', '2026-10-01 23:00:00', 'Place de la République', 10, NOW(), 3, 2), -- PUBLISHED
+(2, UUID(), 'Nettoyage Parc (Brouillon)', 'Ramassage déchets.', '2026-11-05 09:00:00', '2026-11-05 12:00:00', 'Parc de la Tête dOr', 5, NOW(), 2, 1), -- DRAFT
+(3, UUID(), 'Soutien Scolaire Hiver', 'Aide aux devoirs.', '2026-12-10 17:00:00', '2026-12-10 19:00:00', 'Bibliothèque Alcazar', 3, NOW(), 4, 2), -- PUBLISHED
+(4, UUID(), 'Maraude Annulée', 'Annulée cause météo.', '2026-08-20 20:00:00', '2026-08-20 23:00:00', 'Châtelet', 8, NOW(), 3, 4), -- CANCELED (ID 4)
+(5, UUID(), 'Festival Solidaire (Terminé)', 'Concert.', '2025-05-10 10:00:00', '2025-05-10 23:00:00', 'Vieux Lyon', 20, NOW(), 2, 3), -- FINISHED (ID 3)
+(6, UUID(), 'Collecte de Jouets', 'Pour Noël.', '2026-12-15 14:00:00', '2026-12-15 18:00:00', 'Vieux Port', 15, NOW(), 4, 2), -- PUBLISHED
+(7, UUID(), 'Atelier CV pour tous', 'Aide recherche emploi.', '2026-09-01 18:00:00', '2026-09-01 20:00:00', 'Mairie du 10e', 4, NOW(), 3, 2), -- PUBLISHED
+(8, UUID(), 'Plantation darbres', 'Reboisement.', '2026-11-20 08:30:00', '2026-11-20 17:00:00', 'Monts dOr', 50, NOW(), 2, 2), -- PUBLISHED
+(9, UUID(), 'Aide aux devoirs (Brouillon)', 'A venir.', '2026-09-15 17:30:00', '2026-09-15 19:30:00', 'Quartier Nord', 2, NOW(), 4, 1), -- DRAFT
+(10, UUID(), 'Gala de Charité', 'Récolte de dons.', '2026-12-31 19:00:00', '2027-01-01 02:00:00', 'Hôtel de Ville', 5, NOW(), 3, 2); -- PUBLISHED
+
 -- ============================================================================
--- 5. AFFECTATION DES CATÉGORIES
+-- 5. CATÉGORIES DES MISSIONS
 -- ============================================================================
-INSERT INTO `mission_category` (`id_mission`, `id_category`)
-VALUES (1, 2),
-    -- M1: Solidarité
-    (2, 3),
-    -- M2: Education
-    (3, 1),
-    -- M3: Ecologie
-    (4, 2),
-    (4, 4),
-    -- M4: Solidarité & Santé
-    (5, 5),
-    (5, 2),
-    -- M5: Sport & Solidarité
-    (6, 4),
-    -- M6: Santé
-    (7, 2),
-    -- M7: Solidarité
-    (8, 1),
-    -- M8: Ecologie
-    (9, 2),
-    (9, 3),
-    -- M9: Solidarité & Education
-    (10, 2);
--- M10: Solidarité
+INSERT INTO `mission_category` (`id_mission`, `id_category`) VALUES
+(1, 2), (2, 1), (3, 3), (4, 2), (5, 2), (6, 2), (7, 3), (8, 1), (9, 3), (10, 2);
+
 -- ============================================================================
--- 6. INSCRIPTIONS DES BÉNÉVOLES (Test de tous les statuts)
--- Status : 1=En Attente, 2=Validée, 3=Refusée, 4=Annulée
+-- 6. ORGANISATEURS DES MISSIONS (La logique "Mes projets" vs "Mon équipe")
 -- ============================================================================
--- Pour la mission 1 (15 Avril) - On blinde les validations pour tester les rappels !
-INSERT INTO `registration` (
-        `registration_date`,
-        `id_user`,
-        `id_mission`,
-        `id_registration_status`
-    )
-VALUES ('2026-03-05 10:00:00', 12, 1, 2),
-    ('2026-03-06 14:00:00', 13, 1, 2),
-    ('2026-03-07 09:00:00', 14, 1, 2),
-    ('2026-03-08 11:30:00', 15, 1, 2),
-    ('2026-03-09 16:45:00', 16, 1, 2),
-    ('2026-03-10 18:20:00', 17, 1, 1),
-    -- En attente
-    ('2026-03-11 08:15:00', 18, 1, 4),
-    -- Le bénévole a annulé
-    ('2026-03-12 12:00:00', 19, 1, 3);
--- Refusé par l'orga
--- Pour la mission 2 (15 Avril)
-INSERT INTO `registration` (
-        `registration_date`,
-        `id_user`,
-        `id_mission`,
-        `id_registration_status`
-    )
-VALUES ('2026-03-10 10:00:00', 20, 2, 2),
-    ('2026-03-11 14:00:00', 21, 2, 2),
-    ('2026-03-12 09:00:00', 22, 2, 1);
--- Inscriptions éparpillées sur le reste
-INSERT INTO `registration` (
-        `registration_date`,
-        `id_user`,
-        `id_mission`,
-        `id_registration_status`
-    )
-VALUES ('2026-03-15 10:00:00', 23, 3, 2),
-    ('2026-03-16 10:00:00', 24, 3, 2),
-    ('2026-03-17 10:00:00', 25, 3, 2),
-    ('2026-03-18 10:00:00', 26, 4, 4),
-    ('2026-03-19 10:00:00', 27, 4, 4),
-    -- Mission annulée, inscriptions passent en annulé
-    ('2026-03-20 10:00:00', 28, 5, 2),
-    ('2026-03-21 10:00:00', 29, 5, 2),
-    ('2026-03-22 10:00:00', 30, 5, 1),
-    ('2026-03-23 10:00:00', 31, 6, 2),
-    ('2026-03-24 10:00:00', 32, 6, 1),
-    ('2026-03-25 10:00:00', 33, 7, 2),
-    ('2026-03-26 10:00:00', 34, 7, 2),
-    ('2026-03-27 10:00:00', 35, 9, 2),
-    ('2026-03-28 10:00:00', 36, 9, 1),
-    ('2026-03-28 11:00:00', 37, 10, 1),
-('2026-03-28 14:00:00', 38, 10, 1);
+INSERT INTO `mission_organizer` (`mission_organizer_is_main`, `id_mission`, `id_organizer`) VALUES
+(1, 1, 2), (0, 1, 3), -- M1 : Orga 1 (ID 2) crée, Orga 2 (ID 3) aide
+(1, 2, 2),            -- M2 : Orga 1 seul
+(1, 3, 2),            -- M3 : Orga 1 seul
+(1, 4, 3),            -- M4 : Orga 2 seul
+(1, 5, 3), (0, 5, 2), -- M5 : Orga 2 crée, Orga 1 aide
+(1, 6, 3),            -- M6 : Orga 2 seul
+(1, 7, 2),            -- M7 : Orga 1 seul
+(1, 8, 3), (0,8,4),    -- M8 : Orga 2 seul, Orga en Volunteer (ID 4) aide
+(1, 9, 2),            -- M9 : Orga 1 seul
+(1, 10, 3);           -- M10 : Orga 2 seul
+
+
+-- ============================================================================
+-- 7. INSCRIPTIONS DES BÉNÉVOLES (La logique "Mes inscriptions")
+-- ============================================================================
+INSERT INTO `registration` (`registration_date`, `id_user`, `id_mission`, `id_registration_status`) VALUES
+(NOW(), 4, 1, 2), -- Bénévole 1 (ID 4) validé sur M1
+(NOW(), 5, 1, 1), -- Bénévole 2 (ID 5) en attente sur M1
+(NOW(), 4, 3, 2), -- Bénévole 1 validé sur M3
+(NOW(), 4, 5, 5), -- Bénévole 1 était PRESENT sur la M5 terminée
+(NOW(), 5, 5, 6), -- Bénévole 2 était ABSENT sur la M5 terminée
+(NOW(), 2, 6, 2), -- L'Orga 1 s'inscrit en tant que bénévole sur la M6 de l'Orga 2
+(NOW(), 4, 8, 3), -- Bénévole 1 refusé sur la M8
+(NOW(), 5, 10, 2);-- Bénévole 2 validé sur la M10

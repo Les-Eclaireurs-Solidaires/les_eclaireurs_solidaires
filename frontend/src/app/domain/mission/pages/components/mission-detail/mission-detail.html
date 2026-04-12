@@ -1,0 +1,12 @@
+<button (click)="backClick.emit()">Retour</button>
+@if (canEdit()) {
+  <button mat-stroked-button [routerLink]="['edit']">
+    <mat-icon>edit</mat-icon>
+    Modifier la mission
+  </button>
+}
+<div class="mission-detail">
+  <h2>{{ mission().getName() }}</h2>
+  <p>{{ mission().getDescription() }}</p>
+  <p>Date:{{ mission().getDateStart() | date: 'dd/MM/yyyy à HH:mm' }}</p>
+</div>

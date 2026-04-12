@@ -43,11 +43,6 @@ export class AuthController {
       requireAuth(this.tokenService),
       this.getCurrentUser,
     );
-    this.authRouter.get(
-      "/test",
-      requireAuth(this.tokenService),
-      this.getUserData,
-    );
   }
 
   private getUserData = async (req: Request, res: Response) => {
@@ -115,7 +110,7 @@ export class AuthController {
 
   public getCurrentUser = async (req: Request, res: Response) => {
     const user = await this.authService.getCurrentUser(req.user!.uuid);
-    return res.status(200).json(user.toAuthResponse());
+    return res.status(200).json(user);
   };
 
   public refresh = async (req: Request, res: Response, next: NextFunction) => {

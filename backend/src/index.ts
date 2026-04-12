@@ -13,6 +13,8 @@ import { AuthService } from "./application/AuthService.js";
 import { AuthController } from "./presentation/AuthController.js";
 import EventEmitter from "node:events";
 import { EventHandler } from "./infra/web/handler/EventHandler.js";
+import { UserController } from "./presentation/UserController.js";
+import { CityController } from "./presentation/CityController.js";
 
 const database: Pool = Database.getInstance().getPool();
 
@@ -40,6 +42,9 @@ const missionService = new MissionService(
   eventBus,
 );
 const missionController = new MissionController(missionService, tokenService);
+const userController = new UserController(missionService, tokenService);
+const cityController = new CityController();
 
-const appConfig: AppConfig = new AppConfig(authController, missionController);
+const appConfig: AppConfig = new AppConfig(authController, missionController, userController, cityController);
 appConfig.listen();
+

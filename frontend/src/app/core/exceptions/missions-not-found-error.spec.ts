@@ -1,4 +1,4 @@
-import { MissionsNotFoundError } from './missions-not-found-error';
+import { MissionsNotFoundError } from './missions-error.error';
 
 describe('MissionsNotFoundError', () => {
   it('should create an instance', () => {

@@ -1,8 +1,0 @@
-@if (missionService.selectedMission()) {
-  <app-mission-detail
-    [mission]="missionService.selectedMission()!"
-    (backClick)="goBack()"
-  ></app-mission-detail>
-} @else {
-  <p>Chargement de la mission...</p>
-}

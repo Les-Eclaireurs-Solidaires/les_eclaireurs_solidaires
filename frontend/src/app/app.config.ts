@@ -2,6 +2,7 @@ import {
   ApplicationConfig,
   ErrorHandler,
   inject,
+  PLATFORM_ID,
   provideAppInitializer,
   provideBrowserGlobalErrorListeners,
 } from '@angular/core';
@@ -22,7 +23,8 @@ import { GlobalErrorHandler } from './core/exceptions/global-error-handler';
 import { httpErrorInterceptor } from './core/interceptors/http-error-interceptor';
 import { baseUrlInterceptor } from './core/interceptors/base-url-interceptor';
 import { firstValueFrom } from 'rxjs';
-import { AuthStateService } from './services/auth-state.service';
+import { AuthStateService } from './domain/authentication/services/auth-state.service';
+import { isPlatformBrowser } from '@angular/common';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -49,6 +51,8 @@ export const appConfig: ApplicationConfig = {
     ),
 
     provideAppInitializer(() => {
+      const platformId = inject(PLATFORM_ID);
+      if (!isPlatformBrowser(platformId)) return;
       const authStateService = inject(AuthStateService);
       return firstValueFrom(authStateService.initializeApp());
     }),

@@ -1,5 +1,4 @@
 import type { Pool, PoolConnection } from "mysql2/promise";
-import type { IRegistrationRepository } from "../domain/registration/IRegistrationRepository.js";
 import type { IUserRepository } from "../domain/user/IUserRepository.js";
 import { Mission } from "../domain/mission/Mission.js";
 import type { CreateMissionDTO } from "../presentation/dto/mission/CreateMissionDTO.js";
@@ -9,13 +8,16 @@ import { Registration } from "../domain/registration/Registration.js";
 import { RegistrationStatus } from "../domain/registration/RegistrationStatusEnum.js";
 import { MissionNotFoundError } from "../domain/mission/exceptions/MissionNotFoundError.js";
 import { MissionStatusError } from "../domain/mission/exceptions/MissionStatusError.js";
-import type { SearchMissionDTO } from "../presentation/dto/mission/SearchMissionDTO.js";
 import type { EventEmitter } from "node:stream";
 import type { IMissionService } from "../domain/mission/interfaces/IMissionService.js";
 import type { IMissionRepository } from "../domain/mission/interfaces/IMissionRepository.js";
 import type { IActor } from "../domain/user/IActor.js";
 import type { UpdateMissionDetailsDTO } from "../presentation/dto/mission/UpdateMissionDetailsDTO.js";
 import type { UpdateMissionOrganizersDTO } from "../presentation/dto/mission/UpdateMissionOrganizersDTO.js";
+import type { FiltersInputDTO } from "../presentation/dto/mission/FiltersInputDTO.js";
+import type { InternalFilterDTO } from "../domain/mission/interfaces/InternalFilterDTO.js";
+import { MissionStatus } from "../domain/mission/MissionStatusEnum.js";
+import type { IDashboardMission } from "../domain/mission/interfaces/IDashboardMission.js";
 
 export class MissionService implements IMissionService {
   constructor(
@@ -24,7 +26,40 @@ export class MissionService implements IMissionService {
     private db: Pool,
     private eventBus: EventEmitter,
   ) {}
+  async getDashboardMission(
+    filters: FiltersInputDTO,
+    actor: IActor,
+  ): Promise<IDashboardMission> {
+    const filterToRepo: InternalFilterDTO = {
+      status: filters.status,
+      onlyMissions: true,
+      actorUuid: actor.getUuid(),
+    };
+    const dashboardResponse: IDashboardMission = {
+      created: [],
+      organized: [],
+      participated: [],
+    };
 
+    const result = await this.missionRepository.findMany(filterToRepo);
+    dashboardResponse.created = result.filter((mission) => {
+      return mission.getOrganizers().some((organizer)=> {
+        return organizer.organizerUuid === actor.getUuid() && organizer.isMain;
+      });
+    });
+    dashboardResponse.organized = result.filter((mission) => {
+      return mission.getOrganizers().some((organizer) => {
+        return organizer.organizerUuid === actor.getUuid() && !organizer.isMain;
+      });
+    });
+
+    dashboardResponse.participated = result.filter((mission) => {
+      return mission.getRegistrations().some((registration) => {
+        return registration.getVolunteerUuid() === actor.getUuid();
+      });
+    });
+    return dashboardResponse;
+  }
   async createMission(
     missionDTO: CreateMissionDTO,
     actor: IActor,
@@ -80,7 +115,7 @@ export class MissionService implements IMissionService {
       newMission.getState().validate(newMission);
 
       if (missionDTO.toPublish) {
-        newMission.publish();
+        newMission.publish(actor);
       }
       const missionToCreate: Mission = await this.missionRepository.create(
         newMission,
@@ -189,7 +224,7 @@ export class MissionService implements IMissionService {
       connection.release();
     }
   }
-  async publishMission(missionUuid: string): Promise<void> {
+  async publishMission(missionUuid: string, actor: IActor): Promise<void> {
     const connection: PoolConnection = await this.db.getConnection();
 
     try {
@@ -218,7 +253,7 @@ export class MissionService implements IMissionService {
           }
         }
       }
-      mission.publish();
+      mission.publish(actor);
 
       mission
         .getEvents()
@@ -241,16 +276,29 @@ export class MissionService implements IMissionService {
     }
     return mission;
   }
-  async getMissions(filters: SearchMissionDTO): Promise<Mission[]> {
-    return this.missionRepository.findMany(filters);
+  async getMissions(filters: FiltersInputDTO): Promise<Mission[]> {
+    const filterToRepo: InternalFilterDTO = {
+      status: [MissionStatus.PUBLISHED],
+      onlyMissions: false,
+      ...(filters.name !== undefined && { name: filters.name }),
+      ...(filters.dateStart !== undefined && { dateStart: filters.dateStart }),
+      ...(filters.address !== undefined && { address: filters.address }),
+      ...(filters.cityId !== undefined && { cityId: filters.cityId }),
+      ...(filters.categoryIds !== undefined && {
+        categoryIds: filters.categoryIds,
+      }),
+    };
+
+    return this.missionRepository.findMany(filterToRepo);
   }
   async finishMission(
     missionUuid: string,
     presentUuids: string[],
+    actor: IActor,
   ): Promise<void> {
     throw new Error("Method not implemented.");
   }
-  async cancelMission(missionUuid: string): Promise<void> {
+  async cancelMission(missionUuid: string, actor: IActor): Promise<void> {
     const connection: PoolConnection = await this.db.getConnection();
 
     try {
@@ -265,7 +313,7 @@ export class MissionService implements IMissionService {
         throw new MissionNotFoundError();
       }
 
-      mission.cancel();
+      mission.cancel(actor);
 
       await this.missionRepository.updateDetails(mission, connection);
 
@@ -283,7 +331,7 @@ export class MissionService implements IMissionService {
       connection.release();
     }
   }
-  async deleteMission(missionUuid: string): Promise<void> {
+  async deleteMission(missionUuid: string, actor: IActor): Promise<void> {
     const connection: PoolConnection = await this.db.getConnection();
 
     try {
@@ -298,7 +346,7 @@ export class MissionService implements IMissionService {
         throw new MissionNotFoundError();
       }
 
-      mission.delete();
+      mission.delete(actor);
 
       mission
         .getEvents()
@@ -341,8 +389,6 @@ export class MissionService implements IMissionService {
       );
 
       /* mission.addRegistration(registration); */
-
-      
 
       await connection.commit();
     } catch (error) {

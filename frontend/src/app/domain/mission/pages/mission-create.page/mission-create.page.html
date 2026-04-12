@@ -1,0 +1,13 @@
+<form [formGroup]="createMissionForm">
+    <mat-form-field appearance="fill" class="example-full-width">
+        <mat-label>Name</mat-label>
+        <input matInput type="text" formControlName="missionName" />
+    </mat-form-field>
+    
+    <mat-form-field appearance="fill" class="example-full-width">
+        <mat-label>Description</mat-label>
+        <textarea matInput type="text" formControlName="missionDescription"></textarea>
+    </mat-form-field>
+    
+    <button mat-raised-button color="primary" (click)="onCreateClicked()">Create Mission</button>
+</form>

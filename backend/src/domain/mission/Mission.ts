@@ -72,6 +72,31 @@ export class Mission {
     this.missionEvents = [];
     return events;
   }
+  private isAdmin(actor: IActor) {
+    return actor.getRole() === UserRole.SUPER_ADMIN;
+  }
+  private isOrganizer(actor: IActor) {
+    return (
+      this.organizers.some((o) => o.organizerUuid === actor.getUuid()) &&
+      actor.getRole() === UserRole.ORGANIZER
+    );
+  }
+  private isCreator(actor: IActor) {
+    return this.organizers.some(
+      (o) => o.organizerUuid === actor.getUuid() && o.isMain,
+    );
+  }
+  public isCreatorByUuid(actorUuid: string) {
+    return this.organizers.some(
+      (o) => o.organizerUuid === actorUuid && o.isMain === true,
+    );
+  }
+  private isVolunteer(actor: IActor) {
+    return (
+      actor.getRole() === UserRole.VOLUNTEER &&
+      this.registrations.some((r) => r.getVolunteerUuid() === actor.getUuid())
+    );
+  }
   private ensureNotDeleted() {
     if (this.deletedAt !== null) {
       throw new MissionStatusError(
@@ -79,7 +104,7 @@ export class Mission {
       );
     }
   }
-  public synchroOrgaRegistration(organizers: OrganizerParticipationDTO[]) {
+  private synchroOrgaRegistration(organizers: OrganizerParticipationDTO[]) {
     this.organizers = organizers.map((o) => ({
       organizerUuid: o.organizerUuid,
       isMain: o.isMain,
@@ -131,14 +156,8 @@ export class Mission {
     actor: IActor,
   ): Mission {
     const actorIsAdmin = actor.getRole() === UserRole.SUPER_ADMIN;
-    const actorIsOrganizer = organizers.find(
-      (o) => o.organizerUuid === actor.getUuid(),
-    );
-    const actorIsCreator =
-      actorIsOrganizer !== undefined &&
-      actorIsOrganizer.isMain === true &&
-      actor.getRole() === UserRole.ORGANIZER;
-    if (!actorIsAdmin && !actorIsCreator) {
+    const actorIsOrganizer = actor.getRole() === UserRole.ORGANIZER;
+    if (!actorIsAdmin && !actorIsOrganizer) {
       throw new UnauthorizedMissionActionError();
     }
     const mission = new Mission({
@@ -153,11 +172,7 @@ export class Mission {
   }
   public updateDetails(dto: UpdateMissionDetailsDTO, actor: IActor): void {
     this.ensureNotDeleted();
-    const isAdmin = actor.getRole() === UserRole.SUPER_ADMIN;
-    const isOrganizer = this.organizers.find(
-      (o) => o.organizerUuid === actor.getUuid(),
-    );
-    if (!isAdmin && !isOrganizer) {
+    if (!this.isAdmin(actor) && !this.isOrganizer(actor)) {
       throw new UnauthorizedMissionActionError();
     }
     this.state.updateDetails(this, dto);
@@ -171,7 +186,7 @@ export class Mission {
     if (dto.cityId !== undefined) this.cityId = dto.cityId;
     if (dto.categoryIds !== undefined) this.categoryIds = dto.categoryIds;
     this.state.validate(this);
-    if (dto.toPublish) this.publish();
+    if (dto.toPublish) this.publish(actor);
     this.updatedAt = new Date();
   }
   public updateOrganizers(
@@ -179,11 +194,7 @@ export class Mission {
     actor: IActor,
   ): void {
     this.ensureNotDeleted();
-    const isAdmin = actor.getRole() === UserRole.SUPER_ADMIN;
-    const isCreator = this.organizers.some(
-      (o) => o.organizerUuid === actor.getUuid() && o.isMain === true,
-    );
-    if (!isAdmin && !isCreator) {
+    if (!this.isAdmin(actor) && !this.isCreator(actor)) {
       throw new UnauthorizedMissionActionError();
     }
     this.state.updateOrganizers(this, dto);
@@ -193,34 +204,52 @@ export class Mission {
     this.addEvent(new OrganizersUpdateEvent(this));
     this.addEvent(new RegistrationsUpdateEvent(this));
   }
-  public publish(): void {
+  public publish(actor: IActor): void {
     this.ensureNotDeleted();
+    if(!this.isAdmin(actor) || !this.isOrganizer(actor)) {
+      throw new UnauthorizedMissionActionError();
+    }
     this.state.publish(this);
     this.updatedAt = new Date();
     this.addEvent(new OrganizersUpdateEvent(this));
     this.addEvent(new RegistrationsUpdateEvent(this));
   }
-  public cancel(): void {
+  public cancel(actor: IActor): void {
     this.ensureNotDeleted();
+    if (!this.isAdmin(actor) && !this.isCreator(actor)) {
+      throw new UnauthorizedMissionActionError();
+    }
+    this.canceledProcess();
+  }
+  public canceledProcess() {
     this.state.cancel(this);
     this.cancelRegistrations(this.registrations);
     this.addEvent(new RegistrationsUpdateEvent(this));
     this.updatedAt = new Date();
   }
-  public delete(): void {
+  public delete(actor: IActor): void {
+    if (!this.isAdmin(actor) && !this.isCreator(actor)) {
+      throw new UnauthorizedMissionActionError();
+    }
     this.state.delete(this);
     this.deletedAt = new Date();
     this.updatedAt = new Date();
   }
-  public finish(presentUuids: string[]): void {
+  public finish(presentUuids: string[], actor: IActor): void {
     this.ensureNotDeleted();
+    if (!this.isAdmin(actor) && !this.isCreator(actor)) {
+      throw new UnauthorizedMissionActionError();
+    }
     this.state.finished(this);
     this.finishRegistrations(presentUuids, this.registrations);
     this.updatedAt = new Date();
     this.addEvent(new RegistrationsUpdateEvent(this));
   }
-  public revertToDraft(): void {
+  public revertToDraft(actor: IActor): void {
     this.ensureNotDeleted();
+    if(!this.isAdmin(actor) || !this.isCreator(actor)) {
+      throw new UnauthorizedMissionActionError();
+    }
     this.state.revertToDraft(this);
     this.updatedAt = new Date();
   }
@@ -231,7 +260,7 @@ export class Mission {
   }
   private finishRegistrations(
     presentUuids: string[],
-    registrations: Registration[],
+    registrations: Registration[]
   ): void {
     for (const registration of registrations) {
       const currentStatus = registration.getStatus();
@@ -255,16 +284,14 @@ export class Mission {
         "Vous n'avez pas les accès pour vous inscrire à la mission.",
       );
     }
-    const isSuperAdmin = actor.getRole() === UserRole.SUPER_ADMIN;
     const isSelf = actor.getUuid() === registration.getVolunteerUuid();
-    const isMissionOrganizer = this.organizers.some(o => o.organizerUuid === actor.getUuid());
 
-    if (!isSuperAdmin && !isSelf && !isMissionOrganizer) {
+    if (!this.isAdmin(actor) && !isSelf && !this.isOrganizer(actor)) {
       throw new UnauthorizedMissionActionError();
     }
     this.state.subscribe(this, registration);
     this.updatedAt = new Date();
-    this.addEvent(new RegistrationsUpdateEvent(this))
+    this.addEvent(new RegistrationsUpdateEvent(this));
   }
 
   /*public removeRegistration(targetUuid: string): void {
@@ -380,6 +407,7 @@ export class Mission {
     return {
       uuid: this.uuid,
       name: this.name,
+      description:this.description,
       dateStart: this.dateStart,
       dateEnd: this.dateEnd,
       address: this.address,
@@ -397,6 +425,7 @@ export class Mission {
     return {
       uuid: this.uuid,
       name: this.name,
+      description: this.description,
       dateStart: this.dateStart,
       dateEnd: this.dateEnd,
       address: this.address,
@@ -414,6 +443,7 @@ export class Mission {
     return {
       uuid: this.uuid,
       name: this.name,
+      description: this.description,
       dateStart: this.dateStart,
       dateEnd: this.dateEnd,
       address: this.address,

@@ -1,0 +1,15 @@
+<mat-card class="" appearance="outlined">
+  <mat-card-header>
+    <mat-card-title>{{mission().getName()}}</mat-card-title><mat-chip>{{mission().getStatusLabel()}}</mat-chip>
+  </mat-card-header>
+  <mat-card-content>
+    <p>{{mission().getDescription()}}</p>
+  </mat-card-content>
+  <mat-card-footer class="">
+    <mat-chip-set>
+      <mat-chip></mat-chip>
+      <mat-chip></mat-chip>
+      <mat-chip></mat-chip>
+    </mat-chip-set>
+  </mat-card-footer>
+</mat-card>

@@ -13,13 +13,13 @@ import {
   validateQuery,
 } from "../infra/web/middlewares/ValidateDtoMiddleware.js";
 import { CreateMissionDTO } from "./dto/mission/CreateMissionDTO.js";
-import { SearchMissionDTO } from "./dto/mission/SearchMissionDTO.js";
 import type { IActor } from "../domain/user/IActor.js";
 import { UnauthenticatedError } from "../infra/exceptions/UnauthenticatedError.js";
 import type { IMissionService } from "../domain/mission/interfaces/IMissionService.js";
 import { UpdateMissionOrganizersDTO } from "./dto/mission/UpdateMissionOrganizersDTO.js";
 import { UpdateMissionDetailsDTO } from "./dto/mission/UpdateMissionDetailsDTO.js";
 import type { Mission } from "../domain/mission/Mission.js";
+import { FiltersInputDTO } from "./dto/mission/FiltersInputDTO.js";
 
 export class MissionController {
   private missionRouter: Router = Router();
@@ -45,7 +45,7 @@ export class MissionController {
   }
   private initializeRoutes(): void {
     this.missionRouter.post(
-      "/",
+      "/createMission",
       requireAuth(this.tokenService),
       requireRole([UserRole.ORGANIZER, UserRole.SUPER_ADMIN]),
       validateBody(CreateMissionDTO),
@@ -55,7 +55,7 @@ export class MissionController {
 
     this.missionRouter.get(
       "/",
-      validateQuery(SearchMissionDTO),
+      validateQuery(FiltersInputDTO),
       this.getMissions,
     );
     this.missionRouter.patch(
@@ -105,7 +105,6 @@ export class MissionController {
     );
 
     return res.status(200).json({
-      message: "Mission Details updated successfully",
       mission: result.toDashboard(),
     });
   };
@@ -125,7 +124,6 @@ export class MissionController {
     );
 
     return res.status(200).json({
-      message: "Mission Organizer updated successfully",
       mission: result.toDashboard(),
     });
   };
@@ -144,7 +142,6 @@ export class MissionController {
     );
 
     return res.status(201).json({
-      message: "Mission created successfully",
       mission: result.toDetail(),
     });
   };
@@ -158,8 +155,7 @@ export class MissionController {
     const mission = await this.missionService.getMissionDetail(missionUuid);
 
     return res.status(200).json({
-      message: "Mission fetched successfully",
-      mission: mission,
+      mission: mission.toDetail(),
     });
   };
   private getMissions = async (
@@ -167,13 +163,15 @@ export class MissionController {
     res: Response,
     next: NextFunction,
   ) => {
-    const filters: SearchMissionDTO = res.locals.validateQuery;
+    const filters: FiltersInputDTO = res.locals.validateQuery;
 
     const missions = await this.missionService.getMissions(filters);
 
     return res.status(200).json({
-      message: "Missions fetched successfully",
       missions: missions.map((mission) => mission.toSummary()),
+      meta: {
+        total: missions.length,
+      },
     });
   };
 }

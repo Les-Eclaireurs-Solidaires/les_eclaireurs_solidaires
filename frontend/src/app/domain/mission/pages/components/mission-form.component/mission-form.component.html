@@ -1,0 +1,90 @@
+<p>Form Component</p>
+<form [formGroup]="missionForm">
+  <mat-card class="form-mission-row">
+    <mat-card-header>
+      <mat-card-title>Général</mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      <mat-form-field appearance="fill" class="example-full-width">
+        <mat-label>Name</mat-label>
+        <input matInput type="text" formControlName="name" />
+      </mat-form-field>
+      <mat-form-field appearance="fill" class="example-full-width">
+        <mat-label>Description</mat-label>
+        <textarea matInput type="text" formControlName="description"></textarea>
+      </mat-form-field>
+    </mat-card-content>
+  </mat-card>
+  <mat-card class="form-mission-row">
+    <mat-card-header>
+      <mat-card-title>Logistique</mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      <mat-form-field appearance="fill" class="example-full-width">
+        <mat-label>Date de commencement</mat-label>
+        <input matInput [matDatepicker]="pickerStart" formControlName="dateStart" />
+        <mat-datepicker-toggle matIconSuffix [for]="pickerStart"></mat-datepicker-toggle>
+        <mat-datepicker #pickerStart></mat-datepicker>
+      </mat-form-field>
+
+      <mat-form-field appearance="fill" class="example-full-width">
+        <mat-label>Date de fin</mat-label>
+        <input matInput [matDatepicker]="pickerEnd" formControlName="dateEnd" />
+        <mat-datepicker-toggle matIconSuffix [for]="pickerEnd"></mat-datepicker-toggle>
+        <mat-datepicker #pickerEnd></mat-datepicker>
+      </mat-form-field>
+      <mat-form-field appearance="fill" class="example-full-width">
+        <mat-label>Nombre de participants maxi</mat-label>
+        <input matInput type="number" formControlName="nbrVolunteerNeeded" />
+      </mat-form-field>
+    </mat-card-content>
+  </mat-card>
+  <mat-card class="form-mission-row">
+    <mat-card-header>
+      <mat-card-title>Localisation </mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      <mat-form-field appearance="fill" class="example-full-width">
+        <mat-label>Adresse</mat-label>
+        <input matInput type="text" formControlName="address" />
+      </mat-form-field>
+      <mat-form-field appearance="fill" class="example-full-width">
+        <mat-label>Ville</mat-label>
+        <input type="text" matInput formControlName="citySearchText" [matAutocomplete]="auto">
+        <mat-autocomplete #auto="matAutocomplete" (optionSelected)="onCitySelected($event.option.value)">
+          @for (city of cityOptions(); track city.id) {
+            <mat-option [value]="city">{{ city.name }} ({{ city.zip }})</mat-option>
+          }
+        </mat-autocomplete>
+      </mat-form-field>
+    </mat-card-content>
+  </mat-card>
+  <!-- @if (showAdminField()) {
+     UNIQUEMENT SI CREATEUR DE LA MISSION OU ADMIN
+        CREATION => Trouver un moyen facile de rajouter des orga supplémentaires
+        EDITION  => Liste des orga facon liste édition  -->
+  <!-- <mat-form-field appearance="fill" class="example-full-width">
+    <mat-label>Liste des organisateurs</mat-label>
+    <textarea matInput type="text" formControlName="missionDescription"></textarea>
+  </mat-form-field> -->
+  <!-- UNIQUEMENT EN EDITION SI LA PERSONNE EST ADMIN OU CREATEUR -->
+  <!-- <mat-form-field appearance="fill" class="example-full-width">
+    <mat-label>Status</mat-label>
+    <textarea matInput type="text" formControlName="missionDescription"></textarea>
+  </mat-form-field> 
+  }-->
+  <div class="actions-row">
+    <button mat-button type="button" 
+    (click)="onSubmit(false)">Enregistrer en brouillon</button>
+
+    <button
+      mat-raised-button
+      color="primary"
+      type="button"
+      [disabled]="missionForm.invalid"
+      (click)="onSubmit(true)"
+    >
+      Publier la mission
+    </button>
+  </div>
+</form>

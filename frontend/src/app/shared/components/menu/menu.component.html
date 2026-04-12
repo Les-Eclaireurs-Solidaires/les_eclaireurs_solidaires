@@ -12,11 +12,9 @@
     </button>
 
     @if (isAuthenticated()) {
-      <p>{{ isEmail() }}</p>
-      <button mat-flat-button (click)="goToDashboard.emit()">
-        <mat-icon>dashboard</mat-icon>
-        <span>Tableau de bord</span>
-      </button>
+      <a (click)="goToDashboard.emit()" class="user-avatar">
+        <img [src]="userAvatar() || '/avatar/default.png'" alt="avatar">
+      </a>
       <button mat-icon-button (click)="logoutRequest.emit()">
         <mat-icon>logout</mat-icon>
       </button>
@@ -37,7 +35,6 @@
       </button>
 
       @if (isAuthenticated()) {
-        <p>{{ isEmail() }}</p>
         <button mat-menu-item (click)="goToDashboard.emit()">
           <mat-icon>dashboard</mat-icon>
           <span>Tableau de bord</span>

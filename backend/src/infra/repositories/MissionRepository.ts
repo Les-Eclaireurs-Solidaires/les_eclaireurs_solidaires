@@ -8,9 +8,9 @@ import { Mission } from "../../domain/mission/Mission.js";
 import { Registration } from "../../domain/registration/Registration.js";
 import type { Organizer } from "../../domain/user/Organizer.js";
 import type { Category } from "../../domain/category/Category.js";
-import type { SearchMissionDTO } from "../../presentation/dto/mission/SearchMissionDTO.js";
 import { MissionNameAlreadyExistError } from "../../domain/mission/exceptions/MissionNameAlreadyExistError.js";
 import type { IMissionRepository } from "../../domain/mission/interfaces/IMissionRepository.js";
+import type { InternalFilterDTO } from "../../domain/mission/interfaces/InternalFilterDTO.js";
 
 export class MissionRepository implements IMissionRepository {
   constructor(private db: Pool) {}
@@ -189,9 +189,7 @@ export class MissionRepository implements IMissionRepository {
   ): Promise<void> {
     const db = connection || this.db;
     const query = `DELETE FROM mission WHERE mission_uuid = ?`;
-    await (db as Pool).execute<ResultSetHeader>(query, [
-      missionUuid,
-    ]);
+    await (db as Pool).execute<ResultSetHeader>(query, [missionUuid]);
   }
 
   private async hydrateRegistrations(
@@ -393,7 +391,7 @@ export class MissionRepository implements IMissionRepository {
     });
   }
 
-  public async findMany(filters: SearchMissionDTO): Promise<Mission[]> {
+  public async findMany(filters: InternalFilterDTO): Promise<Mission[]> {
     let query = `SELECT 
                       mission.mission_uuid AS uuid,
                       mission.mission_name AS name,
@@ -412,36 +410,59 @@ export class MissionRepository implements IMissionRepository {
                       FROM mission
 
                       LEFT JOIN mission_status ON mission.id_mission_status = mission_status.mission_status_id`;
+    const conditions: string[] = [];
 
-    const conditions: string[] = ["mission.mission_deleted_at IS NULL"];
     const params: any[] = [];
 
-    if (filters.status) {
-      conditions.push("mission.id_mission_status = ?");
-      params.push(filters.status);
-    }
+    if (filters.status !== undefined) {
+      const placeholders = filters.status.map(() => "?").join(", ");
 
-    if (filters.cityId) {
+      conditions.push(`mission.id_mission_status IN (${placeholders})`);
+      params.push(...filters.status);
+    }
+    if (
+      filters.onlyMissions !== undefined &&
+      filters.onlyMissions &&
+      filters.actorUuid !== undefined &&
+      filters.actorUuid
+    ) {
+      const onlyMyMissionsSql = `
+    (
+      EXISTS (
+        SELECT 1 FROM mission_organizer mo
+        INNER JOIN \`user\` u ON mo.id_organizer = u.user_id
+        WHERE mo.id_mission = mission.mission_id AND u.user_uuid = ?
+      )
+      OR
+      EXISTS (
+        SELECT 1 FROM registration r
+        INNER JOIN \`user\` u ON r.id_user = u.user_id
+        WHERE r.id_mission = mission.mission_id AND u.user_uuid = ?
+      )
+    )
+  `;
+      conditions.push(onlyMyMissionsSql);
+      params.push(filters.actorUuid, filters.actorUuid);
+    }
+    if (filters.cityId !== undefined) {
       conditions.push("mission.id_city = ?");
       params.push(filters.cityId);
     }
-    if (filters.name) {
-      conditions.push("mission.mission_name = ?");
-      params.push(filters.name);
+    if (filters.name !== undefined && filters.name !== "") {
+      conditions.push("mission.mission_name LIKE ?");
+      params.push(`%${filters.name}%`);
     }
-
-    /* if (filters.dateStart) {
-      conditions.push(
-        "mission.mission_date_start >= ? AND mission.mission_date_start < ?",
-      );
+    if (filters.dateStart !== undefined && filters.dateStart.getTime()) {
+      conditions.push("mission.mission_date_start >= ?");
       params.push(filters.dateStart);
-    } */
-
+    }
+    if (filters.address !== undefined && filters.address !== "") {
+      conditions.push("mission.mission_address LIKE ?");
+      params.push(`%${filters.address}%`);
+    }
     if (conditions.length > 0) {
       query += " WHERE " + conditions.join(" AND ");
     }
-    query += " GROUP BY mission.mission_uuid";
-
     const [rows] = await this.db.execute<RowDataPacket[]>(query, params);
 
     const missions: Mission[] = [];

@@ -39,7 +39,11 @@
     "moduleDetection": "force",
     "skipLibCheck": true,
     "emitDecoratorMetadata": true,
-    "experimentalDecorators": true,
+    "experimentalDecorators": true
   },
-  "include": ["src/**/*", "src/domain/mission/exceptions/.ts"]
+  "include": [
+    "src/**/*",
+    "src/domain/mission/exceptions/.ts",
+    "../frontend/src/app/domain/mission/interfaces/MissionDTO.ts"
+  ]
 }

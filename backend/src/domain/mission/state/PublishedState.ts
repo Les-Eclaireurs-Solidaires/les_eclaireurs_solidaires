@@ -4,6 +4,7 @@ import { RegistrationNotFoundError } from "../../registration/exceptions/Registr
 import { RegistrationStatusError } from "../../registration/exceptions/RegistrationStatusError.js";
 import type { Registration } from "../../registration/Registration.js";
 import { RegistrationStatus } from "../../registration/RegistrationStatusEnum.js";
+import type { IActor } from "../../user/IActor.js";
 import { MissionDateError } from "../exceptions/MissionDateError.js";
 import { MissionFullError } from "../exceptions/MissionFullError.js";
 import { MissionNotActiveError } from "../exceptions/MissionNotActiveError.js";
@@ -66,7 +67,7 @@ export class PublishedState extends MissionState {
     mission.setStatus(MissionStatus.FINISHED);
   }
   delete(mission: Mission): void {
-    mission.cancel();
+    mission.canceledProcess();
   }
   subscribe(mission: Mission, registration: Registration): void {
     if (!this.hasAvailablePlaces(mission)) {

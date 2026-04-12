@@ -9,6 +9,8 @@ import type { Server } from "node:http";
 import { Database } from "../database/DatabaseConfig.js";
 import type { MissionController } from "../../presentation/MissionController.js";
 import type { AuthController } from "../../presentation/AuthController.js";
+import type { UserController } from "../../presentation/UserController.js";
+import type { CityController } from "../../presentation/CityController.js";
 
 export class AppConfig {
   private app: Express;
@@ -19,6 +21,8 @@ export class AppConfig {
   constructor(
     private authController: AuthController,
     private missionController: MissionController,
+    private userController: UserController,
+    private cityController: CityController,
   ) {
     this.app = express();
     this.port = envConfig.port;
@@ -34,7 +38,18 @@ export class AppConfig {
     this.app.use(helmet());
     this.app.use(
       cors({
-        origin: "http://localhost:4200",
+        origin: (origin, callback) => {
+          const allowed = [
+            "http://localhost:4200",
+            "http://localhost:4000", 
+            undefined,
+          ];
+          if (!origin || allowed.includes(origin)) {
+            callback(null, true);
+          } else {
+            callback(new Error("Not allowed by CORS"));
+          }
+        },
         credentials: true,
         methods: ["GET", "POST", "PUT", "DELETE"],
         allowedHeaders: ["Content-Type", "Authorization", "X-XSRF-TOKEN"],
@@ -51,12 +66,14 @@ export class AppConfig {
     });
     this.app.use("/auth", this.authController.getRouter());
     this.app.use("/api/mission", this.missionController.getRouter());
+    this.app.use("/api/user", this.userController.getRouter());
+    this.app.use("/api/cities", this.cityController.getRouter());
   }
 
   private initializeErrorHandling() {
     this.app.use(errorHandler);
   }
-  
+
   public listen() {
     this.server = this.app.listen(this.port, this.host, () => {
       console.log(`Server started on http://${this.host}:${this.port}`);

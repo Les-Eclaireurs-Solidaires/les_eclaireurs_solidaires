@@ -1,8 +1,8 @@
 <app-menu
   [isAuthenticated]="authStateService.isAuthenticated()"
+  [userAvatar]="userStateService.myAvatar()"
   (loginRequest)="handleLogin()"
   (logoutRequest)="handleLogout()"
   (findMissionRequest)="handleFindMission()"
-  [isEmail]="authStateService.isEmail()"
   (goToDashboard)="onDashboard()"
 ></app-menu>

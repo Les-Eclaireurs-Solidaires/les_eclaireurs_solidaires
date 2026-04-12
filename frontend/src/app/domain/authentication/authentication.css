@@ -1,5 +1,0 @@
-:host {
-  display: flex;
-  flex: 1;       /* Il absorbe la hauteur de .app-content */
-  width: 100%;   /* Il prend toute la largeur */
-}

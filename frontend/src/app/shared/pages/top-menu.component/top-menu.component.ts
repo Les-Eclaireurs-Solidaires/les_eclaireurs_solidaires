@@ -1,9 +1,9 @@
 import { Component, inject } from '@angular/core';
 import { MenuComponent } from '../../components/menu/menu.component';
-import { UserStateService } from '../../../services/user-state.service';
+import { UserStateService } from '../../../domain/user/services/user-state.service';
 import { Router } from '@angular/router';
 import { NotificationService } from '../../../services/notification.service';
-import { AuthStateService } from '../../../services/auth-state.service';
+import { AuthStateService } from '../../../domain/authentication/services/auth-state.service';
 
 @Component({
   selector: 'app-top-menu',

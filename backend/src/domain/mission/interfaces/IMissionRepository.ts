@@ -1,6 +1,6 @@
 import type { PoolConnection } from "mysql2/promise";
 import type { Mission } from "../Mission.js";
-import type { SearchMissionDTO } from "../../../presentation/dto/mission/SearchMissionDTO.js";
+import type { InternalFilterDTO } from "./InternalFilterDTO.js";
 
 export interface IMissionRepository {
   findByName(
@@ -13,7 +13,7 @@ export interface IMissionRepository {
     connection?: PoolConnection,
     lock?: boolean,
   ): Promise<Mission | null>;
-  findMany(filters: SearchMissionDTO): Promise<Mission[]>;
+  findMany(filters: InternalFilterDTO): Promise<Mission[]>;
   create(
     missionToCreate: Mission,
     connection?: PoolConnection,

@@ -1,0 +1,25 @@
+<div class="dashboard-layout">
+  
+   <header class="mobile-header">
+    <button class="burger-btn" (click)="toggleMenu()">
+      <mat-icon>arrow_right_alt</mat-icon>
+    </button>
+    <!-- <span class="mobile-title">Mon Espace</span> -->
+  </header>
+
+  <aside class="sidebar-wrapper" [class.is-open]="isSidenavOpen()">
+    <app-sidebar 
+      [menuItems]="menuLinks()" 
+      (itemClicked)="closeMenu()">
+    </app-sidebar>
+  </aside>
+
+  @if (isSidenavOpen()) {
+    <div class="mobile-overlay" (click)="closeMenu()"></div>
+  }
+
+  <main class="main-content">
+    <router-outlet></router-outlet>
+  </main>
+
+</div>
